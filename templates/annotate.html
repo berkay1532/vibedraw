@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>GT Etiketleme</title>
+<style>
+  html,body{margin:0;height:100%;font:13px/1.4 -apple-system,Helvetica,Arial,sans-serif;background:#f4f4f2;color:#222}
+  #app{display:grid;grid-template-columns:1fr 320px;height:100vh}
+  canvas{display:block;background:#fff;cursor:crosshair}
+  #side{border-left:1px solid #ddd;padding:10px;overflow:auto;background:#fafaf8}
+  h1{font-size:14px;margin:0 0 6px}
+  .tools button{margin:2px 2px 2px 0;padding:4px 8px;border:1px solid #bbb;background:#fff;border-radius:4px;cursor:pointer}
+  .tools button.on{background:#2b6cb0;color:#fff;border-color:#2b6cb0}
+  .list{margin:8px 0}
+  .row{display:flex;gap:4px;align-items:center;padding:2px 4px;border-radius:3px}
+  .row.sel{background:#e3eefc}
+  .row input{flex:1;min-width:0;padding:2px 4px;border:1px solid #ccc;border-radius:3px}
+  .row .id{color:#888;width:26px;font-size:11px}
+  .row .x{color:#c33;cursor:pointer;padding:0 4px}
+  .hint{color:#666;font-size:12px;margin:6px 0}
+  #save{width:100%;padding:8px;background:#2f855a;color:#fff;border:0;border-radius:4px;font-weight:600;cursor:pointer;margin-top:8px}
+  #status{font-size:12px;color:#444;margin-top:6px;white-space:pre-line}
+  select,textarea{width:100%;box-sizing:border-box}
+  kbd{background:#eee;border:1px solid #ccc;border-radius:3px;padding:0 4px;font-size:11px}
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="c"></canvas>
+  <div id="side">
+    <h1 id="title"></h1>
+    <div class="tools">
+      <button data-mode="select" class="on">Seç/Taşı <kbd>V</kbd></button>
+      <button data-mode="room">+Oda <kbd>R</kbd></button>
+      <button data-mode="door">+Kapı <kbd>D</kbd></button>
+      <button data-mode="window">+Pencere <kbd>W</kbd></button>
+      <button id="del">Sil <kbd>⌫</kbd></button>
+      <button id="fit">Sığdır <kbd>F</kbd></button>
+    </div>
+    <div class="hint">Kaydır: sağ tık sürükle / boşluk+sürükle. Yakınlaştır: tekerlek.
+      Köşe ekle: kenara çift tık. Köşe sil: köşeye tıkla + <kbd>⌫</kbd>, ya da köşeye sağ tık, ya da <kbd>Option</kbd>+tık. Oda çizerken: tıkla tıkla, <kbd>Enter</kbd> kapat, <kbd>Esc</kbd> iptal.
+      Kapı bağlantısı: kapıyı seç, sonra iki odaya tıkla (ya da "dışarı").</div>
+    <div><b>Odalar</b> <span id="nr"></span></div><div class="list" id="rooms"></div>
+    <div><b>Kapılar</b> <span id="nd"></span></div><div class="list" id="doors"></div>
+    <div><b>Pencereler</b> <span id="nw"></span></div>
+    <div><b>Durum</b> <select id="stat"><option value="draft">taslak</option><option value="verified">doğrulandı</option></select></div>
+    <div><b>Not</b> <textarea id="note" rows="2"></textarea></div>
+    <button id="save">Kaydet (JSON indir)</button>
+    <div id="status"></div>
+  </div>
+</div>
+<script>
+const DATA = __DATA__;
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+let rooms = DATA.rooms, doors = DATA.doors, windows = DATA.windows;
+let mode = 'select', sel = null;          // sel: {t:'room'|'door'|'window', i, v?}
+let view = {s: 1, tx: 0, ty: 0};          // dünya→ekran: sx = x*s+tx ; sy = -y*s+ty
+let drag = null, draft = null, panning = null, space = false, connectPick = null;
+const UPM = DATA.units_per_meter || 100;
+const HIT = 8;                            // piksel
+
+document.getElementById('title').textContent = DATA.name;
+document.getElementById('stat').value = (DATA.meta && DATA.meta.status) || 'draft';
+document.getElementById('note').value = (DATA.meta && DATA.meta.note) || '';
+
+function resize(){ cv.width = cv.parentElement.clientWidth - 320; cv.height = window.innerHeight; draw(); }
+function W2S(p){ return [p[0]*view.s+view.tx, -p[1]*view.s+view.ty]; }
+function S2W(x,y){ return [(x-view.tx)/view.s, -(y-view.ty)/view.s]; }
+function fit(){
+  const [x0,y0,x1,y1] = DATA.bbox;
+  view.s = Math.min(cv.width/(x1-x0), cv.height/(y1-y0))*0.95;
+  view.tx = (cv.width - (x0+x1)*view.s)/2; view.ty = (cv.height + (y0+y1)*view.s)/2; draw();
+}
+function draw(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  // altlık
+  ctx.strokeStyle = '#999'; ctx.lineWidth = 0.6; ctx.beginPath();
+  for (const s of DATA.segments){ const a=W2S([s[0],s[1]]), b=W2S([s[2],s[3]]); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); }
+  ctx.stroke();
+  // odalar
+  rooms.forEach((r,i)=>{
+    const on = sel && sel.t==='room' && sel.i===i;
+    ctx.beginPath(); r.polygon.forEach((p,k)=>{ const q=W2S(p); k?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]); }); ctx.closePath();
+    ctx.fillStyle = on ? 'rgba(43,108,176,0.25)' : 'rgba(56,161,105,0.16)'; ctx.fill();
+    ctx.strokeStyle = on ? '#2b6cb0' : '#2f855a'; ctx.lineWidth = on?2:1.2; ctx.stroke();
+    r.polygon.forEach(p=>{ const q=W2S(p); ctx.fillStyle='#fff'; ctx.strokeStyle='#2f855a'; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(q[0],q[1],3.5,0,7); ctx.fill(); ctx.stroke(); });
+    const c = centroid(r.polygon), q = W2S(c);
+    ctx.fillStyle = '#111'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign='center'; ctx.fillText(r.name||'?', q[0], q[1]);
+    ctx.font = '10px sans-serif'; ctx.fillStyle='#666'; ctx.fillText(r.id, q[0], q[1]+12);
+  });
+  // pencereler
+  windows.forEach((w,i)=>{ const on = sel && sel.t==='window' && sel.i===i; const a=W2S(w[0]), b=W2S(w[1]);
+    ctx.strokeStyle = on?'#2b6cb0':'#00a3c4'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke();
+    [a,b].forEach(q=>{ ctx.fillStyle='#fff'; ctx.strokeStyle='#00a3c4'; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(q[0],q[1],3.5,0,7); ctx.fill(); ctx.stroke(); }); });
+  // kapılar
+  doors.forEach((d,i)=>{ const on = sel && sel.t==='door' && sel.i===i; const q=W2S(d.hinge);
+    ctx.strokeStyle = on?'#2b6cb0':'#d53f8c'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(q[0],q[1],7,0,7); ctx.stroke();
+    ctx.fillStyle='#d53f8c'; ctx.font='10px sans-serif'; ctx.textAlign='left'; ctx.fillText(d.id+' '+connLabel(d), q[0]+9, q[1]-4); });
+  // taslak oda
+  if (draft){ ctx.strokeStyle='#dd6b20'; ctx.lineWidth=1.5; ctx.setLineDash([5,4]); ctx.beginPath();
+    draft.forEach((p,k)=>{ const q=W2S(p); k?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]); }); ctx.stroke(); ctx.setLineDash([]); }
+  // ölçek çubuğu (1 m)
+  const L = UPM*view.s; ctx.strokeStyle='#000'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(20,cv.height-20); ctx.lineTo(20+L,cv.height-20); ctx.stroke();
+  ctx.fillStyle='#000'; ctx.font='11px sans-serif'; ctx.textAlign='left'; ctx.fillText('1 m', 20, cv.height-26);
+}
+function centroid(P){ let x=0,y=0; P.forEach(p=>{x+=p[0];y+=p[1];}); return [x/P.length,y/P.length]; }
+function connLabel(d){ return (d.connects||[]).map(c=>{ const r=rooms.find(r=>r.id===c); return r? (r.name||r.id) : c; }).join('↔') || '?'; }
+function dist(a,b){ return Math.hypot(a[0]-b[0],a[1]-b[1]); }
+function segDist(p,a,b){ const dx=b[0]-a[0],dy=b[1]-a[1],L2=dx*dx+dy*dy||1; let t=((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L2; t=Math.max(0,Math.min(1,t)); return dist(p,[a[0]+t*dx,a[1]+t*dy]); }
+function inPoly(p,P){ let c=false; for(let i=0,j=P.length-1;i<P.length;j=i++){ const a=P[i],b=P[j]; if(((a[1]>p[1])!==(b[1]>p[1])) && (p[0] < (b[0]-a[0])*(p[1]-a[1])/(b[1]-a[1])+a[0])) c=!c; } return c; }
+
+// vuruş testi (ekran piksel toleransı) — öncelik: köşe > kapı > pencere ucu > pencere > oda kenarı > oda içi
+function hit(sx,sy){
+  const p = S2W(sx,sy), tol = HIT/view.s;
+  for (let i=0;i<rooms.length;i++){ const P=rooms[i].polygon; for (let v=0;v<P.length;v++) if (dist(p,P[v])<=tol) return {t:'room',i,v}; }
+  for (let i=0;i<doors.length;i++) if (dist(p,doors[i].hinge)<=tol) return {t:'door',i};
+  for (let i=0;i<windows.length;i++){ for (let v=0;v<2;v++) if (dist(p,windows[i][v])<=tol) return {t:'window',i,v}; }
+  for (let i=0;i<windows.length;i++) if (segDist(p,windows[i][0],windows[i][1])<=tol) return {t:'window',i};
+  for (let i=0;i<rooms.length;i++){ const P=rooms[i].polygon; for (let v=0;v<P.length;v++){ if (segDist(p,P[v],P[(v+1)%P.length])<=tol) return {t:'room',i,edge:v}; } }
+  for (let i=rooms.length-1;i>=0;i--) if (inPoly(p,rooms[i].polygon)) return {t:'room',i};
+  return null;
+}
+function setMode(m){ mode=m; draft=null; connectPick=null; document.querySelectorAll('.tools button[data-mode]').forEach(b=>b.classList.toggle('on', b.dataset.mode===m)); cv.style.cursor = m==='select'?'default':'crosshair'; draw(); status(); }
+function status(msg){ const el=document.getElementById('status'); el.textContent = msg || (
+  mode==='room' ? 'Oda: köşelere tıkla, Enter ile kapat.' :
+  mode==='door' ? 'Kapı: menteşe noktasına tıkla.' :
+  mode==='window' ? 'Pencere: iki uca tıkla.' :
+  connectPick ? `Kapı ${connectPick.id} için ${connectPick.n===0?'birinci':'ikinci'} odaya tıkla (dışarı için listede "dış").` : 'Seç/Taşı modu.'); }
+function nextId(prefix, arr){ let n=1; while (arr.some(o=>o.id===prefix+n)) n++; return prefix+n; }
+
+cv.addEventListener('contextmenu', e=>e.preventDefault());
+cv.addEventListener('mousedown', e=>{
+  const sx=e.offsetX, sy=e.offsetY;
+  if (e.button===2){ const h0=hit(sx,sy); if (h0 && h0.v!==undefined && !space){ delVertex(h0); return; } }
+  if (e.button===2 || space){ panning={x:sx,y:sy,tx:view.tx,ty:view.ty}; return; }
+  const p = S2W(sx,sy);
+  if (mode==='room'){ draft = draft||[]; draft.push(p); draw(); return; }
+  if (mode==='door'){ doors.push({id:nextId('d',doors), hinge:p, width:null, connects:[]}); sel={t:'door',i:doors.length-1}; setMode('select'); render(); return; }
+  if (mode==='window'){ draft = draft||[]; draft.push(p); if (draft.length===2){ windows.push([draft[0],draft[1]]); sel={t:'window',i:windows.length-1}; draft=null; setMode('select'); } render(); return; }
+  const h = hit(sx,sy);
+  if (connectPick){ if (h && h.t==='room'){ const d=doors.find(d=>d.id===connectPick.id); if (connectPick.n===0) d.connects=[rooms[h.i].id]; else d.connects.push(rooms[h.i].id);
+      connectPick.n++; if (connectPick.n>=2) connectPick=null; render(); } return; }
+  if (h && e.altKey && h.v!==undefined){ delVertex(h); return; }
+  sel = h ? {t:h.t,i:h.i,v:h.v} : null;
+  if (h && h.v!==undefined) drag={...h};
+  else if (h && h.t==='door') drag={t:'door',i:h.i};
+  else if (h && h.edge===undefined && h.t==='room') drag={t:'roomall',i:h.i,last:p};
+  else if (h && h.t==='window' && h.v===undefined) drag={t:'winall',i:h.i,last:p};
+  render();
+});
+cv.addEventListener('mousemove', e=>{
+  if (panning){ view.tx=panning.tx+(e.offsetX-panning.x); view.ty=panning.ty+(e.offsetY-panning.y); draw(); return; }
+  if (!drag) return; const p=S2W(e.offsetX,e.offsetY);
+  if (drag.t==='room') rooms[drag.i].polygon[drag.v]=p;
+  else if (drag.t==='door') doors[drag.i].hinge=p;
+  else if (drag.t==='window') windows[drag.i][drag.v]=p;
+  else if (drag.t==='roomall'){ const dx=p[0]-drag.last[0], dy=p[1]-drag.last[1]; rooms[drag.i].polygon=rooms[drag.i].polygon.map(q=>[q[0]+dx,q[1]+dy]); drag.last=p; }
+  else if (drag.t==='winall'){ const dx=p[0]-drag.last[0], dy=p[1]-drag.last[1]; windows[drag.i]=windows[drag.i].map(q=>[q[0]+dx,q[1]+dy]); drag.last=p; }
+  draw();
+});
+window.addEventListener('mouseup', ()=>{ drag=null; panning=null; });
+cv.addEventListener('dblclick', e=>{
+  if (mode==='room' && draft && draft.length>=3){ closeDraft(); return; }
+  const h=hit(e.offsetX,e.offsetY); if (h && h.t==='room' && h.edge!==undefined){ rooms[h.i].polygon.splice(h.edge+1,0,S2W(e.offsetX,e.offsetY)); sel={t:'room',i:h.i}; render(); }
+});
+cv.addEventListener('wheel', e=>{ e.preventDefault(); const f=Math.exp(-e.deltaY*0.0015); const p=S2W(e.offsetX,e.offsetY); view.s*=f; const q=W2S(p); view.tx+=e.offsetX-q[0]; view.ty+=e.offsetY-q[1]; draw(); }, {passive:false});
+function closeDraft(){ const r={id:nextId('r',rooms), name:'', type:'', polygon:draft}; rooms.push(r); draft=null; sel={t:'room',i:rooms.length-1}; setMode('select'); render(); const inp=document.querySelector(`#rooms input[data-i="${rooms.length-1}"]`); if(inp) inp.focus(); }
+window.addEventListener('keydown', e=>{
+  if (e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
+  if (e.code==='Space'){ space=true; cv.style.cursor='grab'; e.preventDefault(); }
+  else if (e.key==='v'||e.key==='V') setMode('select'); else if (e.key==='r'||e.key==='R') setMode('room');
+  else if (e.key==='d'||e.key==='D') setMode('door'); else if (e.key==='w'||e.key==='W') setMode('window');
+  else if (e.key==='f'||e.key==='F') fit();
+  else if (e.key==='Enter' && mode==='room' && draft && draft.length>=3) closeDraft();
+  else if (e.key==='Escape'){ draft=null; connectPick=null; setMode('select'); }
+  else if (e.key==='Backspace'||e.key==='Delete'){ del(); e.preventDefault(); }
+});
+window.addEventListener('keyup', e=>{ if (e.code==='Space'){ space=false; cv.style.cursor = mode==='select'?'default':'crosshair'; } });
+function delVertex(h){ if (h.t==='room'){ if (rooms[h.i].polygon.length>3) rooms[h.i].polygon.splice(h.v,1); else status('Oda en az 3 köşeli olmalı.'); sel={t:'room',i:h.i}; render(); } }
+function del(){ if(!sel) return; if (sel.t==='room' && sel.v!==undefined){ delVertex({t:'room',i:sel.i,v:sel.v}); return; } if (sel.t==='room'){ const id=rooms[sel.i].id; rooms.splice(sel.i,1); doors.forEach(d=>d.connects=(d.connects||[]).filter(c=>c!==id)); } else if (sel.t==='door') doors.splice(sel.i,1); else windows.splice(sel.i,1); sel=null; render(); }
+document.getElementById('del').onclick = del;
+document.getElementById('fit').onclick = fit;
+document.querySelectorAll('.tools button[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+
+function render(){
+  const R=document.getElementById('rooms'); R.innerHTML='';
+  rooms.forEach((r,i)=>{ const div=document.createElement('div'); div.className='row'+(sel&&sel.t==='room'&&sel.i===i?' sel':'');
+    div.innerHTML=`<span class="id">${r.id}</span><input data-i="${i}" value="${(r.name||'').replace(/"/g,'&quot;')}" placeholder="oda adı"><span class="x" title="sil">✕</span>`;
+    div.querySelector('input').oninput = ev=>{ r.name=ev.target.value; draw(); };
+    div.querySelector('input').onfocus = ()=>{ sel={t:'room',i}; draw(); };
+    div.querySelector('.x').onclick = ()=>{ sel={t:'room',i}; del(); }; R.appendChild(div); });
+  const D=document.getElementById('doors'); D.innerHTML='';
+  doors.forEach((d,i)=>{ const div=document.createElement('div'); div.className='row'+(sel&&sel.t==='door'&&sel.i===i?' sel':'');
+    div.innerHTML=`<span class="id">${d.id}</span><span style="flex:1">${connLabel(d)}</span><button title="odaları seç">bağla</button><button title="dış">dış</button><span class="x">✕</span>`;
+    const [b1,b2]=div.querySelectorAll('button'); b1.onclick=()=>{ sel={t:'door',i}; connectPick={id:d.id,n:0}; render(); };
+    b2.onclick=()=>{ if(!d.connects.includes('outside')) d.connects=[...(d.connects||[]).slice(0,1),'outside']; render(); };
+    div.querySelector('.x').onclick=()=>{ sel={t:'door',i}; del(); }; div.onclick=ev=>{ if(ev.target.tagName!=='BUTTON'&&!ev.target.classList.contains('x')){ sel={t:'door',i}; draw(); } }; D.appendChild(div); });
+  document.getElementById('nr').textContent=`(${rooms.length})`; document.getElementById('nd').textContent=`(${doors.length})`; document.getElementById('nw').textContent=`(${windows.length})`;
+  status(); draw();
+}
+document.getElementById('save').onclick = ()=>{
+  const missing = rooms.filter(r=>!r.name).length, badDoors = doors.filter(d=>(d.connects||[]).length<2).length;
+  const gt = { source: DATA.source, units_per_meter: UPM,
+    floor: { rooms: rooms.map(r=>({id:r.id,name:r.name,type:r.type||'',polygon:r.polygon.map(p=>[+p[0].toFixed(2),+p[1].toFixed(2)])})),
+             doors: doors.map(d=>({id:d.id,hinge:[+d.hinge[0].toFixed(2),+d.hinge[1].toFixed(2)],width:d.width,connects:d.connects||[]})),
+             windows: windows.map(w=>({a:[+w[0][0].toFixed(2),+w[0][1].toFixed(2)],b:[+w[1][0].toFixed(2),+w[1][1].toFixed(2)]})) },
+    meta: { status: document.getElementById('stat').value, note: document.getElementById('note').value, tool:'annotate.html' } };
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(gt,null,1)],{type:'application/json'})); a.download=DATA.name+'.json'; a.click();
+  status(`İndirildi: ${DATA.name}.json → data/ground_truth/ altına taşıyın.` + (missing?`\nUyarı: ${missing} odanın adı boş.`:'') + (badDoors?`\nUyarı: ${badDoors} kapının bağlantısı eksik (<2).`:''));
+};
+window.addEventListener('resize', resize); resize(); fit(); render();
+</script>
+</body>
+</html>

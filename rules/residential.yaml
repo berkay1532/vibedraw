@@ -1,0 +1,15 @@
+# Konut katı — aydınlatma/priz/linye kuralları (prototip seviyesi).
+# lighting.per_m2: bir armatürün kapsadığı alan; adet = max(min, ceil(area/per_m2))
+# sockets.min: asgari priz adedi
+# circuit: linye grubu adı (aynı grup aynı linyeye bağlanır)
+
+living:    {lighting: {min: 1, per_m2: 12}, sockets: {min: 4}, circuit: general}
+kitchen:   {lighting: {min: 1, per_m2: 10}, sockets: {min: 4}, circuit: kitchen}
+bedroom:   {lighting: {min: 1, per_m2: 14}, sockets: {min: 3}, circuit: general}
+bathroom:  {lighting: {min: 1, per_m2: 12}, sockets: {min: 1}, circuit: wet}
+wc:        {lighting: {min: 1, per_m2: 12}, sockets: {min: 0}, circuit: wet}
+circulation: {lighting: {min: 1, per_m2: 12}, sockets: {min: 1}, circuit: general}
+balcony:   {lighting: {min: 1, per_m2: 20}, sockets: {min: 1}, circuit: general}
+office:    {lighting: {min: 1, per_m2: 10}, sockets: {min: 4}, circuit: general}
+stairs:    {lighting: {min: 1, per_m2: 15}, sockets: {min: 0}, circuit: general}
+other:     {lighting: {min: 1, per_m2: 15}, sockets: {min: 1}, circuit: general}

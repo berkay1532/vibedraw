@@ -1,0 +1,15 @@
+# Veri: ham/derlenmiş çizimler repoya girmez (boyut + telif). Ground truth JSON girer.
+data/raw/
+data/dataset/
+ornekler/
+*.dwg
+*.dxf
+# Üretilen çıktılar
+output/
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+# macOS
+.DS_Store
