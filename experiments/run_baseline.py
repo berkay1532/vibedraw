@@ -20,19 +20,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-# Ölçek-100 (1 birim = 1 cm) referans parametreleri — ilk referans dosyada elle ayarlandı
-BASE_UPM = 100.0
-BASE = dict(res=3.0, seal=18, margin=250.0, door_arc_radius=(55.0, 130.0),
-            door_wall_dist=25.0, door_max_boundary_dist=15.0)
 MAX_CELLS = 30_000_000
-
-
-def scaled_params(upm: float) -> dict:
-    k = upm / BASE_UPM
-    return dict(res=BASE["res"] * k, seal=BASE["seal"], margin=BASE["margin"] * k,
-                door_arc_radius=(BASE["door_arc_radius"][0] * k, BASE["door_arc_radius"][1] * k),
-                door_wall_dist=BASE["door_wall_dist"] * k,
-                door_max_boundary_dist=BASE["door_max_boundary_dist"] * k)
+from core.perception.calibration import scaled_params, BASE, BASE_UPM  # noqa: E402
 
 
 def _render(dxf_path, floor, out_png, margin):
@@ -86,10 +75,11 @@ def _render(dxf_path, floor, out_png, margin):
 
 def run_one(dxf_path: str, out_dir: str, q):
     """Alt süreçte koşar; sonucu kuyruğa yazar."""
-    from core.perception.parse import (parse_dxf, extract_room_labels, pair_names_with_areas,
+    from core.perception.parse import parse_dxf, extract_room_labels
+    from core.perception.binding import pair_names_with_areas
                             cluster_floors_2d, dedupe_labels, estimate_units_per_meter,
                             pick_plan_floor, grid_likeness)
-    from core.perception.geometry import reconstruct
+    from core.perception.pipeline import reconstruct
     from core.perception.ir_v1 import BuildingIR
     name = Path(dxf_path).stem
     r = {"file": name, "path": dxf_path, "stages": {}, "error": None, "fail_stage": None}
@@ -118,7 +108,8 @@ def run_one(dxf_path: str, out_dir: str, q):
         r["stages"]["labels_generic"]["grid"] = [round(grid_likeness(f.rooms, 0.3 * upm), 2) for f in floors]
         # Kapı-yayı kanıtı: mahal listesi tabloları (döndürülmüş olsa bile) kapı yayı içermez.
         # Kapı yayı bulunan en kalabalık kümeyi tercih et.
-        from core.perception.geometry import estimate_units_from_doors as _eud, _floor_bbox as _fb
+        from core.perception.calibration import estimate_units_from_doors as _eud
+        from core.perception.rooms import _floor_bbox as _fb
         with_doors = []
         for f in sorted(floors, key=lambda f: -len(f.rooms))[:8]:
             if len(f.rooms) < 3:
@@ -134,7 +125,8 @@ def run_one(dxf_path: str, out_dir: str, q):
     # 3) geometri
     try:
         # Ölçeği kapı yaylarından düzelt (etiket-mesafesi tahmini kaba)
-        from core.perception.geometry import estimate_units_from_doors, _floor_bbox
+        from core.perception.calibration import estimate_units_from_doors
+        from core.perception.rooms import _floor_bbox
         xs = [rm.label_xy[0] for rm in floor.rooms]; ys = [rm.label_xy[1] for rm in floor.rooms]
         upm_doors = estimate_units_from_doors(dxf_path, _floor_bbox(floor, 2.5 * upm), upm)
         r["stages"]["labels_generic"]["upm_labels"] = round(upm, 1)

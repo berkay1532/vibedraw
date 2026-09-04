@@ -14,7 +14,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 
-from core.perception.geometry import _floor_bbox
+from core.perception.rooms import _floor_bbox
 from core.perception.parse import parse_dxf
 from debug_devices import build, DXF
 from debug_walls_doors import swing_arcs, served_room

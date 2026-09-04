@@ -6,8 +6,9 @@ Mimari altlık (DWG/DXF) → Building IR (oda / duvar / kapı / pencere) → ele
 ölçülebilir doğrulukla **Building IR** çıkarmak. Elektrik motoru (v1/v2) mevcut ama askıda.
 
 ## Yapı
-- `core/perception/` — DWG/DXF → BuildingIR (v1): `parse.py` (oda etiketleri, ölçek, kat kümeleme),
-  `geometry.py` (duvar/kapı/pencere, flood-fill odalar), `sheets.py` (pafta anlama),
+- `core/perception/` — DWG/DXF → BuildingIR: `parse.py` (oda etiketleri, kat kümeleme), `calibration.py`
+  (ölçek), `blocks.py`, `walls.py`, `openings.py`, `windows.py`, `raster.py`, `polygons.py`, `rooms.py`,
+  `binding.py`, `pipeline.py` (`run_floor` orkestratörü), `sheets.py` (pafta anlama),
   `metrics.py`, `triage.py`, `ir.py` (v2 şema: güven + kanıt), `ir_v1.py` (pipeline içi), `ir_compat.py`,
   `validate.py`, `semantics.py`, `llm.py`, `vlm_doors.py`
 - `core/electrical/` — eski elektrik prototipi (dokunulmaz): `ir.py`, `rules.py`, `layout.py`,

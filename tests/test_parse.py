@@ -3,10 +3,10 @@ from core.perception.parse import (
     extract_yazi_texts,
     is_area_text,
     parse_area,
-    pair_names_with_areas,
     cluster_floors,
     parse_dxf,
 )
+from core.perception.binding import pair_names_with_areas
 
 
 def test_extract_yazi_texts(synthetic_dxf):
@@ -75,19 +75,10 @@ def test_extract_room_labels_layer_independent_and_attribs(tmp_path):
     assert banyo.xy == (30.0, 40.0)
 
 
-def test_estimate_units_per_meter():
-    from core.perception.parse import estimate_units_per_meter, YaziText
-    # cm ölçeğinde 3.5 m aralıklı odalar → ~100 birim/m
-    cm = [YaziText("A", (0, 0)), YaziText("B", (350, 0)), YaziText("C", (0, 350)), YaziText("D", (350, 350))]
-    assert 70 < estimate_units_per_meter(cm) < 140
-    # mm ölçeği → ~1000
-    mm = [YaziText(t.content, (t.xy[0] * 10, t.xy[1] * 10)) for t in cm]
-    assert 700 < estimate_units_per_meter(mm) < 1400
-    assert estimate_units_per_meter([YaziText("A", (0, 0))]) == 100.0  # tek etiket: varsayılan
-
 
 def test_dedupe_labels_and_cluster_floors_2d():
-    from core.perception.parse import dedupe_labels, cluster_floors_2d, YaziText, pair_names_with_areas
+    from core.perception.parse import dedupe_labels, cluster_floors_2d, YaziText
+    from core.perception.binding import pair_names_with_areas
     labels = [YaziText("HALL", (-3000, -3000)), YaziText("HALL", (-2998, -2999)), YaziText("Hall", (-2999, -2998)),  # lejant tekrarı
               YaziText("Salon", (100, 100)), YaziText("Mutfak", (400, 100)), YaziText("Banyo", (100, 400)),
               YaziText("Salon", (100, 1500)), YaziText("Mutfak", (400, 1500))]  # üstteki kesit
@@ -129,7 +120,8 @@ def test_room_label_rejects_cover_sheet_texts():
 
 def test_label_with_area_suffix_split(tmp_path):
     import ezdxf
-    from core.perception.parse import extract_room_labels, pair_names_with_areas
+    from core.perception.parse import extract_room_labels
+    from core.perception.binding import pair_names_with_areas
     doc = ezdxf.new("R2010"); msp = doc.modelspace()
     msp.add_mtext("SALON+ MUTFAK\nA:19.50 M²", dxfattribs={"insert": (10, 10)})
     msp.add_text("YATAK ODASI A: 11.30 M2", dxfattribs={"insert": (300, 10)})

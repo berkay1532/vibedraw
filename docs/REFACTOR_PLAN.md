@@ -49,22 +49,22 @@ Fark çıkarsa refactor'da hata var demektir, önce onu bul.
 doğruluk düşük dilimden yüksek olmalı; değilse güven atamaları yanlış, düzelt.
 
 ## Adım 3 — geometry.py'yi parçala
-`core/perception/geometry.py` (1432 satır) → aşağıdaki modüller. Fonksiyonlar
+`core/perception/geometry.py` (1424 satır) → aşağıdaki modüller (+ `raster.py`, `polygons.py`, `windows.py`; bkz. DECISIONS). Fonksiyonlar
 taşınır, mantık değişmez. `reconstruct` yalnızca sıralayan bir orkestratör olur.
-- [ ] `calibration.py` — `estimate_units_from_doors`, `estimate_units_per_meter`,
+- [x] `calibration.py` — `estimate_units_from_doors`, `estimate_units_per_meter`,
       `scaled_params` (run_baseline'dan), `FileParams` dataclass.
-- [ ] `walls.py` — `_wall_segments`, `_pair_filter`, `_wall_lines`, `_hatch_segments`,
+- [x] `walls.py` — `_wall_segments`, `_pair_filter`, `_wall_lines`, `_hatch_segments`,
       `_is_label_frame`, `_ladder_filter`.
-- [ ] `openings.py` — `_swing_dirs`, `_block_door_hinge`, `_door_like_arc`,
+- [x] `openings.py` — `_swing_dirs`, `_block_door_hinge`, `_door_like_arc`,
       `_door_barriers`, `_cluster_doors`, `_insert_window`, `_thin_line_windows`,
       `_window_segments`, `_dedupe_windows`.
-- [ ] `rooms.py` — `_Raster`, `_flood`, `_seed_*`, `_segment_rooms`, `_mask_polygon`,
+- [x] `rooms.py` — `_Raster`, `_flood`, `_seed_*`, `_segment_rooms`, `_mask_polygon`,
       `_staircase_polygon`, `_edge_snap_rect`, `_remove_small_steps`, `_force_rectilinear`.
-- [ ] `binding.py` — `_room_by_swing`, kapı↔oda eşleştirme, alias birleştirme,
+- [x] `binding.py` — `_room_by_swing`, kapı↔oda eşleştirme, alias birleştirme,
       `pair_names_with_areas` (parse'tan).
-- [ ] `blocks.py` — `_explode`, `_block_extent`, `_is_big_block`, `_entity_segments`.
-- [ ] `reconstruct` → `pipeline.py::run_floor(drawing, params, profile) -> Floor`.
-- [ ] Her modül için mevcut testleri böl; her modüle en az bir test.
+- [x] `blocks.py` — `_explode`, `_block_extent`, `_is_big_block`, `_entity_segments`.
+- [x] `reconstruct` → `pipeline.py::run_floor(drawing, params, profile) -> Floor`.
+- [x] Her modül için mevcut testleri böl; her modüle en az bir test.
 
 **Kabul:** testler geçer, eval değişmez, hiçbir modül 400 satırı geçmez.
 

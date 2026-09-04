@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 
 from core.perception.parse import parse_dxf
-from core.perception.geometry import reconstruct
+from core.perception.pipeline import reconstruct
 from core.electrical.devices import place_devices, place_m3_nodes
 from core.electrical.appliances import detect_appliances
 

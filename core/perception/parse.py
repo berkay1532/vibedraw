@@ -140,23 +140,6 @@ def extract_room_labels(dxf_path: str) -> list[YaziText]:
     return out
 
 
-def estimate_units_per_meter(labels: list[YaziText], typical_room_m: float = 3.5) -> float:
-    """Oda etiketleri arası en-yakın-komşu mesafesinin medyanı ≈ tipik oda boyu varsayımıyla
-    çizim birimi/metre tahmini. Etiket azsa 100 (cm) döner."""
-    pts = [t.xy for t in labels if not is_area_text(t.content)]
-    if len(pts) < 2:
-        return 100.0
-    nn = []
-    for i, p in enumerate(pts):
-        d = min(math.hypot(p[0] - q[0], p[1] - q[1]) for j, q in enumerate(pts) if j != i)
-        if d > 0:
-            nn.append(d)
-    if not nn:
-        return 100.0
-    nn.sort()
-    return nn[len(nn) // 2] / typical_room_m
-
-
 def dedupe_labels(labels: list[YaziText], tol: float) -> list[YaziText]:
     """Aynı (katlanmış) isimli ve birbirine tol'dan yakın etiketlerden birini tutar.
     Lejant/antet tekrarlarını ve çift yazılmış etiketleri eler."""
@@ -208,22 +191,6 @@ def parse_area(content: str) -> float:
     return float(m.group(1))
 
 
-def pair_names_with_areas(texts: list[YaziText]) -> list[Room]:
-    names = [t for t in texts if not is_area_text(t.content)]
-    areas = [t for t in texts if is_area_text(t.content)]
-    rooms: list[Room] = []
-    for nt in names:
-        area_val = None
-        if areas:
-            nearest = min(
-                areas,
-                key=lambda at: math.hypot(at.xy[0] - nt.xy[0], at.xy[1] - nt.xy[1]),
-            )
-            area_val = parse_area(nearest.content)
-        rooms.append(Room(raw_name=nt.content, label_xy=nt.xy, area_m2=area_val))
-    return rooms
-
-
 def cluster_floors(rooms: list[Room], gap: float = 80.0) -> list[Floor]:
     """Odaları x-ekseni boşluğuna göre kümeler; soldan sağa sıralı Floor listesi döner."""
     if not rooms:
@@ -241,6 +208,7 @@ def cluster_floors(rooms: list[Room], gap: float = 80.0) -> list[Floor]:
 def parse_dxf(dxf_path: str, target_floor: int = 1, gap: float = 80.0) -> BuildingIR:
     """Aşama 1 giriş noktası: DXF → seçili katı içeren BuildingIR."""
     texts = extract_yazi_texts(dxf_path)
+    from core.perception.binding import pair_names_with_areas   # eski yol; Adım 4'te silinecek (döngü önleme)
     rooms = pair_names_with_areas(texts)
     floors = cluster_floors(rooms, gap=gap)
     if not floors:

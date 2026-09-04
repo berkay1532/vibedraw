@@ -16,7 +16,13 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 
-from core.perception.geometry import _floor_bbox, _Raster, _staircase_polygon, _dilate, DOOR_LAYERS
+from core.perception.rooms import _floor_bbox
+
+from core.perception.raster import _Raster, _dilate
+
+from core.perception.polygons import _staircase_polygon
+
+from core.perception.openings import DOOR_LAYERS
 from core.perception.parse import parse_dxf
 from debug_devices import build, DXF
 
