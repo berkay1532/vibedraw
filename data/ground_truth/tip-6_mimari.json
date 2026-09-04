@@ -1,5 +1,5 @@
 {
- "source": "/Users/beko/Documents/beko/elektrik-projesi/data/dataset/_dxf/tip-6_mimari.dxf",
+ "source": "data/dataset/_dxf/tip-6_mimari.dxf",
  "units_per_meter": 91.4,
  "floor": {
   "rooms": [

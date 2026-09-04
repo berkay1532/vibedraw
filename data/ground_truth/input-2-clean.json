@@ -1,5 +1,5 @@
 {
- "source": "/Users/beko/Documents/beko/elektrik-projesi/data/dataset/referans/input-2-clean.dxf",
+ "source": "data/dataset/referans/input-2-clean.dxf",
  "units_per_meter": 81.7,
  "floor": {
   "rooms": [
