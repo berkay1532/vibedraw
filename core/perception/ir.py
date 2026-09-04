@@ -90,6 +90,7 @@ class FileParams:
     door_max_boundary_dist: Optional[float] = None # layer_raw adayı ↔ oda sınırı (birim)
     wall_thickness: Optional[tuple] = None         # duvar kalınlık aralığı (birim)
     wall_min_overlap: Optional[float] = None
+    wall_thickness_modes: list = field(default_factory=list)   # kalınlık histogram modları (m); thickness_mode sinyali
     extra: dict = field(default_factory=dict)      # big_blocks, family_id, layer_classes vb.
 
     def to_mm(self, p: Point) -> Point:

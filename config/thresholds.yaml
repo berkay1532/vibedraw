@@ -27,6 +27,9 @@ wall:
   angled_min_len_res: 15.0
   cluster_tol_res: 3.0
   adaptive_walls_per_room: 8       # oda başına bu kadardan az duvar → büyük blok modu denenir
+  thickness_bin_m: 0.01            # kalınlık histogramı kutu genişliği (thickness_mode kalibrasyonu)
+  thickness_mode_min_share: 0.10   # bir kutu toplamın bu oranını geçerse mod
+  thickness_mode_tol_m: 0.02       # segment kalınlığı bir moda bu kadar yakınsa thickness_mode = 1
   leak_fraction: 0.45
 door:
   arc_sweep_deg: [55.0, 125.0]     # kapı kanadı yayı süpürme açısı

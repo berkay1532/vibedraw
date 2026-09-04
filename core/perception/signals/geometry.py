@@ -16,3 +16,17 @@ def wall_gap(hinge, walls, max_dist: float) -> float | None:
     if not walls:
         return None
     return 1.0 if _seg_dist(hinge, walls) <= max_dist else 0.0
+
+
+def parallel_pair(kept: bool) -> float:
+    """Katman sınıfından BAĞIMSIZ: segmentin kalınlık aralığında, boyuna örtüşen paralel eşi var mı
+    (walls._pair_filter). Duvar listesindeki her parça filtreyi geçtiği için 1."""
+    return 1.0 if kept else 0.0
+
+
+def thickness_mode(thickness, modes, tol: float) -> float | None:
+    """Segmentin çift kalınlığı dosyanın kalınlık modlarından birine ≤ tol yakınsa 1, değilse 0.
+    Kalınlık ya da mod yoksa None (değerlendirilemez)."""
+    if thickness is None or not modes:
+        return None
+    return 1.0 if any(abs(float(thickness) - m) <= tol for m in modes) else 0.0

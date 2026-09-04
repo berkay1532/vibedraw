@@ -201,17 +201,18 @@ def signal_parallel_pair(drawing, params) -> list[Signal]:
 Skor birleştirme `perception/scoring.py`'de, ağırlıklar `config/weights.yaml`'da:
 
 ```yaml
-wall:
-  layer_class: 0.35
-  parallel_pair: 0.30
-  thickness_mode: 0.20
-  graph_connectivity: 0.15
+wall:                     # Adım 6 başlangıç değerleri (eski tabloyu birebir üretir; ayar holdout ile)
+  weights: {parallel_pair: 0.60, layer_class: 0.70, thickness_mode: 0.0, graph_connectivity: 0.0}
+  agreement_bonus: 0.20
 door:
-  block_class: 0.40
-  arc_signature: 0.30
-  wall_gap: 0.20
-  layer_class: 0.10
+  weights: {block_class: 0.70, arc_signature: 0.75, layer_class: 0.40, vlm: 0.80}
+  agreement_bonus: 0.20
+  gates: [wall_gap, room_boundary]
 ```
+
+Çelişki (`scoring.is_conflicting`, genel): ağırlığı > 0 ve değerlendirilmiş en az iki sinyal 0,5'in farklı
+taraflarında → `Evidence.note = conflicting_signal`; Adım 7 validator bunu issue yapar. Holdout: `config/holdout.yaml`
+(evaluate ayrı satır basar; `learning/calibrate.py` holdout dosyasını okumayı reddeder).
 
 Birleşim (Adım 6, `scoring.score`): conf = max(w_i × s_i) + agreement_bonus × (pozitif sinyal − 1), cap ile
 sınırlı; `gates` listesindeki sinyal 0 dönerse aday elenir (eski deterministik filtreler). Başlangıç

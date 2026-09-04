@@ -17,3 +17,17 @@ def test_gates_drop_candidate_and_none_passes():
     assert score("door", {"block_class": 1, "room_boundary": 0.0}) is None
     assert score("door", {"block_class": 1, "wall_gap": None, "room_boundary": 1.0})[0] == 0.7
     assert score("door", {"wall_gap": 1.0}) is None                       # pozitif sinyal yok
+
+
+def test_wall_weights_reproduce_table_and_conflict():
+    from core.perception.ir_compat import WALL_CONF
+    from core.perception.scoring import is_conflicting
+    pair = {"parallel_pair": 1.0, "layer_class": None, "thickness_mode": 0.0, "graph_connectivity": None}
+    both = {**pair, "layer_class": 1.0}
+    assert score("wall", pair, "pair")[0] == WALL_CONF["pair"]
+    assert score("wall", both, "pair+layer")[0] == WALL_CONF["pair+layer"]
+    assert not is_conflicting("wall", pair)                       # None ve ağırlığı 0 olan sinyal sayılmaz
+    assert is_conflicting("wall", {**pair, "layer_class": 0.0})   # geometri duvar der, katman yazı der
+    assert score("wall", {**pair, "layer_class": 0.0}, "pair")[1].note == "conflicting_signal"
+    assert is_conflicting("door", {"block_class": 1.0, "arc_signature": 0.0})
+    assert not is_conflicting("door", {"block_class": 1.0, "arc_signature": 1.0, "wall_gap": 0.0})  # kapı sinyali ağırlıksız

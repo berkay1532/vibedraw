@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from core.perception.metrics import evaluate_floor
 from core.perception.ir_compat import load_floor_for_eval
 from core.perception.run_stamp import check_fresh, code_hash, git_info
+from learning.calibrate import holdout_files, is_holdout
 
 # Aile grupları (source_profiles/<family_id>.yaml; docs/DATASET.md). ABM = aynı ofis şablonu aileleri,
 # tip = Bakanlık tip projeleri. Listede olmayan aile "diğer" satırına girer.
@@ -165,13 +166,21 @@ def main(argv=None) -> int:
     if other:
         _row("**diğer** (" + ", ".join(sorted({fam_of[n] for n in other})) + ")", other)
     _row("**toplam**", set(fam_of))
+    # Holdout (config/holdout.yaml): ağırlık ayarında kullanılmayan dosyalar ayrı satır
+    hold = holdout_files()
+    hn = {n for n in fam_of if is_holdout(n, hold)}
+    L.append("\n## Holdout / geliştirme (config/holdout.yaml)\n")
+    L.append("| Küme | Dosya | Oda F1 | Oda IoU | Kapı F1 | Bağlantı | Pencere F1 |")
+    L.append("|---|---:|---:|---:|---:|---:|---:|")
+    _row("**holdout** (" + ", ".join(sorted(hn)) + ")" if hn else "**holdout** (—)", hn)
+    _row("**geliştirme**", set(fam_of) - hn)
     L.append("\n## Dosya bazında\n")
-    L.append("| Dosya | Aile | Tier | Oda F1 | Oda IoU | Ad | Kapı F1 | Kapı hata (m) | Bağlantı | Pencere F1 |")
-    L.append("|---|---|---|---:|---:|---:|---:|---:|---:|---:|")
+    L.append("| Dosya | Aile | Tier | Küme | Oda F1 | Oda IoU | Ad | Kapı F1 | Kapı hata (m) | Bağlantı | Pencere F1 |")
+    L.append("|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|")
     for name, r in rows:
         if not r:
-            L.append(f"| {name} | | | pred yok | | | | | | |"); continue
-        L.append(f"| {name} | {fam_of.get(name, '')} | {tiers.get(name, '')} | {r['rooms']['f1']} | {r['rooms']['mean_iou']} | {r['rooms']['name_acc']} | "
+            L.append(f"| {name} | | | | pred yok | | | | | | |"); continue
+        L.append(f"| {name} | {fam_of.get(name, '')} | {tiers.get(name, '')} | {'holdout' if is_holdout(name, hold) else 'gel.'} | {r['rooms']['f1']} | {r['rooms']['mean_iou']} | {r['rooms']['name_acc']} | "
                  f"{r['doors']['f1']} | {r['doors']['mean_err_m']} | {r['doors']['connect_acc']} | {r['windows']['f1']} |")
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text("\n".join(L) + "\n", encoding="utf-8")

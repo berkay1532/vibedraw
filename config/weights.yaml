@@ -11,3 +11,12 @@ door:
   agreement_bonus: 0.20
   cap: 0.99
   gates: [wall_gap, room_boundary]
+wall:
+  weights:
+    parallel_pair: 0.60          # eski "pair" güveni
+    layer_class: 0.70            # + uyum bonusu 0.20 → eski "pair+layer" 0.90
+    thickness_mode: 0.0          # iskelet: hesaplanır, ağırlık holdout ayarına kadar 0
+    graph_connectivity: 0.0      # iskelet: henüz hesaplanmıyor (None)
+  agreement_bonus: 0.20
+  cap: 0.99
+  gates: []

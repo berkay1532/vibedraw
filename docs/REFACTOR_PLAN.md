@@ -99,7 +99,7 @@ taşınır, mantık değişmez. `reconstruct` yalnızca sıralayan bir orkestrat
       `FileParams`'a, kalanlar `thresholds.yaml`'a adlandırılmış olarak. Sihirli sayı
       kalmayana kadar.
 - [~] Mevcut heuristikleri `signals/` altında saf sinyal fonksiyonlarına dönüştür
-      (kapı yapıldı; duvar/oda/pencere sonraki tur — önce kapı: `block_class`, `arc_signature`, `wall_gap`, `layer_class`).
+      (kapı ve duvar yapıldı; oda/pencere sonraki tur — önce kapı: `block_class`, `arc_signature`, `wall_gap`, `layer_class`).
       Skor = ağırlıklı toplam; `confidence` artık buradan gelir.
 - [ ] Kalibrasyon tablosu ile ağırlıkları ayarla — kullanıcı kararı: elle DEĞİL, yeni kaynak + fam00 GT geldikten sonra holdout ile.
 

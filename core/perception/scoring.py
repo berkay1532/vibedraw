@@ -29,4 +29,13 @@ def score(kind: str, signals: dict, source: str = "") -> Optional[tuple[float, E
         return None
     conf = max(pos) + cfg.get("agreement_bonus", 0.0) * (len(pos) - 1)
     conf = min(conf, cfg.get("cap", 1.0))
-    return round(conf, 4), Evidence(signals=contrib, source=source)
+    note = "conflicting_signal" if is_conflicting(kind, signals) else ""
+    return round(conf, 4), Evidence(signals=contrib, source=source, note=note)
+
+
+def is_conflicting(kind: str, signals: dict) -> bool:
+    """Genel çelişki tanımı: ağırlığı > 0 olan, değerlendirilmiş (None olmayan) en az iki sinyal 0.5'in
+    farklı taraflarında. Kapı ve duvar için aynı kural (HITL #22 → Adım 7 conflicting_signal issue)."""
+    cfg = weights()[kind]; w = cfg.get("weights", {})
+    vals = [float(v) for k, v in signals.items() if w.get(k, 0) > 0 and v is not None]
+    return any(v >= 0.5 for v in vals) and any(v < 0.5 for v in vals)

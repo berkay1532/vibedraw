@@ -24,9 +24,11 @@ from core.perception.ir_compat import to_v2
 from core.perception.names import NameMap, names_for
 from core.perception.scoring import score
 from core.perception.signals.block import block_class
-from core.perception.signals.geometry import arc_signature, wall_gap
-from core.perception.signals.layer import layer_raw
-from core.perception.signals.topology import room_boundary
+from core.perception.calibration import thickness_modes
+from core.perception.names import WALL_SCAN_CLASSES
+from core.perception.signals.geometry import arc_signature, parallel_pair, thickness_mode, wall_gap
+from core.perception.signals.layer import layer_class_vote, layer_raw
+from core.perception.signals.topology import graph_connectivity, room_boundary
 from core.perception.parse import (cluster_floors_2d, dedupe_labels, extract_room_labels, grid_likeness,
                                    pick_plan_floor)
 from core.perception.triage import layer_fingerprint
@@ -77,17 +79,31 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
         label_pts = [rm.label_xy for rm in floor.rooms]
         wk["label_pts"] = label_pts
         min_len = TW["min_len_res"] * res
-        floor.walls, floor.wall_sources = _wall_segments(msp, bbox, min_len=min_len, with_sources=True, names=names, **wk)
+        floor.walls, floor.wall_sources, w_lays, w_thick = _wall_segments(
+            msp, bbox, min_len=min_len, with_signals=True, names=names, **wk)
         # ADAPTİF: modelspace'te oda başına <N duvar parçası bulunduysa plan büyük ihtimalle
         # BLOK içinde yerleştirilmiş → ≥3 m'lik blokların içine de bakılır.
         # (Koşulsuz açmak Revit export'larında sahte duvar üretip IoU'yu düşürdü.)
         big = False
         if len(floor.walls) < TW["adaptive_walls_per_room"] * len(floor.rooms):
-            walls_b, srcs_b = _wall_segments(msp, bbox, min_len=min_len, big_blocks=True, with_sources=True, names=names, **wk)
+            walls_b, srcs_b, lays_b, thick_b = _wall_segments(
+                msp, bbox, min_len=min_len, big_blocks=True, with_signals=True, names=names, **wk)
             if len(walls_b) > len(floor.walls):
-                floor.walls, floor.wall_sources = walls_b, srcs_b
+                floor.walls, floor.wall_sources, w_lays, w_thick = walls_b, srcs_b, lays_b, thick_b
                 big = True
         floor.big_blocks = big
+        # Duvar sinyalleri (Adım 6): parallel_pair (katman bağımsız), layer_class (oy: 1 / 0 / None),
+        # thickness_mode (kalibrasyon histogramı; ağırlık 0), graph_connectivity (iskelet, None).
+        modes = thickness_modes(w_thick, units_per_meter) if units_per_meter else []
+        floor.wall_thickness_modes = modes
+        tol = TW["thickness_mode_tol_m"]
+        floor.wall_thickness, floor.wall_signals = list(w_thick), []
+        for (a, b), src, lay, thk in zip(floor.walls, floor.wall_sources, w_lays, w_thick):
+            sig = {"parallel_pair": parallel_pair(True),
+                   "layer_class": layer_class_vote(lay, WALL_SCAN_CLASSES, names),
+                   "thickness_mode": thickness_mode(thk / units_per_meter if (thk is not None and units_per_meter) else None, modes, tol),
+                   "graph_connectivity": graph_connectivity((a, b))}
+            floor.wall_signals.append(score("wall", sig, src))
         floor.windows, floor.window_sources = _window_segments(
             msp, bbox, min_len=min_len, upm=units_per_meter, walls=floor.walls, big_blocks=big,
             with_sources=True, names=names)
@@ -319,6 +335,7 @@ def run_selected(dxf_path: str, sel: PlanSelection, *, max_cells: int = MAX_CELL
     extra["layer_classes"] = sel.names.summary()
     fparams = file_params(upm, sel.stats.get("upm_source", "labels"), extra)   # dosyadan türeyenler tek nesnede
     fparams.res = p["res"]                                                    # hücre sınırı düzeltmesi dahil
+    fparams.wall_thickness_modes = list(getattr(f, "wall_thickness_modes", []) or [])
     b2 = to_v2(b, units_per_meter=upm, units_source=sel.stats.get("upm_source", "labels"),
                fingerprint=fp, file_params=fparams)
     return p, f, b2

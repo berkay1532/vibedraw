@@ -90,3 +90,18 @@ def file_params(upm: float, units_source: str = "labels", extra: dict | None = N
                       door_max_boundary_dist=p["door_max_boundary_dist"],
                       wall_thickness=(th[0] * upm, th[1] * upm), wall_min_overlap=T("wall", "min_overlap_m") * upm,
                       extra=dict(extra or {}))
+
+
+def thickness_modes(thicknesses, upm: float) -> list[float]:
+    """Duvar çifti kalınlıklarının histogram modları (metre). Kutu genişliği ve pay eşiği thresholds
+    wall.thickness_bin_m / thickness_mode_min_share. FileParams.wall_thickness_modes'a yazılır."""
+    vals = [float(t) / upm for t in thicknesses if t is not None and upm]
+    if not vals:
+        return []
+    b = T("wall", "thickness_bin_m"); share = T("wall", "thickness_mode_min_share")
+    hist: dict = {}
+    for v in vals:
+        hist[int(v / b)] = hist.get(int(v / b), 0) + 1
+    n = len(vals)
+    peaks = [k for k, c in hist.items() if c / n >= share and c >= hist.get(k - 1, 0) and c >= hist.get(k + 1, 0)]
+    return sorted(round((k + 0.5) * b, 4) for k in peaks)

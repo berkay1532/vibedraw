@@ -1,0 +1,7 @@
+# config/holdout.yaml — ağırlık ayarı / kalibrasyon için DOKUNULMAZ GT dosyaları (kullanıcı kararı 2026-09-04).
+# evaluate.py holdout'u ayrı satır olarak basar; learning/calibrate.py bu dosyaları okumayı REDDEDER.
+# Kural: yeni bir kaynaktan (aile/ofis) gelen her üç GT dosyasından biri holdout'a girer.
+files:
+  - tip-6_mimari
+  - 386_8_MİMARİ_19.08.2026        # GT gelince (fam00 GT sırası: 541_3, 536_1, 386_8)
+rule: "yeni kaynaktan her üç GT dosyasından biri holdout"

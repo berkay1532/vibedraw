@@ -128,7 +128,7 @@ def _hatch_segments(e):
     return out
 
 
-def _pair_filter(segs, tmin=4.0, tmax=42.0, ang_tol_deg=8.0, min_overlap=18.0, aux=None):
+def _pair_filter(segs, tmin=4.0, tmax=42.0, ang_tol_deg=8.0, min_overlap=18.0, aux=None, with_thickness=False):
     """Duvar = belli kalınlıkta yan yana İKİ paralel yüz. Eşi olmayan parçayı eler.
 
     Korkuluk X'i (paralel değil), tek tesisat çizgisi (eşsiz), tezgâh (çok kalın >tmax)
@@ -142,6 +142,7 @@ def _pair_filter(segs, tmin=4.0, tmax=42.0, ang_tol_deg=8.0, min_overlap=18.0, a
         dirs.append((dx / L, dy / L, L, math.atan2(dy, dx)))
     ang_tol = math.radians(ang_tol_deg)
     keep = [False] * n
+    thick = [None] * n                        # eşleşen çiftin dik mesafesi (kalınlık, birim)
     for i in range(n):
         ax, ay = segs[i][0]
         ux, uy, Li, ai = dirs[i]
@@ -160,8 +161,15 @@ def _pair_filter(segs, tmin=4.0, tmax=42.0, ang_tol_deg=8.0, min_overlap=18.0, a
                              (dx2 - ax) * ux + (dy2 - ay) * uy))
             if min(Li, p1) - max(0.0, p0) >= min_overlap:   # boyuna örtüşme
                 keep[i] = keep[j] = True
+                if thick[i] is None:
+                    thick[i] = perp
+                if thick[j] is None:
+                    thick[j] = perp
                 break
     if aux is not None:                       # kaynak bilgisi: segs ile hizalı yan liste
+        if with_thickness:
+            return ([s for s, k in zip(segs, keep) if k], [a for a, k in zip(aux, keep) if k],
+                    [t for t, k in zip(thick, keep) if k])
         return [s for s, k in zip(segs, keep) if k], [a for a, k in zip(aux, keep) if k]
     return [s for s, k in zip(segs, keep) if k]
 
@@ -186,7 +194,7 @@ def _is_label_frame(e, label_pts, max_area):
 
 
 def _wall_segments(msp, bbox, min_len=8.0, tmin=4.0, tmax=42.0, min_overlap=18.0, big_blocks=False,
-                   label_pts=None, with_sources=False, names=EMPTY):
+                   label_pts=None, with_sources=False, names=EMPTY, with_signals=False):
     """TÜM düz duvar geometrisi (katman-bağımsız) — cihaz snap + M3 routing için.
     tmin/tmax/min_overlap çizim biriminde (varsayılanlar 1 birim = 1 cm için).
 
@@ -202,6 +210,7 @@ def _wall_segments(msp, bbox, min_len=8.0, tmin=4.0, tmax=42.0, min_overlap=18.0
 
     segs = []
     srcs = []                                     # with_sources: "pair+layer" | "pair"
+    lays = []                                     # with_signals: segmentin katmanı (sinyal: layer_class_vote)
     upm_est = tmin / 0.06 if tmin else 100.0
     frame_area = 3.0 * upm_est * upm_est
     for e in msp:
@@ -230,6 +239,11 @@ def _wall_segments(msp, bbox, min_len=8.0, tmin=4.0, tmax=42.0, min_overlap=18.0
             if inb(a, b) and math.hypot(b[0] - a[0], b[1] - a[1]) >= min_len:
                 segs.append(((a[0], a[1]), (b[0], b[1])))
                 srcs.append("pair+layer" if lay_ok else "pair")
+                lays.append(e.dxf.layer)
+    if with_signals:                              # (segs, srcs, layers, thickness) — sinyal motoru için
+        out, aux, thick = _pair_filter(segs, tmin=tmin, tmax=tmax, min_overlap=min_overlap,
+                                       aux=list(zip(srcs, lays)), with_thickness=True)
+        return out, [a[0] for a in aux], [a[1] for a in aux], thick
     if with_sources:
         return _pair_filter(segs, tmin=tmin, tmax=tmax, min_overlap=min_overlap, aux=srcs)
     return _pair_filter(segs, tmin=tmin, tmax=tmax, min_overlap=min_overlap)

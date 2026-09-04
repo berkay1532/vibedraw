@@ -38,6 +38,8 @@ class Floor:
     rooms: list[Room] = field(default_factory=list)
     doors: list[Door] = field(default_factory=list)
     devices: list = field(default_factory=list)   # elektrik motoru doldurur (v1 uyumluluk; bkz. docs/DECISIONS.md)
+    wall_signals: list = field(default_factory=list)      # walls ile hizalı: (confidence, evidence) (Adım 6)
+    wall_thickness: list = field(default_factory=list)    # walls ile hizalı: çift kalınlığı (birim)
     # Gerçek duvar parçaları (M1'de doldurulur) — cihazları duvara snap için
     walls: list[tuple[tuple[float, float], tuple[float, float]]] = field(default_factory=list)
     # Pencere/cam parçaları — cihaz konmaz (yasak bölge)

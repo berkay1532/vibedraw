@@ -15,8 +15,10 @@ from pathlib import Path
 from typing import Optional
 
 ROOT = Path(__file__).resolve().parents[2]
-CODE_GLOBS = ("core/perception/*.py", "core/perception/signals/*.py", "config/*.yaml", "source_profiles/*.yaml",
-              "experiments/run_baseline.py")
+# Tahmini etkileyen dosyalar: kod + eşik/ağırlık config'i + profiller. config/holdout.yaml yalnız raporlamayı
+# etkiler, hash'e girmez.
+CODE_GLOBS = ("core/perception/*.py", "core/perception/signals/*.py", "config/thresholds.yaml", "config/weights.yaml",
+              "source_profiles/*.yaml", "source_profiles/unions/*.json", "experiments/run_baseline.py")
 
 
 def code_files(root: Path = ROOT, globs=CODE_GLOBS) -> list[Path]:

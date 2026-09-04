@@ -189,6 +189,22 @@ uygulanmayan iyileştirme fikri; uygulanınca "karar" olur ve commit'i yazılır
   | windows: yakın duvar 0.25/0.3 m, paralellik 0.97, blok 0.3–4.5 m / 0.4–4.0 m / 1.2 m, kapı yayı 0.65–1.5 m, aykırı 5 m, ince çizgi ≤0.1 m / 0.4–3.5 m / 0.6 m / 6, dedupe 0.3 m | | KALDI (sonraki tur, `window.*`) |
   | rooms/raster/polygons/blocks: leak 0.2, edge 40 %/30 px, seed 12 px, dilate 0.55/0.15, snap 4/8/12/3, colinear 0.05, büyük blok 3 m, explode derinliği 3, segment 0.2 | | KALDI (sonraki tur, `room.*`, `polygon.*`, `block.*`) |
 
+- **[karar] 2026-09-04 — Adım 6 duvar sinyalleri (kullanıcı kararı).** `parallel_pair` (katman bağımsız;
+  `_pair_filter`'ı geçen her parça 1), `layer_class` oyu (hedef sınıf 1 / başka BİLİNEN sınıf 0 / bilinmiyor
+  None — None çelişki sayılmaz), `thickness_mode` (`calibration.thickness_modes`: 1 cm kutulu histogram, pay
+  ≥ %10 olan yerel tepeler; `FileParams.wall_thickness_modes`; segment kalınlığı moda ≤ 2 cm → 1; ağırlık 0,
+  holdout ayarına kadar), `graph_connectivity` (iskelet, None, ağırlık 0). Ağırlıklar parallel_pair 0,60 +
+  layer_class 0,70 + uyum 0,20 → eski tablo birebir (pair 0,60 / pair+layer 0,90). `Wall.thickness` v2'ye
+  çift kalınlığı olarak yazılır. Çelişki tanımı `scoring.is_conflicting`: ağırlığı > 0 ve değerlendirilmiş en
+  az iki sinyal 0,5'in farklı taraflarında → `Evidence.note = conflicting_signal` (kapı için de: blok var, yay
+  yok). Adım 7 bunu issue'ya çevirir; davranışa etkisi yok.
+- **[karar] 2026-09-04 — holdout.** `config/holdout.yaml`: tip-6_mimari, 386_8 (GT gelince); kural: yeni
+  kaynaktan her üç GT'den biri. `evaluate.py` holdout/geliştirme satırlarını ayrı basar, dosya tablosunda Küme
+  sütunu. `learning/calibrate.py` iskeleti holdout dosyasını `--only` ile isteyeni HoldoutError ile reddeder.
+  holdout.yaml koşu damgası hash'ine GİRMEZ (tahmini etkilemez); thresholds/weights/profiller girer.
+- **[karar] 2026-09-04 — `swing.max_dist` metreye (ayrı commit).** 460 çizim birimi → 4,6 m × upm; upm yoksa
+  (sentetik testler) 460 birim yedek. "Aynı" şartı yok; dosya bazında fark EVAL_HISTORY'de nedeniyle.
+
 ## Adaylar (uygulanmadı)
 
 - **[aday] 2026-09-04 — Adım 6 devamı:** (a) walls/windows/rooms/polygons/raster/blocks sabitleri thresholds'a (envanter yukarıda); (b) duvar sinyalleri `parallel_pair` (katman sınıfından bağımsız) + `layer_class` + `thickness_mode`, çelişki → düşük güvenli duvar + conflicting_signal (HITL #22); (c) oda/pencere güven tabloları (ir_compat) → scoring; (d) `swing.max_dist_units` metreye; (e) run_floor imza varsayılanları FileParams'a.
