@@ -1,0 +1,3 @@
+# Eski elektrik prototipi (graph.py / main.py) için ek bağımlılık; perception katmanı gerektirmez.
+-r requirements.txt
+langgraph>=0.2

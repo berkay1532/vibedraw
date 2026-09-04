@@ -336,9 +336,9 @@ def _wall_lines(msp, bbox, ang_tol=10.0, angled_min_len=15.0, cluster_tol=3.0, e
 
 # Duvar tespitinden hariç: kapı, metin, merdiven (basamak), KİRİŞ (tavan elemanı —
 # oda ortasından geçer, duvar değil; çiftli gidince sahte duvar yapıyordu)
-# DENENDİ ve GERİ ALINDI (2026-09-04): "yazı/ölçü/aks" adlı katmanları duvar adayından
-# çıkarmak KAYAPINAR Hol/Balkon'u düzeltmedi, Bakanlık dosyalarında (A_ANNO_* katmanları)
-# oda IoU'sunu düşürdü (7 dosya oda F1 0.90→0.89). Fonksiyon referans için duruyor, kullanılmıyor.
+# DENENDİ ve GERİ ALINDI: "yazı/ölçü/aks" adlı katmanları duvar adayından çıkarmak ölçümü
+# düşürdü (bazı CAD export'larında "ANNO" adlı katmanlarda gerçek geometri var). Fonksiyon
+# referans için duruyor, kullanılmıyor. Ayrıntı: docs/HITL_QUESTIONS.md #3.
 _ANNO_LAYER_WORDS = ("yazi", "yazı", "text", "txt", "anno", "olcu", "ölçü", "dim",
                      "aks", "axis", "grid", "lejant", "legend")
 
@@ -768,7 +768,7 @@ def _wall_segments(msp, bbox, min_len=8.0, tmin=4.0, tmax=42.0, min_overlap=18.0
         elif t == "HATCH":
             cand = _hatch_segments(e)
         elif t == "INSERT" and big_blocks and _is_big_block(e, upm_est):
-            # Kat planı/daire BLOK olarak yerleştirilmiş (Aile B): içindeki düz çizgiler
+            # Kat planı/daire BLOK olarak yerleştirilmiş çizimler: içindeki düz çizgiler
             # de duvar adayı. Mobilya blokları (<3 m) girmez.
             cand = []
             for ve in _explode(e):
@@ -1011,7 +1011,8 @@ def _segment_rooms(rasters, rooms, leak_fraction: float, seed_rad: int = 12):
                 break
         # Dışlayıcı (başka etiket içermeyen) ilk aday tercih edilir. (Denenip geri alınan:
         # "en büyük adayın ≥%40'ı" cep filtresi — sızıntılı birleşik bölge büyük olunca
-        # gerçek küçük odayı da reddediyordu; tip-4 ANTRE cebi geometriyle ayrılamıyor.)
+        # gerçek küçük odayı da reddediyordu. Duvar çıkıntıları arasındaki küçük cep vakası
+        # geometriyle ayrılamıyor → HITL soru adayı, docs/HITL_QUESTIONS.md #1.)
         # Tercih: dışlayıcı & kenara değmeyen → dışlayıcı (kenara değen, küçük: açık balkon)
         # → kenara değmeyen ilk aday → kalan.
         for want_border in (False, True):
@@ -1265,8 +1266,8 @@ def reconstruct(building: BuildingIR, dxf_path: str, *,
         wk["label_pts"] = label_pts
         floor.walls = _wall_segments(msp, bbox, min_len=8.0 * res, **wk)
         # ADAPTİF: modelspace'te oda başına <8 duvar parçası bulunduysa plan büyük ihtimalle
-        # BLOK içinde yerleştirilmiş (Aile B) → ≥3 m'lik blokların içine de bakılır.
-        # (Koşulsuz açmak Bakanlık/Revit dosyalarında sahte duvar üretip IoU'yu düşürdü.)
+        # BLOK içinde yerleştirilmiş → ≥3 m'lik blokların içine de bakılır.
+        # (Koşulsuz açmak Revit export'larında sahte duvar üretip IoU'yu düşürdü.)
         big = False
         if len(floor.walls) < 8 * len(floor.rooms):
             walls_b = _wall_segments(msp, bbox, min_len=8.0 * res, big_blocks=True, **wk)

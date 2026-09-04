@@ -1,5 +1,8 @@
 # tests/test_graph.py
-from graph import build_graph, run_pipeline
+import pytest
+
+pytest.importorskip("langgraph")   # elektrik prototipi opsiyonel (requirements-electrical.txt)
+from graph import build_graph, run_pipeline  # noqa: E402
 
 
 def test_run_pipeline_end_to_end(synthetic_dxf, tmp_path, monkeypatch):

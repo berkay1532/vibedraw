@@ -20,7 +20,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-# Ölçek-100 (1 birim = 1 cm) referans parametreleri — input-2-clean'de ayarlanmıştı
+# Ölçek-100 (1 birim = 1 cm) referans parametreleri — ilk referans dosyada elle ayarlandı
 BASE_UPM = 100.0
 BASE = dict(res=3.0, seal=18, margin=250.0, door_arc_radius=(55.0, 130.0),
             door_wall_dist=25.0, door_max_boundary_dist=15.0)
@@ -143,7 +143,7 @@ def run_one(dxf_path: str, out_dir: str, q):
             r["stages"]["labels_generic"]["upm"] = round(upm, 1)
             r["stages"]["labels_generic"]["upm_source"] = "doors"
             # Düzeltilmiş ölçekle YENİDEN kümele: kaba ölçekle 7 m eşiği büyük salon
-            # etiketini dışarıda bırakabiliyordu (tip-2 SALON).
+            # etiketini kümenin dışında bırakabiliyor.
             floors2 = [f for f in cluster_floors_2d(rooms, gap=8.0 * upm) if len(f.rooms) >= 3]
             if floors2:
                 # yeniden kümelemede: önceki seçimin etiketlerini içeren kümeyi koru

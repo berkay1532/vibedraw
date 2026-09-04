@@ -1,6 +1,5 @@
 ezdxf==1.4.2
 PyYAML>=6.0
-langgraph>=0.2
 anthropic>=0.40
 numpy>=1.24
 shapely>=2.0

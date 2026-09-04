@@ -2,7 +2,7 @@
 """Ground truth etiketleme aracı üretici.
 
 Kullanım: python3 annotate.py <dosya_adı> [--pred output/baseline] [--gt data/ground_truth] [--open]
-Örn:      python3 annotate.py tip-1_mimari --open
+Örn:      python3 annotate.py <dosya_adı> --open
 
 Pipeline çıktısını (veya varsa mevcut GT'yi) altlık çizgileriyle birlikte tek dosyalık bir
 HTML'e gömer: output/annotate/<ad>.html. Tarayıcıda düzeltip "Kaydet" → <ad>.json iner;

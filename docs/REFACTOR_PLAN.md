@@ -9,13 +9,13 @@ Fark çıkarsa refactor'da hata var demektir, önce onu bul.
 ---
 
 ## Adım 0 — Ölçüm tabanı ve temizlik
-- [ ] `docs/EVAL_HISTORY.md` oluştur; mevcut `main` için baseline satırı ekle
+- [x] `docs/EVAL_HISTORY.md` oluştur; mevcut `main` için baseline satırı ekle
       (toplam oda F1/IoU, kapı F1/konum/bağlantı, pencere F1, dosya sayısı).
-- [ ] `docs/DECISIONS.md`, `docs/HITL_QUESTIONS.md` boş şablonla oluştur.
-- [ ] `debug_*.py`, `render_raw.py`, `clean_input.py` → `tools/`. Import yollarını düzelt.
-- [ ] `requirements.txt`: `langgraph` opsiyonel (`requirements-electrical.txt`);
+- [x] `docs/DECISIONS.md`, `docs/HITL_QUESTIONS.md` boş şablonla oluştur.
+- [x] `debug_*.py`, `render_raw.py`, `clean_input.py` → `tools/`. Import yollarını düzelt.
+- [x] `requirements.txt`: `langgraph` opsiyonel (`requirements-electrical.txt`);
       `tests/test_graph.py` langgraph yoksa `pytest.importorskip` ile atlansın.
-- [ ] Kod içindeki tek-dosya referanslı yorumları (`tip-4 ANTRE`, `KAYAPINAR Hol` vb.)
+- [x] Kod içindeki tek-dosya referanslı yorumları (`tip-4 ANTRE`, `KAYAPINAR Hol` vb.)
       topla → `docs/HITL_QUESTIONS.md`'ye soru adayı olarak yaz. Yorumları kodda
       kısalt (mantık kalır, dosya adı gider).
 

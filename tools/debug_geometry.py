@@ -6,6 +6,9 @@ Kullanım:
     python3 debug_geometry.py ornekler/empty-structure.dxf -o output/debug_m1.dxf --floor 1
 """
 from __future__ import annotations
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))          # tools/ (kardeş araçlar)
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))  # repo kökü (core/)
 import argparse
 import os
 

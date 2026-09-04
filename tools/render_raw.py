@@ -5,6 +5,9 @@ polyline) doğru çizilir; kapı/pencere benzeri katmanlar kırmızı vurgulanı
 Kullanım: python3 render_raw.py <ad> [--pred output/baseline] [--open]
 """
 from __future__ import annotations
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))          # tools/ (kardeş araçlar)
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))  # repo kökü (core/)
 
 import argparse
 import glob
