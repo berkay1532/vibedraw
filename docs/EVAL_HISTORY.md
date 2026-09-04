@@ -3,6 +3,10 @@
 Her perception commit'i için bir satır. Kaynak: `python3 experiments/run_baseline.py && python3 evaluate.py`
 (GT: `data/ground_truth/*.json`, mikro ortalama). "Dosya" = GT dosya sayısı / koşulan aday sayısı.
 
+Birimler: F1 ve IoU 0–1. **Kapı konum = metre**, yalnızca GT ile eşleşen kapılarda (eşleşme
+eşiği 0.5 m) menteşe mesafesinin ortalaması; kaçırılan/sahte kapılar bu sütuna girmez, F1'de
+görünür. Kapı bağlantı = eşleşen kapılarda "açıldığı oda" doğruluğu (0–1).
+
 | Tarih | Commit | Adım | Oda F1 | Oda IoU | Kapı F1 | Kapı konum (m) | Kapı bağlantı | Pencere F1 | Dosya | Not |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-09-04 | 35c9405 | baseline (refactor öncesi) | 0.901 | 0.888 | 0.951 | 0.006 | 0.904 | 0.802 | 7 / 53 | 73 test; ZA_EVİ koşuda hatalı (bozuk dosya) |
