@@ -22,6 +22,7 @@ sys.path.insert(0, str(ROOT))
 
 MAX_CELLS = 30_000_000
 from core.perception.calibration import scaled_params, BASE, BASE_UPM  # noqa: E402
+from core.perception.run_stamp import make_stamp  # noqa: E402
 
 
 def _render(dxf_path, floor, out_png, margin):
@@ -264,9 +265,12 @@ def main(argv=None):
         except Exception:
             merged = {}
     results = []
+    stamp = make_stamp()                       # kod hash + commit + başlangıç: evaluate tazelik kapısı
+    print(f"koşu damgası: {stamp}", file=sys.stderr, flush=True)
     for i, p in enumerate(paths, 1):
         print(f"[{i}/{len(paths)}] {Path(p).name}", file=sys.stderr, flush=True)
         r = run_with_timeout(p, args.out, args.timeout)
+        r["stamp"] = stamp
         results.append(r)
         merged[r["file"]] = r
         rp.write_text(json.dumps(sorted(merged.values(), key=lambda x: x["file"]), ensure_ascii=False, indent=1), encoding="utf-8")

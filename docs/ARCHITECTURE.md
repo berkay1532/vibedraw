@@ -331,21 +331,28 @@ en az 2 patlatılmış-blok, en az 1 yabancı dil, birim mm/cm/m/boş hepsinden.
 
 ---
 
-## 10. Dizin yapısı (hedef)
+## 10. Dizin yapısı
+
+Adım 3 sonrası gerçek yapı (Adım 4'te `vocab.py` eklendi). "(planlı)" olanlar henüz yok.
 
 ```
 core/
   perception/
-    ir.py  parser.py  calibration.py  names.py  vocab.py  scoring.py
-    walls.py  openings.py  rooms.py  binding.py  validate.py
-    signals/  layer.py  geometry.py  block.py  topology.py  text.py
-    second_opinion/  __init__.py  providers/anthropic.py  providers/openai.py
-  electrical/            # eski prototip: ir.py rules.py layout.py devices.py cad.py (dokunulmaz)
-hitl/        cli.py
-learning/    log.py  to_profile.py  calibrate.py  to_gt.py
-config/      weights.yaml  thresholds.yaml  models.yaml
-source_profiles/
+    ir.py  ir_v1.py  ir_compat.py         # v2 şema, eski v1 (pipeline içi), v1→v2 köprü + güven tablosu
+    parse.py  vocab.py  calibration.py    # etiket çıkarımı + kat kümeleme, tek sözlük, dosya parametreleri
+    blocks.py  walls.py  openings.py  windows.py   # blok açma, duvar, kapı, pencere tespiti
+    raster.py  polygons.py  rooms.py      # bariyer/flood-fill, maske→poligon, oda ayrıştırma
+    binding.py  pipeline.py  validate.py  # kapı↔oda / ad↔alan bağlama, orkestratör (plan seçimi + run_floor), doğrulama
+    sheets.py  sheet_segment.py           # pafta anlama: görünüm ayırma + sınıflama (runner'a bağlı değil)
+    triage.py  metrics.py  run_stamp.py   # veri seti profili/parmak izi, ölçüm, koşu damgası (tazelik)
+    semantics.py  llm.py  vlm_doors.py    # isim normalizasyonu ve LLM/VLM (planlı: second_opinion/ altına)
+    (planlı) names.py  scoring.py  signals/{layer,geometry,block,topology,text}.py
+    (planlı) second_opinion/  providers/anthropic.py  providers/openai.py
+  electrical/  ir.py rules.py layout.py devices.py cad.py appliances.py validate.py   # eski prototip (dokunulmaz)
+graph.py                                  # elektrik prototipi LangGraph kablolaması (opsiyonel bağımlılık)
+experiments/ run_baseline.py  survey_views.py        # koşucular: pipeline'ı çağırır, mantık taşımaz
+evaluate.py  annotate.py  triage_dataset.py          # (planlı: experiments/ altına)
 tools/       debug_*.py  render_raw.py  clean_input.py
-experiments/ evaluate.py  triage_dataset.py  annotate.py
+(planlı) hitl/cli.py  learning/  config/  source_profiles/
 docs/        ARCHITECTURE.md  REFACTOR_PLAN.md  EVAL_HISTORY.md  DECISIONS.md  HITL_QUESTIONS.md
 ```
