@@ -93,7 +93,21 @@ uygulanmayan iyileştirme fikri; uygulanınca "karar" olur ve commit'i yazılır
   dosyalar ≥3 kuralına takıldığı için). `graph.py` `select_plan` kullanır; `target_floor`/`gap`
   parametreleri kalktı. Döngüsel import: `parse_dxf` silinince parse→binding yerel importu da gitti.
 
+- **[gözlem] 2026-09-04 — performans: AVİDA_PLAN.** Tek başına 900 s sınırıyla koşu: 547 s (tam kapıda 420 s'ye
+  takılıyor). cProfile (select_plan 564 s + run_selected 217 s, profil yükü dahil): dosya 50 k modelspace
+  entity, 1 845 INSERT ama **24 294 blok tanımı / 582 503 blok içi entity** (Revit tarzı export), 152 katman;
+  ezdxf.readfile tek başına 36,5 s. Raster küçük: 58×14 m, res 3,23 → 1945×465 = 0,9 M hücre — darboğaz raster
+  değil. En çok zaman yiyen üç şey: (1) `ezdxf.readfile` tekrarları — `extract_room_labels` 1 kez,
+  `estimate_units_from_doors` msp verilmeyince her çağrıda yeniden okuyor (kapı-kanıtı döngüsü 8 küme + ölçek
+  düzeltme 1 + run_floor 1 + parmak izi 1 ≈ 12 okuma ≈ 430 s; tagger.ascii_tags_loader/tag_compiler cProfile'da
+  135 s), (2) `run_floor` kendi hesabı ≈ 40 s (duvar/pencere taraması 2 482 duvar parçası), (3) `raster._flood`
+  200 çağrı 7,4 s. Düzeltme yapılmadı (kural). Aday: DXF'i bir kez okuyup `msp`'yi select_plan → calibration →
+  run_floor boyunca taşımak (davranış değişmez, ~10× okuma kalkar); `experiments/` zaman aşımını dosya boyutuna
+  göre ölçeklemek.
+
 ## Adaylar (uygulanmadı)
+
+- **[aday] 2026-09-04 — DXF tek okuma.** `select_plan`/`estimate_units_from_doors`/`run_floor`/parmak izi aynı `doc`'u paylaşsın; AVİDA'da ~12 `readfile` → 1 (performans gözlemi yukarıda).
 
 - ~~[aday] `evaluate.py` mtime/koşu zamanı~~ → Adım 4'te karar olarak uygulandı (run_stamp).
 
