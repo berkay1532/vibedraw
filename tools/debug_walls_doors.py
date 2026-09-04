@@ -23,7 +23,7 @@ from core.perception.raster import _Raster, _dilate
 from core.perception.polygons import _staircase_polygon
 
 from core.perception.openings import DOOR_LAYERS
-from core.perception.parse import parse_dxf
+from core.perception.pipeline import select_plan
 from debug_devices import build, DXF
 
 AMIN, AMAX = 55.0, 130.0
@@ -43,8 +43,7 @@ def building_outline(margin=300.0, res=3.0, dilate=8, close_k=22, simplify=16.0)
     DIŞARI öteleyerek tam iç yüze getir (duvar kalınlığı tahmini gerekmez).
     Geniş margin şart (gerçek dış duvarlar oda sınırlarının hemen dışında).
     """
-    bb = parse_dxf(DXF, target_floor=1, gap=600.0)
-    bbox = _floor_bbox(bb.floors[0], margin)
+    bbox = _floor_bbox(select_plan(DXF).floor, margin)
     doc = ezdxf.readfile(DXF)
     R = _Raster(doc.modelspace(), bbox, res=res, seal=10)
     grid = _dilate(R.base, dilate)               # kapı/küçük boşlukları köprüle

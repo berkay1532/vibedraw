@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 
 from core.perception.rooms import _floor_bbox
-from core.perception.parse import parse_dxf
+from core.perception.pipeline import select_plan
 from debug_devices import build, DXF
 from debug_walls_doors import swing_arcs, served_room
 
@@ -60,7 +60,7 @@ def _segs(e):
 def main():
     b = build()
     f = b.floors[0]
-    bbox = _floor_bbox(parse_dxf(DXF, target_floor=1, gap=600.0).floors[0], 300.0)
+    bbox = _floor_bbox(select_plan(DXF).floor, 300.0)
     x0, y0, x1, y1 = bbox
     doc = ezdxf.readfile(DXF)
     msp = doc.modelspace()

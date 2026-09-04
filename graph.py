@@ -4,7 +4,8 @@ from typing import TypedDict
 
 from langgraph.graph import StateGraph, START, END
 
-from core.perception.parse import parse_dxf
+from core.perception.ir_v1 import BuildingIR
+from core.perception.pipeline import select_plan
 from core.perception.semantics import classify
 from core.electrical.rules import load_rules, decide
 from core.electrical.layout import place
@@ -16,15 +17,17 @@ from core.electrical.validate import validate_design
 class PipelineState(TypedDict, total=False):
     dxf_path: str
     out_path: str
-    target_floor: int
-    gap: float
     rules_path: str
     building: object       # BuildingIR
     design: object         # DesignIR
 
 
 def _parse_node(s: PipelineState) -> PipelineState:
-    return {"building": parse_dxf(s["dxf_path"], s.get("target_floor", 1), s.get("gap", 80.0))}
+    """Genel yol (Adım 4): katman-bağımsız etiket → ölçek → plan seçimi."""
+    sel = select_plan(s["dxf_path"])
+    if sel.floor is None:
+        raise ValueError("DXF'te ≥3 odalı kat kümesi bulunamadı")
+    return {"building": BuildingIR(floors=[sel.floor], source_path=s["dxf_path"])}
 
 
 def _semantics_node(s: PipelineState) -> PipelineState:
@@ -65,13 +68,10 @@ def build_graph():
     return g.compile()
 
 
-def run_pipeline(dxf_path: str, out_path: str, target_floor: int = 1,
-                 gap: float = 80.0, rules_path: str = "rules/residential.yaml") -> dict:
+def run_pipeline(dxf_path: str, out_path: str, rules_path: str = "rules/residential.yaml") -> dict:
     app = build_graph()
     return app.invoke({
         "dxf_path": dxf_path,
         "out_path": out_path,
-        "target_floor": target_floor,
-        "gap": gap,
         "rules_path": rules_path,
     })

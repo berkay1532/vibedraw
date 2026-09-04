@@ -19,22 +19,14 @@ from typing import Optional
 import ezdxf
 from ezdxf import recover
 
-# Oda adı sözlüğü (alt-dizgi eşleşmesi, Türkçe casefold sonrası)
-ROOM_VOCAB = (
-    "depo", "ofis", "çalışma odası", "sandık", "vestiyer", "giyinme", "kazan", "sığınak",
-    "salon", "oturma", "mutfak", "yatak", "çocuk", "ebeveyn", "banyo", "wc",
-    "tuvalet", "hol", "antre", "koridor", "balkon", "oda", "merdiven", "kiler",
-    "giriş", "teras", "çamaşır", "sofa",
-    "living", "kitchen", "bedroom", "bathroom", "hall", "balcony", "corridor",
-)
+from core.perception.vocab import ROOM_WORDS, fold
+
 
 DWG_EXT = {".dwg"}
 DXF_EXT = {".dxf"}
 
 
-def tr_fold(s: str) -> str:
-    """Türkçe güvenli casefold: İ→i, I→ı, sonra casefold."""
-    return s.replace("İ", "i").replace("I", "ı").casefold()
+tr_fold = fold   # Adım 4: tek uygulama vocab.fold
 
 
 def room_hits(texts: list[str]) -> dict[str, int]:
@@ -42,7 +34,7 @@ def room_hits(texts: list[str]) -> dict[str, int]:
     hits: Counter = Counter()
     for t in texts:
         f = tr_fold(t)
-        for w in ROOM_VOCAB:
+        for w in ROOM_WORDS:
             if w in f:
                 hits[w] += 1
                 break

@@ -8,13 +8,13 @@ import math
 
 from core.perception.blocks import _entity_segments, _explode, _is_big_block
 from core.perception.openings import _door_like_arc
+from core.perception.vocab import WINDOW_WORDS
 from core.perception.walls import WALL_EXCLUDE_LAYERS
 
 
 WINDOW_LAYERS = {"pencere", "cam", "KAPEN", "KAPI_PENCERE"}
 
 
-WINDOW_WORDS = ("pencere", "window", "glz", "glazing", "fenetre", "ventana", "cam ")
 
 
 def _window_word(name: str) -> bool:

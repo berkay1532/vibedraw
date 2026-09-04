@@ -1,16 +1,15 @@
 # tests/test_parse.py
 from core.perception.parse import (
-    extract_yazi_texts,
+    extract_room_labels,
     is_area_text,
     parse_area,
-    cluster_floors,
-    parse_dxf,
+    cluster_floors_2d,
 )
 from core.perception.binding import pair_names_with_areas
 
 
-def test_extract_yazi_texts(synthetic_dxf):
-    texts = extract_yazi_texts(synthetic_dxf)
+def test_extract_room_labels_includes_area_texts(synthetic_dxf):
+    texts = extract_room_labels(synthetic_dxf)
     contents = [t.content for t in texts]
     assert "Salon" in contents
     assert any(c.startswith("A:") for c in contents)
@@ -29,7 +28,7 @@ def test_parse_area():
 
 
 def test_pair_names_with_areas(synthetic_dxf):
-    texts = extract_yazi_texts(synthetic_dxf)
+    texts = extract_room_labels(synthetic_dxf)
     rooms = pair_names_with_areas(texts)
     by_name = {r.raw_name: r for r in rooms}
     assert "Salon" in by_name
@@ -38,20 +37,18 @@ def test_pair_names_with_areas(synthetic_dxf):
     assert all(not r.raw_name.startswith("A:") for r in rooms)
 
 
-def test_cluster_floors_separates_by_x_gap(synthetic_dxf):
-    rooms = pair_names_with_areas(extract_yazi_texts(synthetic_dxf))
-    floors = cluster_floors(rooms, gap=200.0)
+def test_cluster_floors_2d_separates_by_gap(synthetic_dxf):
+    rooms = pair_names_with_areas(extract_room_labels(synthetic_dxf))
+    floors = cluster_floors_2d(rooms, gap=200.0)
     assert len(floors) == 2
     # ilk küme (küçük x) Salon/Mutfak/Banyo içerir
     assert {r.raw_name for r in floors[0].rooms} == {"Salon", "Mutfak", "Banyo"}
 
 
-def test_parse_dxf_selects_target_floor(synthetic_dxf):
-    building = parse_dxf(synthetic_dxf, target_floor=1, gap=200.0)
-    assert len(building.floors) == 1
-    names = {r.raw_name for r in building.floors[0].rooms}
-    assert names == {"Yatak Odası", "Hol"}
-    assert building.source_path == synthetic_dxf
+def test_label_floors_helper_indexes_clusters(synthetic_dxf):
+    from core.perception.pipeline import label_floors
+    floors = label_floors(synthetic_dxf, gap=200.0)
+    assert {r.raw_name for r in floors[1].rooms} == {"Yatak Odası", "Hol"}
 
 
 def test_extract_room_labels_layer_independent_and_attribs(tmp_path):

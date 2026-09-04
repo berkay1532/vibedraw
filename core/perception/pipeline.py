@@ -1,16 +1,27 @@
 # core/perception/pipeline.py
-"""Orkestratör: bir kat için duvar → açıklık → oda → bağlama sırasını çalıştırır (eski reconstruct).
+"""Orkestratör.
 
-Adım 3: core/perception/geometry.py'den taşındı; mantık değişmedi."""
+- `select_plan(dxf)`: etiket → ölçek → 2B kat kümeleme → plan seçimi (kapı-yayı kanıtı) → ölçek
+  düzeltme. Adım 4'te `experiments/run_baseline.run_one`'dan taşındı; mantık değişmedi.
+- `run_floor(building, dxf)`: seçilen kat için duvar → açıklık → oda → bağlama (eski reconstruct;
+  Adım 3'te geometry.py'den taşındı).
+- `run_selected` / `run_file`: seçim + ölçekli parametreler + run_floor + v2 IR.
+Deney scriptleri (experiments/) yalnızca bunları çağırır, mantık taşımaz."""
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass, field
 
 import ezdxf
 import numpy as np
 
 from core.perception.ir_v1 import BuildingIR, Door, Floor, Room
-from core.perception.binding import _room_by_swing
+from core.perception.binding import _room_by_swing, pair_names_with_areas
+from core.perception.calibration import estimate_units_from_doors, estimate_units_per_meter, scaled_params
+from core.perception.ir_compat import to_v2
+from core.perception.parse import (cluster_floors_2d, dedupe_labels, extract_room_labels, grid_likeness,
+                                   pick_plan_floor)
+from core.perception.triage import layer_fingerprint
 from core.perception.openings import _cluster_doors, _door_barriers, _seg_dist, _swing_dirs
 from core.perception.polygons import _mask_polygon
 from core.perception.raster import _Raster
@@ -191,5 +202,103 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
     return building
 
 
-# Geriye uyumluluk: eski ad. Adım 4'te çağıranlar run_floor'a geçince kaldırılacak.
-reconstruct = run_floor
+# --- Plan seçimi ve dosya koşusu -------------------------------------------------------
+MAX_CELLS = 30_000_000   # raster hücre üst sınırı; aşılırsa res büyütülür (config/ adayı, Adım 6)
+
+
+@dataclass
+class PlanSelection:
+    """Etiket → ölçek → kat kümeleme → plan seçimi sonucu. `floor` None ise ≥3 odalı küme yok.
+    `stats` results.json'daki "labels_generic" aşaması ile birebir aynı anahtarları taşır."""
+    labels: list = field(default_factory=list)
+    rooms: list = field(default_factory=list)
+    floors: list = field(default_factory=list)
+    floor: Floor | None = None
+    upm: float = 100.0
+    stats: dict = field(default_factory=dict)
+
+
+def label_floors(dxf_path: str, gap: float) -> list[Floor]:
+    """Yardımcı (test/araç): etiket → ad↔alan → 2B kümeleme. Ölçek tahmini ve plan seçimi yok."""
+    return cluster_floors_2d(pair_names_with_areas(extract_room_labels(dxf_path)), gap=gap)
+
+
+def select_plan(dxf_path: str) -> PlanSelection:
+    """Genel etiket çıkarımı + ölçek + kat seçimi (tek yol)."""
+    labels = extract_room_labels(dxf_path)
+    upm0 = estimate_units_per_meter(labels)
+    labels = dedupe_labels(labels, tol=0.5 * upm0)      # 50 cm içindeki tekrarlar
+    upm = estimate_units_per_meter(labels)
+    rooms = pair_names_with_areas(labels)
+    floors = cluster_floors_2d(rooms, gap=7.0 * upm)    # 7 m'den yakın etiketler aynı çizim
+    floors = [f for f in floors if len(f.rooms) >= 3]
+    stats = {"labels": len(labels), "rooms": len(rooms), "upm": round(upm, 1),
+             "floors": [len(f.rooms) for f in floors]}
+    sel = PlanSelection(labels=labels, rooms=rooms, floors=floors, upm=upm, stats=stats)
+    if not floors:
+        return sel
+    floor = pick_plan_floor(floors, upm); floor.index = 0
+    stats["grid"] = [round(grid_likeness(f.rooms, 0.3 * upm), 2) for f in floors]
+    # Kapı-yayı kanıtı: mahal listesi tabloları (döndürülmüş olsa bile) kapı yayı içermez.
+    # Kapı yayı bulunan en kalabalık kümeyi tercih et.
+    with_doors = []
+    for f in sorted(floors, key=lambda f: -len(f.rooms))[:8]:
+        if len(f.rooms) < 3:
+            continue
+        if estimate_units_from_doors(dxf_path, _floor_bbox(f, 2.5 * upm), upm) is not None:
+            with_doors.append(f)
+    if with_doors and floor not in with_doors:
+        floor = with_doors[0]; floor.index = 0
+        stats["pick"] = "doors"
+    # Ölçeği kapı yaylarından düzelt (etiket-mesafesi tahmini kaba)
+    upm_doors = estimate_units_from_doors(dxf_path, _floor_bbox(floor, 2.5 * upm), upm)
+    stats["upm_labels"] = round(upm, 1)
+    if upm_doors and 0.25 * upm <= upm_doors <= 4.0 * upm:   # etiket öncülü kaba; kapı kümesi güçlü kanıt
+        upm = upm_doors
+        stats["upm"] = round(upm, 1)
+        stats["upm_source"] = "doors"
+        # Düzeltilmiş ölçekle YENİDEN kümele: kaba ölçekle 7 m eşiği büyük salon
+        # etiketini kümenin dışında bırakabiliyor.
+        floors2 = [f for f in cluster_floors_2d(rooms, gap=8.0 * upm) if len(f.rooms) >= 3]
+        if floors2:
+            # yeniden kümelemede: önceki seçimin etiketlerini içeren kümeyi koru
+            prev = {id(rm) for rm in floor.rooms}
+            same = [f for f in floors2 if any(id(rm) in prev for rm in f.rooms)]
+            floor = max(same, key=lambda f: len(f.rooms)) if same else pick_plan_floor(floors2, upm)
+            floor.index = 0
+            stats["floors"] = [len(f.rooms) for f in floors2]
+            sel.floors = floors2
+    sel.floor, sel.upm = floor, upm
+    return sel
+
+
+def run_selected(dxf_path: str, sel: PlanSelection, *, max_cells: int = MAX_CELLS):
+    """Seçilen kat için ölçekli parametreler + run_floor + v2 IR. (params, kat_v1, building_v2) döner."""
+    floor, upm = sel.floor, sel.upm
+    xs = [rm.label_xy[0] for rm in floor.rooms]; ys = [rm.label_xy[1] for rm in floor.rooms]
+    p = scaled_params(upm)
+    w = max(xs) - min(xs) + 2 * p["margin"]; h = max(ys) - min(ys) + 2 * p["margin"]
+    cells = (w / p["res"]) * (h / p["res"])
+    if cells > max_cells:
+        p["res"] *= math.sqrt(cells / max_cells)
+    b = BuildingIR(floors=[floor], source_path=dxf_path)
+    b = run_floor(b, dxf_path, units_per_meter=upm, **p)
+    f = b.floors[0]
+    # v2 çıktı: güven + kanıt (ir_compat). Koordinatlar çizim biriminde, ölçek params'ta.
+    try:
+        fp = layer_fingerprint(l.dxf.name for l in ezdxf.readfile(dxf_path).layers)
+    except Exception:
+        fp = ""
+    extra = {k: (list(v) if isinstance(v, tuple) else v) for k, v in p.items()}
+    extra["big_blocks"] = bool(getattr(f, "big_blocks", False))
+    b2 = to_v2(b, units_per_meter=upm, units_source=sel.stats.get("upm_source", "labels"),
+               fingerprint=fp, params_extra=extra)
+    return p, f, b2
+
+
+def run_file(dxf_path: str, *, max_cells: int = MAX_CELLS):
+    """Tek dosya, tek yol: select_plan + run_selected. ≥3 odalı kat kümesi yoksa ValueError."""
+    sel = select_plan(dxf_path)
+    if sel.floor is None:
+        raise ValueError("≥3 odalı kat kümesi yok")
+    return run_selected(dxf_path, sel, max_cells=max_cells)

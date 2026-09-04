@@ -1,4 +1,9 @@
-# core/parse.py
+# core/perception/parse.py
+"""Etiket çıkarımı ve kat kümeleme (katman-bağımsız).
+
+Adım 4: eski YAZI-katmanı yolu (`extract_yazi_texts`, `cluster_floors` x-only, `parse_dxf`) silindi;
+tek yol `extract_room_labels` → `dedupe_labels` → `cluster_floors_2d` → `pick_plan_floor`
+(orkestrasyon: `pipeline.select_plan`). Kelime listeleri `vocab.py`'de."""
 from __future__ import annotations
 import math
 import re
@@ -6,7 +11,8 @@ from dataclasses import dataclass
 
 import ezdxf
 
-from core.perception.ir_v1 import Room, Floor, BuildingIR
+from core.perception.ir_v1 import Room, Floor
+from core.perception.vocab import NON_ROOM_WORDS, ROOM_WORDS, SHORT_ROOM_WORDS, fold
 
 AREA_RE = re.compile(r"A\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*m\s*[²2]", re.IGNORECASE)
 
@@ -36,42 +42,8 @@ def _plain(entity) -> str:
     return decode_dxf_text(raw).strip()
 
 
-def extract_yazi_texts(dxf_path: str, layer: str = "YAZI") -> list[YaziText]:
-    doc = ezdxf.readfile(dxf_path)
-    msp = doc.modelspace()
-    out: list[YaziText] = []
-    for e in msp:
-        if e.dxftype() in ("MTEXT", "TEXT") and e.dxf.layer == layer:
-            content = _plain(e)
-            if not content:
-                continue
-            x, y, *_ = e.dxf.insert
-            out.append(YaziText(content=content, xy=(float(x), float(y))))
-    return out
-
-
-# --- Katman-bağımsız oda etiketi çıkarımı (genelleme için) -------------------
-
-ROOM_WORDS = (
-    "depo", "ofis", "çalışma odası", "sandık", "vestiyer", "giyinme", "kazan", "sığınak",
-    "salon", "oturma", "mutfak", "yatak", "çocuk", "ebeveyn", "banyo", "wc",
-    "tuvalet", "hol", "antre", "koridor", "balkon", "oda", "merdiven", "kiler",
-    "giriş", "teras", "çamaşır", "sofa", "kat holü", "yemek", "çalışma",
-    "living", "kitchen", "bedroom", "bathroom", "hall", "balcony", "corridor",
-    "toilet", "dining", "entrance", "lobby",
-)
+# --- Katman-bağımsız oda etiketi çıkarımı ------------------------------------------
 _NOISE_RE = re.compile(r"^[\d\s.,/x×+\-]*$")  # sadece sayı/ölçü
-
-
-def _tr_fold(s: str) -> str:
-    return s.replace("İ", "i").replace("I", "ı").casefold()
-
-
-NON_ROOM_WORDS = ("mak.", "makine", "makinesi", "yeri", "dolab", "dolap", "tezgah", "tezgâh", "hesab", "hesap", "listesi", "tablosu",
-                  "kapısı", "penceresi", "detay", "kesit", "görünüş", "gorunus", "plan")
-
-
-_SHORT_WORDS = ("oda", "hol", "wc", "sofa")     # tam kelime eşleşmesi gereken kısa kökler
 _WORD_RE = re.compile(r"[a-zçğıöşü]+")
 
 
@@ -83,12 +55,12 @@ def looks_like_room_label(content: str) -> bool:
         return False
     if sum(ch.isdigit() for ch in c) > 4:        # kod/ölçü yazıları
         return False
-    f = _tr_fold(c)
+    f = fold(c)
     if any(w in f for w in NON_ROOM_WORDS):      # "ÇAMAŞIR MAK.YERİ", "MUTFAK DOLABI", "KAT PLANI"
         return False
     words = set(_WORD_RE.findall(f))
     for w in ROOM_WORDS:
-        if w in _SHORT_WORDS:
+        if w in SHORT_ROOM_WORDS:
             if w in words:                        # "oda" tam kelime; "sicil no"daki 'no' değil
                 return True
         elif w in f:
@@ -145,8 +117,8 @@ def dedupe_labels(labels: list[YaziText], tol: float) -> list[YaziText]:
     Lejant/antet tekrarlarını ve çift yazılmış etiketleri eler."""
     kept: list[YaziText] = []
     for t in labels:
-        f = _tr_fold(t.content)
-        dup = any(_tr_fold(k.content) == f and
+        f = fold(t.content)
+        dup = any(fold(k.content) == f and
                   math.hypot(k.xy[0] - t.xy[0], k.xy[1] - t.xy[1]) <= tol for k in kept)
         if not dup:
             kept.append(t)
@@ -189,32 +161,6 @@ def parse_area(content: str) -> float:
     if not m:
         raise ValueError(f"Alan yazısı değil: {content!r}")
     return float(m.group(1))
-
-
-def cluster_floors(rooms: list[Room], gap: float = 80.0) -> list[Floor]:
-    """Odaları x-ekseni boşluğuna göre kümeler; soldan sağa sıralı Floor listesi döner."""
-    if not rooms:
-        return []
-    ordered = sorted(rooms, key=lambda r: r.label_xy[0])
-    clusters: list[list[Room]] = [[ordered[0]]]
-    for r in ordered[1:]:
-        if r.label_xy[0] - clusters[-1][-1].label_xy[0] > gap:
-            clusters.append([r])
-        else:
-            clusters[-1].append(r)
-    return [Floor(index=i, rooms=c) for i, c in enumerate(clusters)]
-
-
-def parse_dxf(dxf_path: str, target_floor: int = 1, gap: float = 80.0) -> BuildingIR:
-    """Aşama 1 giriş noktası: DXF → seçili katı içeren BuildingIR."""
-    texts = extract_yazi_texts(dxf_path)
-    from core.perception.binding import pair_names_with_areas   # eski yol; Adım 4'te silinecek (döngü önleme)
-    rooms = pair_names_with_areas(texts)
-    floors = cluster_floors(rooms, gap=gap)
-    if not floors:
-        raise ValueError("DXF'te oda etiketi bulunamadı")
-    idx = min(target_floor, len(floors) - 1)
-    return BuildingIR(floors=[floors[idx]], source_path=dxf_path)
 
 
 def grid_likeness(rooms: list[Room], tol: float) -> float:

@@ -17,11 +17,11 @@ def _two_label_dxf(tmp_path, second_name):
 
 
 def test_alias_merge_two_labels_one_space(tmp_path):
-    from core.perception.parse import parse_dxf
-    from core.perception.pipeline import reconstruct
+    from core.perception.ir_v1 import BuildingIR
+    from core.perception.pipeline import label_floors, run_floor
     path = _two_label_dxf(tmp_path, "Mutfak")
-    b = parse_dxf(path, target_floor=0, gap=2000)
-    b = reconstruct(b, path, res=3.0, seal=18, margin=300, units_per_meter=100)
+    b = BuildingIR(floors=[label_floors(path, gap=2000)[0]], source_path=path)
+    b = run_floor(b, path, res=3.0, seal=18, margin=300, units_per_meter=100)
     rooms = b.floors[0].rooms
     assert len(rooms) == 1 and rooms[0].geometry_ok
     assert rooms[0].aliases == ["Mutfak"] and len(rooms[0].alias_xy) == 1
@@ -30,11 +30,11 @@ def test_alias_merge_two_labels_one_space(tmp_path):
 
 
 def test_stair_label_not_merged(tmp_path):
-    from core.perception.parse import parse_dxf
-    from core.perception.pipeline import reconstruct
+    from core.perception.ir_v1 import BuildingIR
+    from core.perception.pipeline import label_floors, run_floor
     path = _two_label_dxf(tmp_path, "Merdiven")
-    b = parse_dxf(path, target_floor=0, gap=2000)
-    b = reconstruct(b, path, res=3.0, seal=18, margin=300, units_per_meter=100)
+    b = BuildingIR(floors=[label_floors(path, gap=2000)[0]], source_path=path)
+    b = run_floor(b, path, res=3.0, seal=18, margin=300, units_per_meter=100)
     rooms = b.floors[0].rooms
     assert len(rooms) == 2 and all(r.geometry_ok for r in rooms) and all(not r.aliases for r in rooms)
 
@@ -42,8 +42,8 @@ def test_stair_label_not_merged(tmp_path):
 def test_outside_label_does_not_flood_background(tmp_path):
     """Bina dışındaki etiket (ör. korkuluk notu) raster kenarına akar → oda olmamalı."""
     import ezdxf
-    from core.perception.parse import parse_dxf
-    from core.perception.pipeline import reconstruct
+    from core.perception.ir_v1 import BuildingIR
+    from core.perception.pipeline import label_floors, run_floor
     doc = ezdxf.new("R2010"); msp = doc.modelspace()
     for lyr in ("YAZI", "duv"):
         doc.layers.add(lyr)
@@ -53,8 +53,8 @@ def test_outside_label_does_not_flood_background(tmp_path):
     msp.add_mtext("Balkon", dxfattribs={"layer": "YAZI", "insert": (200, 420)})   # dışarıda, duvarsız
     msp.add_mtext("Hol", dxfattribs={"layer": "YAZI", "insert": (200, 450)})      # dışarıda
     p = tmp_path / "out.dxf"; doc.saveas(p)
-    b = parse_dxf(str(p), target_floor=0, gap=2000)
-    b = reconstruct(b, str(p), res=3.0, seal=18, margin=300, units_per_meter=100)
+    b = BuildingIR(floors=[label_floors(str(p), gap=2000)[0]], source_path=str(p))
+    b = run_floor(b, str(p), res=3.0, seal=18, margin=300, units_per_meter=100)
     by = {r.raw_name: r for r in b.floors[0].rooms}
     assert by["Salon"].geometry_ok and by["Salon"].polygon
     assert not by["Balkon"].geometry_ok and by["Balkon"].polygon is None

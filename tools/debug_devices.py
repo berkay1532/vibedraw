@@ -17,8 +17,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 
-from core.perception.parse import parse_dxf
-from core.perception.pipeline import reconstruct
+from core.perception.ir_v1 import BuildingIR
+from core.perception.pipeline import run_floor, select_plan
 from core.electrical.devices import place_devices, place_m3_nodes
 from core.electrical.appliances import detect_appliances
 
@@ -36,8 +36,8 @@ STYLE = {
 
 
 def build():
-    b = parse_dxf(DXF, target_floor=1, gap=600.0)
-    b = reconstruct(b, DXF, res=3.0, seal=18, margin=250)
+    b = BuildingIR(floors=[select_plan(DXF).floor], source_path=DXF)   # genel yol (Adım 4)
+    b = run_floor(b, DXF, res=3.0, seal=18, margin=250)
     b = place_devices(b, detect_appliances(b, DXF))
     b = place_m3_nodes(b)
     return b

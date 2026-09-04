@@ -10,6 +10,7 @@ from shapely.geometry import LineString
 
 from core.perception.blocks import _entity_segments, _explode, _is_big_block
 from core.perception.openings import DOOR_LAYERS
+from core.perception.vocab import ANNO_LAYER_WORDS, fold
 
 
 # Bariyer sayılan katmanlar (oda sınırını oluşturanlar).
@@ -105,14 +106,9 @@ def _wall_lines(msp, bbox, ang_tol=10.0, angled_min_len=15.0, cluster_tol=3.0, e
 # oda ortasından geçer, duvar değil; çiftli gidince sahte duvar yapıyordu)
 # DENENDİ ve GERİ ALINDI: "yazı/ölçü/aks" adlı katmanları duvar adayından çıkarmak ölçümü
 # düşürdü (bazı CAD export'larında "ANNO" adlı katmanlarda gerçek geometri var). Fonksiyon
-# referans için duruyor, kullanılmıyor. Ayrıntı: docs/HITL_QUESTIONS.md #3.
-_ANNO_LAYER_WORDS = ("yazi", "yazı", "text", "txt", "anno", "olcu", "ölçü", "dim",
-                     "aks", "axis", "grid", "lejant", "legend")
-
-
+# referans için duruyor, kullanılmıyor. Ayrıntı: docs/HITL_QUESTIONS.md #3. Kelimeler vocab.ANNO_LAYER_WORDS.
 def _is_anno_layer(name: str) -> bool:
-    f = (name or "").replace("İ", "i").replace("I", "ı").casefold()
-    return any(w in f for w in _ANNO_LAYER_WORDS)
+    return any(w in fold(name) for w in ANNO_LAYER_WORDS)
 
 
 WALL_EXCLUDE_LAYERS = DOOR_LAYERS | {

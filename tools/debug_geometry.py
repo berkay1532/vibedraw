@@ -14,8 +14,8 @@ import os
 
 import ezdxf
 
-from core.perception.parse import parse_dxf
-from core.perception.pipeline import reconstruct
+from core.perception.ir_v1 import BuildingIR
+from core.perception.pipeline import label_floors, run_floor
 
 L_POLY = "DBG-ODA-SINIR"
 L_CENTER = "DBG-ODA-MERKEZ"
@@ -44,8 +44,8 @@ def main() -> None:
         (4719, 3750),   # BALKON — Yatak <-> Balkon
     ]
 
-    building = parse_dxf(args.dxf, target_floor=args.floor, gap=args.gap)
-    building = reconstruct(building, args.dxf, vlm_door_points=MANUAL_VLM_DOORS)
+    building = BuildingIR(floors=[label_floors(args.dxf, args.gap)[args.floor]], source_path=args.dxf)
+    building = run_floor(building, args.dxf, vlm_door_points=MANUAL_VLM_DOORS)
 
     doc = ezdxf.readfile(args.dxf)
     msp = doc.modelspace()

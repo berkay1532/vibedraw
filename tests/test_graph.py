@@ -13,8 +13,7 @@ def test_run_pipeline_end_to_end(synthetic_dxf, tmp_path, monkeypatch):
     monkeypatch.setattr(R, "_rationale", lambda *a, **k: "test gerekçe")
 
     out = str(tmp_path / "result.dxf")
-    state = run_pipeline(synthetic_dxf, out_path=out, target_floor=0,
-                         gap=200.0, rules_path="rules/residential.yaml")
+    state = run_pipeline(synthetic_dxf, out_path=out, rules_path="rules/residential.yaml")
     assert state["out_path"] == out
 
     import ezdxf

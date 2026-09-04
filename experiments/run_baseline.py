@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Deney A temel çizgisi: mevcut çıkarım pipeline'ını (etiket → kat → geometri) tüm ADAY
+"""Deney A temel çizgisi: perception pipeline'ını (pipeline.select_plan → run_selected) tüm ADAY
 dosyalarda koşturur, her dosya için IR JSON + overlay PNG üretir ve başarısızlık kataloğu yazar.
+Bu script yalnızca çağırıcıdır; çıkarım mantığı core/perception/pipeline.py'dedir (Adım 4).
 
 Kullanım: python3 experiments/run_baseline.py [--triage output/dataset_triage.json] [--out output/baseline] [--timeout 180]
 """
@@ -20,8 +21,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-MAX_CELLS = 30_000_000
-from core.perception.calibration import scaled_params, BASE, BASE_UPM  # noqa: E402
 from core.perception.run_stamp import make_stamp  # noqa: E402
 
 
@@ -75,97 +74,24 @@ def _render(dxf_path, floor, out_png, margin):
 
 
 def run_one(dxf_path: str, out_dir: str, q):
-    """Alt süreçte koşar; sonucu kuyruğa yazar."""
-    from core.perception.parse import (parse_dxf, extract_room_labels, cluster_floors_2d, dedupe_labels,
-                                       pick_plan_floor, grid_likeness)
-    from core.perception.binding import pair_names_with_areas
-    from core.perception.calibration import estimate_units_per_meter
-    from core.perception.pipeline import reconstruct
-    from core.perception.ir_v1 import BuildingIR
+    """Alt süreçte koşar; sonucu kuyruğa yazar. Mantık pipeline'da (select_plan / run_selected)."""
+    from core.perception.pipeline import select_plan, run_selected
     name = Path(dxf_path).stem
     r = {"file": name, "path": dxf_path, "stages": {}, "error": None, "fail_stage": None}
     t0 = time.time()
-    # 1) stok parse (YAZI katmanı)
+    # 1) genel etiket çıkarımı + ölçek + kat seçimi
     try:
-        b = parse_dxf(dxf_path)
-        r["stages"]["parse_stock"] = {"rooms": len(b.floors[0].rooms)}
-    except Exception as ex:
-        r["stages"]["parse_stock"] = {"rooms": 0, "error": f"{type(ex).__name__}: {ex}"[:120]}
-    # 2) genel etiket çıkarımı + ölçek + kat
-    try:
-        labels = extract_room_labels(dxf_path)
-        upm0 = estimate_units_per_meter(labels)
-        labels = dedupe_labels(labels, tol=0.5 * upm0)      # 50 cm içindeki tekrarlar
-        upm = estimate_units_per_meter(labels)
-        rooms = pair_names_with_areas(labels)
-        floors = cluster_floors_2d(rooms, gap=7.0 * upm)    # 7 m'den yakın etiketler aynı çizim
-        floors = [f for f in floors if len(f.rooms) >= 3]
-        r["stages"]["labels_generic"] = {"labels": len(labels), "rooms": len(rooms), "upm": round(upm, 1),
-                                         "floors": [len(f.rooms) for f in floors]}
-        if not floors:
+        sel = select_plan(dxf_path)
+        r["stages"]["labels_generic"] = sel.stats
+        if sel.floor is None:
             r["fail_stage"] = "labels_generic"; r["error"] = "≥3 odalı kat kümesi yok"
             r["elapsed"] = round(time.time() - t0, 1); q.put(r); return
-        floor = pick_plan_floor(floors, upm); floor.index = 0
-        r["stages"]["labels_generic"]["grid"] = [round(grid_likeness(f.rooms, 0.3 * upm), 2) for f in floors]
-        # Kapı-yayı kanıtı: mahal listesi tabloları (döndürülmüş olsa bile) kapı yayı içermez.
-        # Kapı yayı bulunan en kalabalık kümeyi tercih et.
-        from core.perception.calibration import estimate_units_from_doors as _eud
-        from core.perception.rooms import _floor_bbox as _fb
-        with_doors = []
-        for f in sorted(floors, key=lambda f: -len(f.rooms))[:8]:
-            if len(f.rooms) < 3:
-                continue
-            if _eud(dxf_path, _fb(f, 2.5 * upm), upm) is not None:
-                with_doors.append(f)
-        if with_doors and floor not in with_doors:
-            floor = with_doors[0]; floor.index = 0
-            r["stages"]["labels_generic"]["pick"] = "doors"
     except Exception as ex:
         r["fail_stage"] = "labels_generic"; r["error"] = f"{type(ex).__name__}: {ex}"[:200]
         r["trace"] = traceback.format_exc()[-800:]; r["elapsed"] = round(time.time() - t0, 1); q.put(r); return
-    # 3) geometri
+    # 2) geometri
     try:
-        # Ölçeği kapı yaylarından düzelt (etiket-mesafesi tahmini kaba)
-        from core.perception.calibration import estimate_units_from_doors
-        from core.perception.rooms import _floor_bbox
-        xs = [rm.label_xy[0] for rm in floor.rooms]; ys = [rm.label_xy[1] for rm in floor.rooms]
-        upm_doors = estimate_units_from_doors(dxf_path, _floor_bbox(floor, 2.5 * upm), upm)
-        r["stages"]["labels_generic"]["upm_labels"] = round(upm, 1)
-        if upm_doors and 0.25 * upm <= upm_doors <= 4.0 * upm:   # etiket öncülü kaba; kapı kümesi güçlü kanıt
-            upm = upm_doors
-            r["stages"]["labels_generic"]["upm"] = round(upm, 1)
-            r["stages"]["labels_generic"]["upm_source"] = "doors"
-            # Düzeltilmiş ölçekle YENİDEN kümele: kaba ölçekle 7 m eşiği büyük salon
-            # etiketini kümenin dışında bırakabiliyor.
-            floors2 = [f for f in cluster_floors_2d(rooms, gap=8.0 * upm) if len(f.rooms) >= 3]
-            if floors2:
-                # yeniden kümelemede: önceki seçimin etiketlerini içeren kümeyi koru
-                prev = {id(rm) for rm in floor.rooms}
-                same = [f for f in floors2 if any(id(rm) in prev for rm in f.rooms)]
-                floor = max(same, key=lambda f: len(f.rooms)) if same else pick_plan_floor(floors2, upm)
-                floor.index = 0
-                r["stages"]["labels_generic"]["floors"] = [len(f.rooms) for f in floors2]
-                xs = [rm.label_xy[0] for rm in floor.rooms]; ys = [rm.label_xy[1] for rm in floor.rooms]
-        p = scaled_params(upm)
-        w = max(xs) - min(xs) + 2 * p["margin"]; h = max(ys) - min(ys) + 2 * p["margin"]
-        cells = (w / p["res"]) * (h / p["res"])
-        if cells > MAX_CELLS:
-            p["res"] *= math.sqrt(cells / MAX_CELLS)
-        b = BuildingIR(floors=[floor], source_path=dxf_path)
-        b = reconstruct(b, dxf_path, units_per_meter=upm, **p)
-        f = b.floors[0]
-        # v2 çıktı: güven + kanıt (ir_compat). Koordinatlar çizim biriminde, ölçek params'ta.
-        from core.perception.ir_compat import to_v2
-        from core.perception.triage import layer_fingerprint
-        try:
-            import ezdxf as _ez
-            fp = layer_fingerprint(l.dxf.name for l in _ez.readfile(dxf_path).layers)
-        except Exception:
-            fp = ""
-        extra = {k: (list(v) if isinstance(v, tuple) else v) for k, v in p.items()}
-        extra["big_blocks"] = bool(getattr(f, "big_blocks", False))
-        b2 = to_v2(b, units_per_meter=upm, units_source=r["stages"]["labels_generic"].get("upm_source", "labels"),
-                   fingerprint=fp, params_extra=extra)
+        p, f, b2 = run_selected(dxf_path, sel)
         r["stages"]["geometry"] = {
             "params": {k: (round(v, 2) if isinstance(v, float) else v) for k, v in p.items()},
             "rooms": len(f.rooms), "geometry_ok": sum(1 for rm in f.rooms if rm.geometry_ok),
@@ -204,7 +130,6 @@ def report(results, out_md):
     n = len(results)
     ok_geo = [r for r in results if r["stages"].get("geometry") and not r["fail_stage"]]
     L.append(f"- Koşulan ADAY dosya: **{n}**")
-    L.append(f"- Stok parse (YAZI katmanı) oda bulan: **{sum(1 for r in results if r['stages'].get('parse_stock', {}).get('rooms', 0) >= 3)}**")
     L.append(f"- Genel etiket ile ≥3 odalı kat bulunan: **{sum(1 for r in results if r['stages'].get('labels_generic', {}).get('floors'))}**")
     L.append(f"- Geometri aşaması hatasız biten: **{len(ok_geo)}**")
     if ok_geo:
@@ -212,12 +137,12 @@ def report(results, out_md):
         tot_ok = sum(r["stages"]["geometry"]["geometry_ok"] for r in ok_geo)
         L.append(f"- Oda poligonu çıkan / toplam oda (geometri biten dosyalarda): **{tot_ok}/{tot_r}**")
     L.append("")
-    L.append("| Dosya | Stok oda | Etiket | Oda | upm | Kat(oda) | Poligon ok | Duvar | Pencere | Kapı | Kapı→oda | Süre | Hata |")
-    L.append("|---|---:|---:|---:|---:|---|---:|---:|---:|---:|---:|---:|---|")
+    L.append("| Dosya | Etiket | Oda | upm | Kat(oda) | Poligon ok | Duvar | Pencere | Kapı | Kapı→oda | Süre | Hata |")
+    L.append("|---|---:|---:|---:|---|---:|---:|---:|---:|---:|---:|---|")
     for r in results:
-        ps = r["stages"].get("parse_stock", {}); lg = r["stages"].get("labels_generic", {}); g = r["stages"].get("geometry", {})
+        lg = r["stages"].get("labels_generic", {}); g = r["stages"].get("geometry", {})
         err = f"{r['fail_stage']}: {r['error']}" if r["fail_stage"] else (g.get("render_error", "") and "render: " + g["render_error"])
-        L.append(f"| {r['file']} | {ps.get('rooms', 0)} | {lg.get('labels', '')} | {lg.get('rooms', '')} | {lg.get('upm', '')} | "
+        L.append(f"| {r['file']} | {lg.get('labels', '')} | {lg.get('rooms', '')} | {lg.get('upm', '')} | "
                  f"{'/'.join(str(x) for x in lg.get('floors', []))} | "
                  f"{(str(g['geometry_ok']) + '/' + str(g['rooms'])) if g else ''} | {g.get('walls', '')} | {g.get('windows', '')} | "
                  f"{g.get('doors', '')} | {g.get('doors_with_room', '')} | {r.get('elapsed', '')} | {err} |")
@@ -227,9 +152,6 @@ def report(results, out_md):
         if r["fail_stage"]:
             cats.setdefault(f"{r['fail_stage']} — {r['error'].split(':')[0]}", []).append(r["file"])
     for r in results:
-        ps = r["stages"].get("parse_stock", {})
-        if ps.get("rooms", 0) < 3:
-            cats.setdefault("stok parse oda bulamadı (YAZI katmanı yok / etiket ATTRIB'de)", []).append(r["file"])
         g = r["stages"].get("geometry")
         if g and g["rooms"] and g["geometry_ok"] < g["rooms"] * 0.5:
             cats.setdefault("geometri: odaların yarısından azı poligonlandı", []).append(r["file"])

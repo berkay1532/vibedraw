@@ -22,15 +22,16 @@ from dataclasses import dataclass, field
 
 from shapely.geometry import Polygon
 
+from core.perception.vocab import fold
+
 
 _AREA_SUFFIX = re.compile(r"A\s*[:=]?\s*\d+(?:[.,]\d+)?\s*m\s*[²2]", re.IGNORECASE)
 
 
 def _tr_fold(s: str) -> str:
-    """Ad karşılaştırması: Türkçe casefold + alan eki ("A:6.60 M²") ve fazla boşluk atılır."""
+    """Ad karşılaştırması: vocab.fold + alan eki ("A:6.60 M²") ve fazla boşluk atılır."""
     s = _AREA_SUFFIX.sub("", s or "")
-    s = " ".join(s.replace("İ", "i").replace("I", "ı").split())
-    return s.casefold().strip(" -")
+    return " ".join(fold(s).split()).strip(" -")
 
 
 def _poly(pts):

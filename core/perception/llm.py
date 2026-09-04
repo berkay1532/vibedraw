@@ -1,15 +1,11 @@
-# core/llm.py
+# core/perception/llm.py
 from __future__ import annotations
 import os
 
 MODEL_NORMALIZE = "claude-haiku-4-5-20251001"
 MODEL_EXPLAIN = "claude-sonnet-4-6"
 
-# Kanonik oda tipleri — LLM çıktısı bu kümeyle sınırlanır.
-CANONICAL_TYPES = {
-    "living", "kitchen", "bedroom", "bathroom", "wc",
-    "circulation", "balcony", "office", "stairs", "other",
-}
+from core.perception.vocab import ROOM_TYPES   # kanonik oda tipleri — LLM çıktısı bu kümeyle sınırlanır
 
 
 def _call_text(prompt: str, model: str) -> str:
@@ -30,12 +26,12 @@ def normalize_room_name(raw_name: str) -> str:
     prompt = (
         "Aşağıdaki Türkçe oda ismini şu standart tiplerden BİRİNE eşle ve "
         "yalnızca tek kelime tip adını döndür.\n"
-        f"Tipler: {', '.join(sorted(CANONICAL_TYPES))}\n"
+        f"Tipler: {', '.join(sorted(ROOM_TYPES))}\n"
         f"Oda ismi: {raw_name!r}\n"
         "Yanıt (tek kelime):"
     )
     result = _call_text(prompt, MODEL_NORMALIZE).strip().lower()
-    return result if result in CANONICAL_TYPES else "other"
+    return result if result in ROOM_TYPES else "other"
 
 
 def explain_decision(rule_summary: str, context: dict) -> str:

@@ -1,29 +1,14 @@
-# core/semantics.py
+# core/perception/semantics.py
 from __future__ import annotations
 
 from core.perception.ir_v1 import BuildingIR
 from core.perception import llm
-
-# Ham isim (casefold edilmiş) → kanonik tip
-ROOM_DICTIONARY = {
-    "salon": "living",
-    "oturma odası": "living",
-    "mutfak": "kitchen",
-    "yatak odası": "bedroom",
-    "çocuk odası": "bedroom",
-    "banyo": "bathroom",
-    "wc": "wc",
-    "hol": "circulation",
-    "kat holü": "circulation",
-    "balkon": "balcony",
-    "ofis": "office",
-    "merdiven": "stairs",
-}
+from core.perception.vocab import ROOM_TYPE_MAP   # ham isim (casefold) → kanonik tip
 
 
 def map_name(raw_name: str) -> str | None:
     """Sözlükten kanonik tip döndürür; yoksa None."""
-    return ROOM_DICTIONARY.get(raw_name.strip().casefold())
+    return ROOM_TYPE_MAP.get(raw_name.strip().casefold())
 
 
 def classify(building: BuildingIR) -> BuildingIR:

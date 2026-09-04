@@ -1,4 +1,4 @@
-# core/sheets.py
+# core/perception/sheets.py
 """Pafta anlama: bir DXF'teki görünümleri (kat planı, kesit, görünüş, çatı, vaziyet,
 detay, tablo) uzaysal olarak ayırır ve başlık yazısı + geometrik ipuçlarıyla sınıflar.
 
@@ -15,21 +15,11 @@ from typing import Optional
 
 import numpy as np
 
-from core.perception.parse import _plain, room_label_name, _tr_fold
+from core.perception.parse import _plain, room_label_name
+from core.perception.vocab import FLOOR_WORDS, VIEW_KIND_WORDS, fold
 from core.perception.sheet_segment import _TITLE_RE, segment_views  # noqa: F401 (yeniden dışa aktarım)
 
-# --- Başlık sözlüğü -----------------------------------------------------------
-_KIND_WORDS = {
-    "floor_plan": ("kat planı", "kat plani", "planı", "plani", "plan ", "floor plan"),
-    "roof_plan": ("çatı planı", "cati plani", "çatı kat", "çatı katı", "roof"),
-    "section": ("kesit", "section"),
-    "elevation": ("görünüş", "gorunus", "görünüm", "elevation", "cephe"),
-    "site_plan": ("vaziyet", "site plan", "yerleşim"),
-    "detail": ("detay", "detail", "ö: 1 / 20", "1/20", "1/10", "1/5"),
-    "table": ("mahal listesi", "tablo", "liste", "hesab", "cetvel"),
-}
-_FLOOR_WORDS = ("bodrum", "zemin", "asma", "normal kat", "tip kat", "çatı kat", "cati kat",
-                "kat planı", "kat plani", ". kat", ".kat", "giriş kat", "teras kat", "bahçe kat")
+# Başlık sözlüğü: vocab.VIEW_KIND_WORDS / vocab.FLOOR_WORDS
 _SCALE_RE = re.compile(r"1\s*/\s*(\d{1,4})")
 _BLOCK_RE = re.compile(r"([A-ZÇĞİÖŞÜ0-9]{1,3})\s*BLOK", re.I)
 _FLOOR_NUM_RE = re.compile(r"(\d+)\s*\.?\s*(?:normal\s*)?kat", re.I)
@@ -69,20 +59,20 @@ def _text_height(e):
 
 
 def _kind_from_title(title: str):
-    f = _tr_fold(title)
+    f = fold(title)
     m = _SCALE_RE.search(f)
     scale = int(m.group(1)) if m else None
     if "detay" in f or "detail" in f:
         return "detail"
-    if any(w in f for w in _KIND_WORDS["site_plan"]):
+    if any(w in f for w in VIEW_KIND_WORDS["site_plan"]):
         return "site_plan"
-    if any(w in f for w in _KIND_WORDS["section"]):
+    if any(w in f for w in VIEW_KIND_WORDS["section"]):
         return "section"
-    if any(w in f for w in _KIND_WORDS["elevation"]):
+    if any(w in f for w in VIEW_KIND_WORDS["elevation"]):
         return "elevation"
     if "çatı" in f or "cati" in f or "roof" in f:
         return "roof_plan"
-    if any(w in f for w in _KIND_WORDS["table"]):
+    if any(w in f for w in VIEW_KIND_WORDS["table"]):
         return "table"
     if scale is not None and scale <= 25:      # 1/20, 1/10, 1/5 = detay ölçeği
         return "detail"
@@ -92,7 +82,7 @@ def _kind_from_title(title: str):
 
 
 def _floor_from_title(title: str):
-    f = _tr_fold(title)
+    f = fold(title)
     if "bodrum" in f:
         m = _FLOOR_NUM_RE.search(f)
         return f"{m.group(1)}. BODRUM" if m and "bodrum" in f[: m.start() + 20] else "BODRUM"
@@ -165,7 +155,7 @@ def classify_views(views, ents, upm: float, door_arc_radius=(0.55, 1.3)):
                 score += 2.0
             if _SCALE_RE.search(s):
                 score += 1.5
-            if any(w in _tr_fold(s) for w in _FLOOR_WORDS):
+            if any(w in fold(s) for w in FLOOR_WORDS):
                 score += 1.0
             rel = (y - y0) / max(1e-6, (y1 - y0))
             if rel < 0.15 or rel > 0.9:            # alt (ya da üst) kenar
