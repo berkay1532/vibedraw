@@ -61,3 +61,12 @@ labels:                            # pipeline.select_plan / parse.pick_plan_floo
   table_thr: 0.85
   table_max_n: 16
   grid_tol_m: 0.3
+validate:                        # Adım 7 issue üretimi (perception/validate.py)
+  conflicting_layer_min_ratio: 0.3     # dosya × katman: çelişkili segment oranı ≥ bu
+  conflicting_layer_min_count: 20      # ve çelişkili segment sayısı ≥ bu → tek conflicting_layer issue
+  unknown_layer_min_entities: 50       # sınıfı bilinmeyen katmanda en az bu kadar entity → unknown_layer
+  area_mismatch_frac: 0.15             # |yazı − geometri| / yazı > bu → area_mismatch
+  ambiguous_opening_conf: 0.5          # açıklık güveni bunun altında → ambiguous_opening
+  unit_standard_upm: [1.0, 10.0, 100.0, 1000.0]   # m, dm, cm, mm
+  unit_tol_frac: 0.25                  # upm standart değerlerden bu oranda uzaksa → unit_suspect
+  issues_per_file_target: 5            # raporlama hedefi (HITL yükü)

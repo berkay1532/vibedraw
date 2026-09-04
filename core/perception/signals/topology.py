@@ -17,3 +17,13 @@ def graph_connectivity(segment, wall_graph=None) -> float | None:
     """İskelet (Adım 6): duvar grafı (5a WallGraph) gelince segmentin düğüm bağlantı derecesi → 0..1.
     Şimdilik değerlendirilemez (None); ağırlığı weights.yaml'da 0."""
     return None
+
+
+ROOM_FLOOD_SIGNALS = ("flood_exclusive", "alias_merge", "voronoi", "edge_fragment", "fallback")
+
+
+def flood_outcome(source: str) -> dict:
+    """Oda ayrıştırma sonucu → tek-sıcak sinyaller (geçiş, Adım 6): kaynak sinyali 1, diğerleri None
+    (değerlendirilmedi; çelişki sayılmaz). Kaynaklar: exclusive | alias_merge | voronoi | edge_fragment | fallback."""
+    key = "flood_exclusive" if source == "exclusive" else source
+    return {k: (1.0 if k == key else None) for k in ROOM_FLOOD_SIGNALS}

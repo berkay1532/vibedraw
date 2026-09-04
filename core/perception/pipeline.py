@@ -23,15 +23,16 @@ from core.perception.config import T
 from core.perception.ir_compat import to_v2
 from core.perception.names import NameMap, names_for
 from core.perception.scoring import score
-from core.perception.signals.block import block_class
+from core.perception.signals.block import block_class, window_source
 from core.perception.calibration import thickness_modes
 from core.perception.names import WALL_SCAN_CLASSES
 from core.perception.signals.geometry import arc_signature, parallel_pair, thickness_mode, wall_gap
 from core.perception.signals.layer import layer_class_vote, layer_raw
-from core.perception.signals.topology import graph_connectivity, room_boundary
+from core.perception.signals.topology import flood_outcome, graph_connectivity, room_boundary
 from core.perception.parse import (cluster_floors_2d, dedupe_labels, extract_room_labels, grid_likeness,
                                    pick_plan_floor)
 from core.perception.triage import layer_fingerprint
+from core.perception.validate import validate_building_v2
 from core.perception.openings import _cluster_doors, _door_barriers, _seg_dist, _swing_dirs
 from core.perception.polygons import _mask_polygon
 from core.perception.raster import _Raster
@@ -97,7 +98,7 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
         modes = thickness_modes(w_thick, units_per_meter) if units_per_meter else []
         floor.wall_thickness_modes = modes
         tol = TW["thickness_mode_tol_m"]
-        floor.wall_thickness, floor.wall_signals = list(w_thick), []
+        floor.wall_thickness, floor.wall_signals, floor.wall_layers = list(w_thick), [], list(w_lays)
         for (a, b), src, lay, thk in zip(floor.walls, floor.wall_sources, w_lays, w_thick):
             sig = {"parallel_pair": parallel_pair(True),
                    "layer_class": layer_class_vote(lay, WALL_SCAN_CLASSES, names),
@@ -107,6 +108,7 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
         floor.windows, floor.window_sources = _window_segments(
             msp, bbox, min_len=min_len, upm=units_per_meter, walls=floor.walls, big_blocks=big,
             with_sources=True, names=names)
+        floor.window_signals = [score("window", window_source(src), f"window:{src}") for src in floor.window_sources]
         # Kapı yayları (katman-bağımsız) → kapalı kanat bariyeri: açıklık mühürlenir,
         # böylece genel mühür küçük tutulabilir (dar odalar/WC kaybolmaz).
         amin, amax = door_arc_radius
@@ -145,8 +147,10 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
                 room.center = room.label_xy
                 room.polygon = None
                 room.source = "fallback"
+                room.confidence, ev = score("room", flood_outcome("fallback"), "flood:fallback"); room.signals = ev.signals
                 continue
             room.source = room_sources.get(idx, "exclusive")
+            room.confidence, ev = score("room", flood_outcome(room.source), f"flood:{room.source}"); room.signals = ev.signals
             mask = recovered[idx]
             ys, xs = np.where(mask)
             cx, cy = raster.to_world(float(xs.mean()), float(ys.mean()))
@@ -245,6 +249,7 @@ class PlanSelection:
     doc: object = field(default=None, repr=False)   # okunmuş ezdxf belgesi (tek okuma; run_selected paylaşır)
     names: NameMap = field(default_factory=NameMap, repr=False)   # katman sınıfları (profil + sözlük)
     fingerprint: str = ""
+    layer_counts: dict = field(default_factory=dict)   # katman → modelspace entity sayısı (unknown_layer issue)
 
 
 def label_floors(dxf_path: str, gap: float) -> list[Floor]:
@@ -263,6 +268,12 @@ def select_plan(dxf_path: str, doc=None) -> PlanSelection:
     except Exception:
         fingerprint = ""
     names = names_for(doc, fingerprint=fingerprint)      # kaynak profili + sözlük → katman sınıfları
+    layer_counts: dict = {}
+    for e in msp:
+        try:
+            layer_counts[e.dxf.layer] = layer_counts.get(e.dxf.layer, 0) + 1
+        except Exception:
+            pass
     TL, TD = T("labels"), T("door")
     labels = extract_room_labels(dxf_path, msp=msp)
     upm0 = estimate_units_per_meter(labels)
@@ -275,7 +286,7 @@ def select_plan(dxf_path: str, doc=None) -> PlanSelection:
              "floors": [len(f.rooms) for f in floors],
              "family": names.family_id, "family_match": f"{names.match}:{names.match_score:.2f}"}
     sel = PlanSelection(labels=labels, rooms=rooms, floors=floors, upm=upm, stats=stats, doc=doc,
-                        names=names, fingerprint=fingerprint)
+                        names=names, fingerprint=fingerprint, layer_counts=layer_counts)
     if not floors:
         return sel
     floor = pick_plan_floor(floors, upm); floor.index = 0
@@ -339,6 +350,7 @@ def run_selected(dxf_path: str, sel: PlanSelection, *, max_cells: int = MAX_CELL
     fparams.wall_thickness_modes = list(getattr(f, "wall_thickness_modes", []) or [])
     b2 = to_v2(b, units_per_meter=upm, units_source=sel.stats.get("upm_source", "labels"),
                fingerprint=fp, file_params=fparams)
+    b2.validation = validate_building_v2(b2, sel.names, sel.layer_counts)      # Adım 7 issue üretimi
     return p, f, b2
 
 

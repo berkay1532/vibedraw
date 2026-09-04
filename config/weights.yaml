@@ -20,3 +20,22 @@ wall:
   agreement_bonus: 0.20
   cap: 0.99
   gates: []
+room:                            # flood-fill sonucu tek-sıcak: ağırlık = eski ROOM_CONF tablosu
+  weights:
+    flood_exclusive: 0.85
+    alias_merge: 0.60
+    voronoi: 0.50
+    edge_fragment: 0.40
+    fallback: 0.20
+  agreement_bonus: 0.0
+  cap: 0.99
+  gates: []
+window:                          # kaynak tek-sıcak: ağırlık = eski WINDOW_CONF tablosu
+  weights:
+    layer_class: 0.85
+    block_keyword: 0.85
+    block_geometry: 0.70
+    thin_lines: 0.30
+  agreement_bonus: 0.0
+  cap: 0.99
+  gates: []

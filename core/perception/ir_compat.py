@@ -56,10 +56,14 @@ def to_v2(b1, units_per_meter: float = 100.0, units_source: str = "labels",
             if not r.polygon:
                 src = "fallback"
             conf = ROOM_CONF.get(src, 0.5)
+            ev = _ev(f"flood:{src}", conf)
+            if getattr(r, "confidence", None) is not None:          # Adım 6: scoring.score (weights.yaml room)
+                conf = float(r.confidence)
+                ev = Evidence(signals=dict(getattr(r, "signals", None) or {}), source=f"flood:{src}")
             poly = [(float(x), float(y)) for x, y in (r.polygon or [])]
             geom = _poly_area(poly) / (units_per_meter ** 2) if poly else None
             fl.rooms.append(Room(
-                id=rid, confidence=conf, evidence=_ev(f"flood:{src}", conf),
+                id=rid, confidence=conf, evidence=ev,
                 polygon=poly, raw_name=r.raw_name, room_type=r.room_type,
                 area_m2_text=r.area_m2, area_m2_geom=(round(geom, 2) if geom is not None else None),
                 aliases=list(getattr(r, "aliases", []) or []), alias_xy=[tuple(p) for p in (getattr(r, "alias_xy", []) or [])],
@@ -93,18 +97,23 @@ def to_v2(b1, units_per_meter: float = 100.0, units_source: str = "labels",
                 rooms=(room_id_for(d.room_name, hinge) if d.room_name else None, None)))
         # --- pencereler
         wsrc = list(getattr(f1, "window_sources", []) or [])
+        wsg = list(getattr(f1, "window_signals", []) or [])
         for i, w in enumerate(f1.windows):
             n_op += 1
             src = wsrc[i] if i < len(wsrc) else "layer"
             conf = WINDOW_CONF.get(src, 0.6)
+            ev = _ev(f"window:{src}", conf)
+            if i < len(wsg) and wsg[i] is not None:                 # Adım 6: scoring.score (weights.yaml window)
+                conf, ev = wsg[i]
             a, b = (float(w[0][0]), float(w[0][1])), (float(w[1][0]), float(w[1][1]))
             fl.openings.append(Opening(
-                id=f"op{n_op}", confidence=conf, evidence=_ev(f"window:{src}", conf), kind="window",
+                id=f"op{n_op}", confidence=conf, evidence=ev, kind="window",
                 center=((a[0] + b[0]) / 2, (a[1] + b[1]) / 2), width=math.hypot(b[0] - a[0], b[1] - a[1])))
         # --- duvarlar (yüz parçaları)
         wsrcs = list(getattr(f1, "wall_sources", []) or [])
         wsig = list(getattr(f1, "wall_signals", []) or [])
         wthk = list(getattr(f1, "wall_thickness", []) or [])
+        wlay = list(getattr(f1, "wall_layers", []) or [])
         for i, (a, b) in enumerate(f1.walls):
             src = wsrcs[i] if i < len(wsrcs) else "pair"
             conf = WALL_CONF.get(src, 0.6)
@@ -113,6 +122,7 @@ def to_v2(b1, units_per_meter: float = 100.0, units_source: str = "labels",
                 conf, ev = wsig[i]
             thk = float(wthk[i]) if i < len(wthk) and wthk[i] is not None else None
             fl.walls.append(Wall(id=f"w{i + 1}", confidence=conf, evidence=ev, thickness=thk,
+                                 layer=(wlay[i] if i < len(wlay) else None),
                                  a=(float(a[0]), float(a[1])), b=(float(b[0]), float(b[1]))))
         out.floors.append(fl)
     out.validation = ValidationReport()

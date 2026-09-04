@@ -67,6 +67,7 @@ def main(argv=None) -> int:
     pair_acc = []
     tiers = {}                                  # GT meta.tier: easy | normal | hard (dosya zorluğu, raporda)
     fam_of = {}                                 # GT dosyası → pred params.extra.family_id
+    issue_of = {}                               # GT dosyası → {issue tipi: sayı}
     for gp in gt_paths:
         gt = json.loads(gp.read_text(encoding="utf-8"))
         tiers[gp.stem] = (gt.get("meta") or {}).get("tier", "")
@@ -75,6 +76,8 @@ def main(argv=None) -> int:
             rows.append((gp.stem, None)); continue
         pj = json.loads(pp.read_text(encoding="utf-8"))
         fam_of[gp.stem] = (((pj.get("floors") or [{}])[0].get("params") or {}).get("extra") or {}).get("family_id", "unknown")
+        from core.perception.validate import issue_counts as _ic
+        issue_of[gp.stem] = _ic((pj.get("validation") or {}).get("issues") or [])
         pred = load_floor_for_eval(pj)   # v1 veya v2 JSON
         r = evaluate_floor(gt, pred)
         rows.append((gp.stem, r))
@@ -174,6 +177,23 @@ def main(argv=None) -> int:
     L.append("|---|---:|---:|---:|---:|---:|---:|")
     _row("**holdout** (" + ", ".join(sorted(hn)) + ")" if hn else "**holdout** (—)", hn)
     _row("**geliştirme**", set(fam_of) - hn)
+    # Issue yükü (Adım 7): dosya başına issue sayısı ve tipe göre dağılım (hedef ≤ issues_per_file_target)
+    from core.perception.config import T as _T
+    from core.perception.validate import issue_counts
+    tgt = _T("validate", "issues_per_file_target")
+    L.append("\n## Issue yükü (HITL; hedef ≤ %d/dosya)\n" % tgt)
+    L.append("| Dosya | Toplam | Dağılım |")
+    L.append("|---|---:|---|")
+    agg_issue: dict = {}
+    for name, r in rows:
+        cnt = issue_of.get(name)
+        if cnt is None:
+            continue
+        for k, v in cnt.items():
+            agg_issue[k] = agg_issue.get(k, 0) + v
+        L.append(f"| {name} | {sum(cnt.values())}{' ⚠' if sum(cnt.values()) > tgt else ''} | " + ", ".join(f"{k}:{v}" for k, v in sorted(cnt.items(), key=lambda kv: -kv[1])) + " |")
+    if issue_of:
+        L.append(f"| **toplam** | {sum(agg_issue.values())} | " + ", ".join(f"{k}:{v}" for k, v in sorted(agg_issue.items(), key=lambda kv: -kv[1])) + " |")
     L.append("\n## Dosya bazında\n")
     L.append("| Dosya | Aile | Tier | Küme | Oda F1 | Oda IoU | Ad | Kapı F1 | Kapı hata (m) | Bağlantı | Pencere F1 |")
     L.append("|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|")

@@ -63,6 +63,32 @@ triage `heavy`: modelspace ≥ 250k entity ya da blok içi ≥ 200k entity. run_
 AVİDA_PLAN: 24 294 blok tanımı / 582 k blok içi entity (Revit tarzı export); DXF tek okuma sonrası 63 s (önce 547 s).
 AVİDA için henüz GT yok; GT yazıldığında `tier: hard`.
 
+## Sayısal-özet GT adayı ve review örneği: detayli-villa-uygulama-projesi-dwg
+
+İngilizce altlık (Arkipedia), upm 4528 (inç ölçekli), profilsiz (family unknown). swing.max_dist metreye
+geçince 35 kapının 21'inde oda ataması değişti (SUBMASTER BEDROOM ↔ BALCONY); GT olmadığı için doğrulanamadı.
+Karar (2026-09-04): sayısal-özet GT adayı (oda/kapı/pencere sayıları) ve Adım 7 HITL review modunun ilk örneği.
+
+## Birim kestirimi aykırı dosyalar (`unit_suspect` issue adayları)
+
+upm standart değerlerin (1, 10, 100, 1000 birim/m) ±%25 dışında; çoğu etiket-mesafesi tahmini (kapı yayı
+kalibrasyonu tutmadı). Validator bunlara `unit_suspect` issue üretir (HITL sorusu: çizim birimi ne?).
+
+| Dosya | upm | Kaynak |
+|---|---:|---|
+| detayli-apartman-yup-projesi-2 | 2.9 | labels |
+| 386_8_MİMARİ_19.08.2026 | 21.4 | labels |
+| 560_8_MİMARİ_20.02.2026 | 21.9 | labels |
+| ZA_EVİ_RUHSAT_PROJESİ_11 | 25.0 | labels |
+| 541_3_MİMARİ_PROJE_25.03.25 | 41.0 | labels |
+| 553_3_MİMARİ_18.01.2025 | 41.7 | labels |
+| 541_5_mimari_proje_06.05.25 | 42.3 | labels |
+| 554_1_MİMARİ_09.02.2026 | 43.6 | labels |
+| mimarlik-evi-atolyesi-projesi | 44.1 | labels |
+| 519_ADA_6_PARSEL_26082026 | 67.0 | labels |
+| 132_SÜMBÜLTEPE_20.01.2026 | 181.5 | doors |
+| detayli-villa-uygulama-projesi-dwg | 4528.2 | doors |
+
 ## Aileler ve kaynak profilleri
 
 Profil anahtarı triage ailesi (`source_profiles/fam<NN>.yaml`, NN = ilk numaralandırmadaki aile indeksi; aile 4+5 → fam04).

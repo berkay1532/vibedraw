@@ -205,6 +205,19 @@ uygulanmayan iyileştirme fikri; uygulanınca "karar" olur ve commit'i yazılır
 - **[karar] 2026-09-04 — `swing.max_dist` metreye (ayrı commit).** 460 çizim birimi → 4,6 m × upm; upm yoksa
   (sentetik testler) 460 birim yedek. "Aynı" şartı yok; dosya bazında fark EVAL_HISTORY'de nedeniyle.
 
+- **[karar] 2026-09-04 — oda/pencere güvenleri scoring'e.** Kaynaklar tek-sıcak sinyal (`flood_outcome`,
+  `window_source`; uygulanmayanlar None → çelişki yok); ağırlıklar eski tablolar (room: exclusive 0,85 /
+  alias_merge 0,60 / voronoi 0,50 / edge_fragment 0,40 / fallback 0,20; window: layer 0,85 / block_keyword 0,85 /
+  block_geometry 0,70 / thin_lines 0,30), bonus 0. Eval birebir.
+- **[karar] 2026-09-04 — Adım 7 validator + HITL CLI (kullanıcı kararları).** `conflicting_layer` katman
+  düzeyinde: dosya × katman çelişkili segment oranı ≥ 0,3 ve sayı ≥ 20 → tek issue (katman, sınıf oyu, oran,
+  sayı); segment bayrağı evidence'ta. `unit_suspect`: upm standart (1/10/100/1000) ±%25 dışında. Diğerleri
+  ARCHITECTURE §7. `Wall.layer` v2'ye eklendi (provenance). `ValidationReport` run_selected'da dolar (JSON'da).
+  `hitl/cli.py`: --list / --issue i (crop PNG: hedef kırmızı, DXF gri, odalar yeşil) / --answer; cevap
+  `learning/log.py` JSONL (ARCHITECTURE §8 şeması) + IR JSON'a uygulanır (status human_confirmed/rejected,
+  katman override'ı params.extra.hitl_layer_overrides, birim params.extra.hitl_units). Yeniden koşu yok (aday:
+  run_baseline override'ları okusun). Dosya başına issue hedefi ≤ 5 (thresholds); ölçüm EVAL_HISTORY'de.
+
 ## Adaylar (uygulanmadı)
 
 - **[aday] 2026-09-04 — Adım 6 devamı:** (a) walls/windows/rooms/polygons/raster/blocks sabitleri thresholds'a (envanter yukarıda); (b) duvar sinyalleri `parallel_pair` (katman sınıfından bağımsız) + `layer_class` + `thickness_mode`, çelişki → düşük güvenli duvar + conflicting_signal (HITL #22); (c) oda/pencere güven tabloları (ir_compat) → scoring; (d) `swing.max_dist_units` metreye; (e) run_floor imza varsayılanları FileParams'a.

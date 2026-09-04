@@ -31,3 +31,14 @@ def test_wall_weights_reproduce_table_and_conflict():
     assert score("wall", {**pair, "layer_class": 0.0}, "pair")[1].note == "conflicting_signal"
     assert is_conflicting("door", {"block_class": 1.0, "arc_signature": 0.0})
     assert not is_conflicting("door", {"block_class": 1.0, "arc_signature": 1.0, "wall_gap": 0.0})  # kapı sinyali ağırlıksız
+
+
+def test_room_and_window_weights_reproduce_tables():
+    from core.perception.ir_compat import ROOM_CONF, WINDOW_CONF
+    from core.perception.signals.topology import flood_outcome
+    from core.perception.signals.block import window_source
+    for src, conf in ROOM_CONF.items():
+        assert score("room", flood_outcome(src), f"flood:{src}")[0] == conf, src
+    for src, conf in WINDOW_CONF.items():
+        assert score("window", window_source(src), f"window:{src}")[0] == conf, src
+    assert score("room", flood_outcome("exclusive"))[1].note == ""     # tek-sıcak: çelişki yok

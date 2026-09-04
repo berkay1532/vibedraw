@@ -38,8 +38,9 @@ class Wall(Detected):
     """v1 duvarları YÜZ parçalarıdır: a-b bir duvar yüzü; merkez hattı + kalınlık Adım 9'da."""
     a: Point = (0.0, 0.0)
     b: Point = (0.0, 0.0)
-    thickness: Optional[float] = None              # çizim birimi; v1'den bilinmiyor
+    thickness: Optional[float] = None              # çizim birimi (çift kalınlığı, Adım 6)
     kind: str = "unknown"                          # exterior | interior | partition | unknown
+    layer: Optional[str] = None                    # kaynak katman (provenance; conflicting_layer issue)
 
 
 @dataclass
@@ -101,10 +102,11 @@ class FileParams:
 
 @dataclass
 class Issue:
-    kind: str                                      # unknown_layer | open_room | room_no_door | ...
-    target_id: Optional[str] = None
+    kind: str                                      # unknown_layer | conflicting_layer | unit_suspect | open_room | room_no_door | ambiguous_opening | area_mismatch
+    target_id: Optional[str] = None                # r3 | op7 | w12 | layer:<ad> | file
     message: str = ""
     options: list = field(default_factory=list)
+    data: dict = field(default_factory=dict)       # yapısal ayrıntı (oran, sayı, sınıf oyu…) ve HITL cevabı
 
 
 @dataclass

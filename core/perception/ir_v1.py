@@ -20,6 +20,8 @@ class Room:
     aliases: list = field(default_factory=list)
     alias_xy: list = field(default_factory=list)
     source: Optional[str] = None       # exclusive | edge_fragment | alias_merge | voronoi | fallback
+    confidence: Optional[float] = None   # scoring.score (Adım 6); None ise ir_compat tablosu
+    signals: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -40,6 +42,8 @@ class Floor:
     devices: list = field(default_factory=list)   # elektrik motoru doldurur (v1 uyumluluk; bkz. docs/DECISIONS.md)
     wall_signals: list = field(default_factory=list)      # walls ile hizalı: (confidence, evidence) (Adım 6)
     wall_thickness: list = field(default_factory=list)    # walls ile hizalı: çift kalınlığı (birim)
+    window_signals: list = field(default_factory=list)    # windows ile hizalı: (confidence, evidence) (Adım 6)
+    wall_layers: list = field(default_factory=list)       # walls ile hizalı: kaynak katman adı
     # Gerçek duvar parçaları (M1'de doldurulur) — cihazları duvara snap için
     walls: list[tuple[tuple[float, float], tuple[float, float]]] = field(default_factory=list)
     # Pencere/cam parçaları — cihaz konmaz (yasak bölge)

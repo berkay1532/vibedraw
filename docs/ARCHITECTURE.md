@@ -302,21 +302,24 @@ Kullanım kuralları:
 
 ## 7. Validator ve HITL
 
-Validator issue tipleri (`perception/validate.py`):
+Validator issue tipleri (`perception/validate.py`, Adım 7; eşikler `config/thresholds.yaml` validate.*):
 
-| tip | tetik | HITL sorusu |
-|---|---|---|
-| `unknown_layer` | LayerClass=unknown ve ≥N entity | "Bu katman ne?" [duvar/kapı/pencere/mobilya/yazı/yoksay] |
-| `open_room` | poligon kapanmıyor | "Bu boşluk?" [kapı/geçiş/pencere/duvar eksik] |
-| `room_no_door` | oda kapısız | "Giriş nerede?" (crop, seçenek) |
-| `area_mismatch` | \|text − geom\| > %15 | "Hangisi doğru?" |
-| `ambiguous_opening` | door/window skoru yakın | [kapı/pencere/geçiş/hiçbiri] |
-| `unlabeled_region` | kapalı bölge, etiket yok | "Bu alan?" [oda tipi listesi/yoksay] |
-| `unit_split` | daire kümesi belirsiz | "Tek daire mi?" [evet/böl] |
+| tip | tetik | HITL sorusu | durum |
+|---|---|---|---|
+| `unknown_layer` | LayerClass=unknown ve ≥ 50 entity | "Bu katman ne?" [duvar/kapı/pencere/mobilya/yazı/yoksay] | var |
+| `conflicting_layer` | dosya × katman: çelişkili duvar segment oranı ≥ 0,3 ve sayı ≥ 20 (segment bayrağı evidence'ta kalır) | "Bu çizgiler ne?" [duvar/açıklama-yazı/mobilya/yoksay] | var |
+| `unit_suspect` | upm standart değerlerden (1/10/100/1000) ±%25 uzak | "Çizim birimi ne?" [m/dm/cm/mm/inç] | var |
+| `open_room` | poligon kapanmıyor (sızma → fallback) | "Bu boşluk?" [kapı/geçiş/pencere/duvar eksik/yoksay] | var |
+| `room_no_door` | oda kapısız (merdiven muaf) | "Giriş nerede?" [kapı eksik/açık geçiş/sürgülü/yoksay] | var |
+| `area_mismatch` | \|text − geom\| > %15 | "Hangisi doğru?" [yazı/geometri/ikisi de yanlış] | var |
+| `ambiguous_opening` | açıklık güveni < 0,5 | [kapı/pencere/geçiş/hiçbiri] | var |
+| `unlabeled_region` | kapalı bölge, etiket yok | "Bu alan?" | planlı (duvar grafı, Adım 9) |
+| `unit_split` | daire kümesi belirsiz | "Tek daire mi?" | planlı (Adım 5d) |
 
-Sıralama: etkisi en yüksek issue önce (unknown_layer → open_room → opening → text).
-Her cevap `learning/log.py`'ye yazılır ve pipeline ilgili aşamadan itibaren
-yeniden koşar. Yüksek güvenli tespitlerin %5'i rastgele denetime düşer.
+Sıralama: unknown_layer → conflicting_layer → unit_suspect → open_room → room_no_door → ambiguous_opening →
+area_mismatch. Dosya başına issue hedefi ≤ 5 (`validate.issues_per_file_target`; evaluate "Issue yükü" tablosu).
+Her cevap `learning/log.py`'ye yazılır ve IR'a uygulanır (`hitl/cli.py`); "ilgili aşamadan yeniden koş" henüz
+yok. Yüksek güvenli tespitlerin %5'i rastgele denetime düşer (planlı).
 
 HITL arayüzü bu repo kapsamında ilk aşamada CLI/JSON'dır (`hitl/cli.py`); web arayüzü
 ayrı iş.
