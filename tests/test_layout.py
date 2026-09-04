@@ -1,5 +1,5 @@
 # tests/test_layout.py
-from core.perception.ir import Room
+from core.perception.ir_v1 import Room
 from core.electrical.ir import RoomDesign, Symbol, DesignIR
 from core.electrical.layout import place
 

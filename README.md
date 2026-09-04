@@ -8,9 +8,10 @@ Mimari altlık (DWG/DXF) → Building IR (oda / duvar / kapı / pencere) → ele
 ## Yapı
 - `core/perception/` — DWG/DXF → BuildingIR (v1): `parse.py` (oda etiketleri, ölçek, kat kümeleme),
   `geometry.py` (duvar/kapı/pencere, flood-fill odalar), `sheets.py` (pafta anlama),
-  `metrics.py`, `triage.py`, `ir.py`, `semantics.py`, `llm.py`, `vlm_doors.py`
+  `metrics.py`, `triage.py`, `ir.py` (v2 şema: güven + kanıt), `ir_v1.py` (pipeline içi), `ir_compat.py`,
+  `validate.py`, `semantics.py`, `llm.py`, `vlm_doors.py`
 - `core/electrical/` — eski elektrik prototipi (dokunulmaz): `ir.py`, `rules.py`, `layout.py`,
-  `devices.py`, `cad.py`, `appliances.py`
+  `devices.py`, `cad.py`, `appliances.py`, `validate.py`
 - `evaluate.py` — ground truth ölçümü · `annotate.py` + `templates/annotate.html` — etiketleme aracı
 - `experiments/run_baseline.py` — tüm veri setinde koşu + başarısızlık kataloğu ·
   `experiments/survey_views.py` — pafta anlama taraması

@@ -1,5 +1,5 @@
 # tests/test_semantics.py
-from core.perception.ir import Room, Floor, BuildingIR
+from core.perception.ir_v1 import Room, Floor, BuildingIR
 from core.perception import semantics
 
 

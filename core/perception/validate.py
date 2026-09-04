@@ -1,8 +1,8 @@
-# core/validate.py
+# core/perception/validate.py
+"""Perception sözleşme kontrolleri (v1). Adım 7'de ValidationReport/issue üretimi buraya gelir."""
 from __future__ import annotations
 
-from core.perception.ir import BuildingIR
-from core.electrical.ir import DesignIR
+from core.perception.ir_v1 import BuildingIR
 
 
 class PipelineError(Exception):
@@ -16,12 +16,3 @@ def validate_building(building: BuildingIR) -> None:
         for room in floor.rooms:
             if not room.room_type:
                 raise PipelineError(f"Oda room_type eksik: {room.raw_name!r}")
-
-
-def validate_design(design: DesignIR) -> None:
-    if not design.rooms:
-        raise PipelineError("DesignIR boş: hiç oda yok")
-    for rd in design.rooms:
-        for sym in (*rd.fixtures, *rd.sockets):
-            if not sym.circuit_id:
-                raise PipelineError(f"Sembol circuit_id eksik: {rd.room.raw_name!r}")

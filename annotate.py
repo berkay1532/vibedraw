@@ -77,7 +77,8 @@ def build(name, pred_dir, gt_dir):
     if not pred_path.exists():
         sys.exit(f"pred bulunamadı: {pred_path} (önce experiments/run_baseline.py)")
     pred = json.loads(pred_path.read_text(encoding="utf-8"))
-    floor = pred["floors"][0]
+    from core.perception.ir_compat import load_floor_for_eval
+    floor = load_floor_for_eval(pred)             # v1 veya v2 JSON
     dxf_path = pred["source_path"]
     upm = 100.0
     res_path = Path(pred_dir) / "results.json"

@@ -1,7 +1,7 @@
 # core/semantics.py
 from __future__ import annotations
 
-from core.perception.ir import BuildingIR
+from core.perception.ir_v1 import BuildingIR
 from core.perception import llm
 
 # Ham isim (casefold edilmiş) → kanonik tip

@@ -9,7 +9,8 @@ from core.perception.semantics import classify
 from core.electrical.rules import load_rules, decide
 from core.electrical.layout import place
 from core.electrical.cad import write_dxf
-from core.validate import validate_building, validate_design
+from core.perception.validate import validate_building
+from core.electrical.validate import validate_design
 
 
 class PipelineState(TypedDict, total=False):

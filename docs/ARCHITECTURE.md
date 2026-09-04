@@ -179,7 +179,9 @@ class BuildingIR:
 ```
 
 Kurallar:
-- Koordinatlar mm, orijin dosyanın kendi orijini (dönüşüm `FileParams.transform`'da).
+- Koordinatlar **çizim biriminde**, orijin dosyanın kendi orijini; ölçek `FileParams.units_per_meter`
+  ile taşınır ve `FileParams.to_mm()` yardımcısı vardır (Adım 2'de pipeline'da kullanılmaz).
+  mm normalizasyonu Adım 3'te `calibration.py` ile gelir (bkz. docs/DECISIONS.md, 2026-09-04).
 - `confidence` olmayan hiçbir eleman listeye giremez.
 - Elektrik alanı (device, circuit, appliance) **yok**. Elektrik motoru kendi IR'ını
   `BuildingIR`'dan türetir.

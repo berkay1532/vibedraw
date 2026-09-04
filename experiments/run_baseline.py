@@ -90,7 +90,7 @@ def run_one(dxf_path: str, out_dir: str, q):
                             cluster_floors_2d, dedupe_labels, estimate_units_per_meter,
                             pick_plan_floor, grid_likeness)
     from core.perception.geometry import reconstruct
-    from core.perception.ir import BuildingIR
+    from core.perception.ir_v1 import BuildingIR
     name = Path(dxf_path).stem
     r = {"file": name, "path": dxf_path, "stages": {}, "error": None, "fail_stage": None}
     t0 = time.time()
@@ -161,13 +161,25 @@ def run_one(dxf_path: str, out_dir: str, q):
         b = BuildingIR(floors=[floor], source_path=dxf_path)
         b = reconstruct(b, dxf_path, units_per_meter=upm, **p)
         f = b.floors[0]
+        # v2 çıktı: güven + kanıt (ir_compat). Koordinatlar çizim biriminde, ölçek params'ta.
+        from core.perception.ir_compat import to_v2
+        from core.perception.triage import layer_fingerprint
+        try:
+            import ezdxf as _ez
+            fp = layer_fingerprint(l.dxf.name for l in _ez.readfile(dxf_path).layers)
+        except Exception:
+            fp = ""
+        extra = {k: (list(v) if isinstance(v, tuple) else v) for k, v in p.items()}
+        extra["big_blocks"] = bool(getattr(f, "big_blocks", False))
+        b2 = to_v2(b, units_per_meter=upm, units_source=r["stages"]["labels_generic"].get("upm_source", "labels"),
+                   fingerprint=fp, params_extra=extra)
         r["stages"]["geometry"] = {
             "params": {k: (round(v, 2) if isinstance(v, float) else v) for k, v in p.items()},
             "rooms": len(f.rooms), "geometry_ok": sum(1 for rm in f.rooms if rm.geometry_ok),
             "walls": len(f.walls), "windows": len(f.windows), "doors": len(f.doors),
             "doors_with_room": sum(1 for d in f.doors if d.room_name),
         }
-        Path(out_dir, f"{name}.json").write_text(json.dumps(asdict(b), ensure_ascii=False, indent=1, default=str), encoding="utf-8")
+        Path(out_dir, f"{name}.json").write_text(json.dumps(asdict(b2), ensure_ascii=False, indent=1, default=str), encoding="utf-8")
         try:
             _render(dxf_path, f, str(Path(out_dir, f"{name}.png")), p["margin"])
         except Exception as ex:

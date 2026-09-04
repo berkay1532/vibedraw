@@ -1,49 +1,120 @@
 # core/perception/ir.py
-# Perception IR (v1). Elektrik alanları core/electrical/ir.py'de; Adım 2'de v2 şeması gelecek.
+"""Building IR v2 — ARCHITECTURE §3 şeması. Perception katmanının ÇIKTI sözleşmesi.
+
+Her tespit `Detected` tabanından türer: `confidence` (0..1) ve `evidence` (hangi sinyaller,
+hangi kaynak) olmadan hiçbir eleman listeye giremez. Elektrik alanı yoktur.
+
+Koordinatlar ÇİZİM BİRİMİNDE (dosyanın kendi orijini); ölçek `FileParams.units_per_meter`
+ile taşınır ve `FileParams.to_mm()` yardımcısı vardır — Adım 2'de pipeline'da kullanılmaz,
+mm normalizasyonu Adım 3'te `calibration.py` ile gelir (docs/DECISIONS.md, 2026-09-04).
+
+Pipeline içi hesap hâlâ v1 (`ir_v1.py`) ile yapılır; `ir_compat.to_v2` v1 → v2 çevirir.
+"""
 from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Optional
 
+Point = tuple  # (x, y) çizim birimi
+
 
 @dataclass
-class Room:
-    raw_name: str                      # Çizimdeki ham isim, örn. "Yatak Odası"
-    label_xy: tuple[float, float]      # Oda etiketinin konumu (≈oda merkezi)
-    area_m2: Optional[float] = None    # "A: 14.12m²" yazısından okunur
-    room_type: Optional[str] = None    # Kanonik tip, mahallendirmede doldurulur
-    # v2 geometri (M1'de doldurulur):
-    center: Optional[tuple[float, float]] = None       # temsilî iç nokta (armatür için)
-    polygon: Optional[list[tuple[float, float]]] = None  # oda sınır poligonu
-    geometry_ok: bool = False          # False ise center=label_xy (fallback)
-    # Aynı kapalı alanda (duvarsız/kapısız) bulunan diğer etiketler: bölge adları.
-    # Örn. açık mutfaklı salon → raw_name="SALON", aliases=["MUTFAK"].
-    aliases: list = field(default_factory=list)
+class Evidence:
+    signals: dict = field(default_factory=dict)   # {"arc_signature": 0.9, "block_class": 0.8, ...}
+    source: str = ""                               # "block+arc" | "arc" | "flood:exclusive" | "hitl" ...
+    note: str = ""
+
+
+@dataclass
+class Detected:
+    id: str
+    confidence: float                              # 0..1 (Adım 2: kaba, kaynaktan türetilmiş)
+    evidence: Evidence
+    status: str = "auto"                           # auto | vlm_confirmed | human_confirmed | human_rejected
+
+
+@dataclass
+class Wall(Detected):
+    """v1 duvarları YÜZ parçalarıdır: a-b bir duvar yüzü; merkez hattı + kalınlık Adım 9'da."""
+    a: Point = (0.0, 0.0)
+    b: Point = (0.0, 0.0)
+    thickness: Optional[float] = None              # çizim birimi; v1'den bilinmiyor
+    kind: str = "unknown"                          # exterior | interior | partition | unknown
+
+
+@dataclass
+class Opening(Detected):
+    kind: str = "door"                             # door | window | passage
+    wall_id: Optional[str] = None
+    center: Point = (0.0, 0.0)
+    width: Optional[float] = None                  # çizim birimi
+    hinge: Optional[Point] = None                  # kapı için (menteşe)
+    swing_dir: Optional[Point] = None              # birim vektör (menteşe→kanat ortası)
+    rooms: tuple = (None, None)                    # (a, b) oda id'leri; a = yayın açıldığı oda
+
+
+@dataclass
+class Room(Detected):
+    polygon: list = field(default_factory=list)    # [(x, y), ...] çizim birimi; boş = poligon yok
+    raw_name: Optional[str] = None
+    room_type: Optional[str] = None                # RoomType (sözlük/LLM normalizasyonu)
+    area_m2_text: Optional[float] = None           # çizimdeki "A: 14.12m²" yazısı
+    area_m2_geom: Optional[float] = None           # poligondan (units_per_meter ile)
+    aliases: list = field(default_factory=list)    # aynı alandaki diğer etiketler
     alias_xy: list = field(default_factory=list)
+    label_xy: Optional[Point] = None               # etiket konumu (v1 uyumluluk / bağlama)
+    unit_id: Optional[str] = None
 
 
 @dataclass
-class Door:
-    xy: tuple[float, float]            # menteşe konumu
-    room_name: Optional[str] = None    # açıldığı oda (yay yönü)
-    strike_xy: Optional[tuple[float, float]] = None  # kilit sövesi (anahtar bu tarafa)
+class Unit:
+    """Daire: kapı grafında ortak alanlar çıkarılınca kalan bağlı bileşen (Adım 5d)."""
+    id: str
+    room_ids: list = field(default_factory=list)
+    entry_opening_id: Optional[str] = None
+
+
+@dataclass
+class FileParams:
+    """Dosyadan türetilen parametreler (Adım 3'te calibration.py doldurur)."""
+    units_per_meter: float = 100.0
+    units_source: str = "labels"                   # labels | doors | header | hitl
+    extra: dict = field(default_factory=dict)      # res/seal/margin vb. koşu parametreleri
+
+    def to_mm(self, p: Point) -> Point:
+        """Çizim birimi → mm. Pipeline'da kullanılmaz (Adım 3'e kadar), yardımcı."""
+        k = 1000.0 / self.units_per_meter
+        return (p[0] * k, p[1] * k)
+
+
+@dataclass
+class Issue:
+    kind: str                                      # unknown_layer | open_room | room_no_door | ...
+    target_id: Optional[str] = None
+    message: str = ""
+    options: list = field(default_factory=list)
+
+
+@dataclass
+class ValidationReport:
+    issues: list = field(default_factory=list)     # Issue listesi (Adım 7'de dolar)
 
 
 @dataclass
 class Floor:
     index: int
-    rooms: list[Room] = field(default_factory=list)
-    doors: list[Door] = field(default_factory=list)
-    devices: list = field(default_factory=list)   # elektrik motoru doldurur (v1 uyumluluk; bkz. docs/DECISIONS.md)
-    # Gerçek duvar parçaları (M1'de doldurulur) — cihazları duvara snap için
-    walls: list[tuple[tuple[float, float], tuple[float, float]]] = field(default_factory=list)
-    # Pencere/cam parçaları — cihaz konmaz (yasak bölge)
-    windows: list[tuple[tuple[float, float], tuple[float, float]]] = field(default_factory=list)
-    big_blocks: bool = False           # plan blok içindeydi, bloklar açılarak işlendi
+    name: Optional[str] = None                     # "ZEMİN KAT" (pafta anlama bağlanınca)
+    walls: list = field(default_factory=list)      # Wall
+    openings: list = field(default_factory=list)   # Opening
+    rooms: list = field(default_factory=list)      # Room
+    units: list = field(default_factory=list)      # Unit
+    params: FileParams = field(default_factory=FileParams)
 
 
 @dataclass
 class BuildingIR:
-    floors: list[Floor] = field(default_factory=list)
     source_path: str = ""
-
-
+    source_fingerprint: str = ""                   # triage.layer_fingerprint
+    floors: list = field(default_factory=list)     # Floor
+    validation: ValidationReport = field(default_factory=ValidationReport)
+    version: str = "2"

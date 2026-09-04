@@ -1,8 +1,9 @@
 # tests/test_validate.py
 import pytest
-from core.perception.ir import Room, Floor, BuildingIR
+from core.perception.ir_v1 import Room, Floor, BuildingIR
 from core.electrical.ir import RoomDesign, Symbol, DesignIR
-from core.validate import validate_building, validate_design, PipelineError
+from core.perception.validate import validate_building, PipelineError
+from core.electrical.validate import validate_design
 
 
 def test_validate_building_requires_room_type():

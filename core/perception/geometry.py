@@ -16,7 +16,7 @@ import ezdxf
 from shapely.geometry import LineString
 from shapely.ops import polygonize, unary_union
 
-from core.perception.ir import BuildingIR, Floor, Room, Door
+from core.perception.ir_v1 import BuildingIR, Floor, Room, Door
 
 # Bariyer sayılan katmanlar (oda sınırını oluşturanlar).
 # .ABM-SIVA = sıva = duvarın İÇ YÜZÜ (oda sınırı için en kritik katman),
@@ -442,7 +442,7 @@ def _near_parallel_wall(mid, ux, uy, walls, upm, perp_tol=0.25, along_tol=0.3):
     return False
 
 
-def _insert_window(e, upm, x0, y0, x1, y1, walls=None):
+def _insert_window(e, upm, x0, y0, x1, y1, walls=None, with_source=False):
     """INSERT bir pencere bloğu mu? Kabul: ad/katman anahtar kelimesi VEYA (duvara paralel
     ve ≤25 cm yakın + 0.4-4 m uzun + uzun eksene paralel ≥2 çizgi). Kapı bloğu (≥0.65 m
     yarıçaplı 55-125° yay) reddedilir; küçük kanat yayları (pencere) kabul edilir.
@@ -508,9 +508,10 @@ def _insert_window(e, upm, x0, y0, x1, y1, walls=None):
             return None
     elif not (0.3 * upm <= long_ <= 4.5 * upm):
         return None
-    if w >= h:
-        return ((min(xs), cy), (max(xs), cy))
-    return ((cx, min(ys)), (cx, max(ys)))
+    seg = ((min(xs), cy), (max(xs), cy)) if w >= h else ((cx, min(ys)), (cx, max(ys)))
+    if with_source:
+        return seg, ("block_keyword" if keyword else "block_geometry")
+    return seg
 
 
 def _thin_line_windows(msp, bbox, upm, walls):
@@ -593,17 +594,21 @@ def _thin_line_windows(msp, bbox, upm, walls):
     return out
 
 
-def _dedupe_windows(wins, tol):
-    out = []
-    for w in wins:
+def _dedupe_windows(wins, tol, aux=None):
+    out, out_aux = [], []
+    for i, w in enumerate(wins):
         m = ((w[0][0] + w[1][0]) / 2, (w[0][1] + w[1][1]) / 2)
         if any(math.hypot(m[0] - (o[0][0] + o[1][0]) / 2, m[1] - (o[0][1] + o[1][1]) / 2) <= tol for o in out):
             continue
         out.append(w)
+        if aux is not None:
+            out_aux.append(aux[i])
+    if aux is not None:
+        return out, out_aux
     return out
 
 
-def _window_segments(msp, bbox, min_len=8.0, upm=None, walls=None, big_blocks=False):
+def _window_segments(msp, bbox, min_len=8.0, upm=None, walls=None, big_blocks=False, with_sources=False):
     """Pencere parçaları — cihaz yerleşiminde yasak bölge.
     (1) WINDOW_LAYERS çizgileri; upm verilirse ek olarak (2) pencere BLOKLARI (ad/katman
     anahtar kelimesi ya da ince-uzun cam geometrisi) ve (3) duvar bandındaki ince paralel
@@ -621,8 +626,8 @@ def _window_segments(msp, bbox, min_len=8.0, upm=None, walls=None, big_blocks=Fa
                 if math.hypot(b[0] - a[0], b[1] - a[1]) >= min_len:
                     segs.append(((a[0], a[1]), (b[0], b[1])))
     if not upm:
-        return segs
-    extra = []
+        return (segs, ["layer"] * len(segs)) if with_sources else segs
+    extra, extra_src = [], []
     for e in msp:
         if e.dxftype() != "INSERT":
             continue
@@ -632,18 +637,22 @@ def _window_segments(msp, bbox, min_len=8.0, upm=None, walls=None, big_blocks=Fa
             except Exception:
                 inner = []
             for ve in inner:
-                w = _insert_window(ve, upm, x0, y0, x1, y1, walls=walls)
-                if w:
-                    extra.append(w)
+                r = _insert_window(ve, upm, x0, y0, x1, y1, walls=walls, with_source=True)
+                if r:
+                    extra.append(r[0]); extra_src.append(r[1])
             continue
-        w = _insert_window(e, upm, x0, y0, x1, y1, walls=walls)
-        if w:
-            extra.append(w)
-    extra += _thin_line_windows(msp, bbox, upm, walls or [])
-    return segs + _dedupe_windows(extra, 0.3 * upm)
+        r = _insert_window(e, upm, x0, y0, x1, y1, walls=walls, with_source=True)
+        if r:
+            extra.append(r[0]); extra_src.append(r[1])
+    thin = _thin_line_windows(msp, bbox, upm, walls or [])
+    extra += thin; extra_src += ["thin_lines"] * len(thin)
+    ded, ded_src = _dedupe_windows(extra, 0.3 * upm, aux=extra_src)
+    if with_sources:
+        return segs + ded, ["layer"] * len(segs) + ded_src
+    return segs + ded
 
 
-def _pair_filter(segs, tmin=4.0, tmax=42.0, ang_tol_deg=8.0, min_overlap=18.0):
+def _pair_filter(segs, tmin=4.0, tmax=42.0, ang_tol_deg=8.0, min_overlap=18.0, aux=None):
     """Duvar = belli kalınlıkta yan yana İKİ paralel yüz. Eşi olmayan parçayı eler.
 
     Korkuluk X'i (paralel değil), tek tesisat çizgisi (eşsiz), tezgâh (çok kalın >tmax)
@@ -676,6 +685,8 @@ def _pair_filter(segs, tmin=4.0, tmax=42.0, ang_tol_deg=8.0, min_overlap=18.0):
             if min(Li, p1) - max(0.0, p0) >= min_overlap:   # boyuna örtüşme
                 keep[i] = keep[j] = True
                 break
+    if aux is not None:                       # kaynak bilgisi: segs ile hizalı yan liste
+        return [s for s, k in zip(segs, keep) if k], [a for a, k in zip(aux, keep) if k]
     return [s for s, k in zip(segs, keep) if k]
 
 
@@ -699,7 +710,7 @@ def _is_label_frame(e, label_pts, max_area):
 
 
 def _wall_segments(msp, bbox, min_len=8.0, tmin=4.0, tmax=42.0, min_overlap=18.0, big_blocks=False,
-                   label_pts=None):
+                   label_pts=None, with_sources=False):
     """TÜM düz duvar geometrisi (katman-bağımsız) — cihaz snap + M3 routing için.
     tmin/tmax/min_overlap çizim biriminde (varsayılanlar 1 birim = 1 cm için).
 
@@ -714,6 +725,7 @@ def _wall_segments(msp, bbox, min_len=8.0, tmin=4.0, tmax=42.0, min_overlap=18.0
                 (x0 <= b[0] <= x1 and y0 <= b[1] <= y1))
 
     segs = []
+    srcs = []                                     # with_sources: "pair+layer" | "pair"
     upm_est = tmin / 0.06 if tmin else 100.0
     frame_area = 3.0 * upm_est * upm_est
     for e in msp:
@@ -737,9 +749,13 @@ def _wall_segments(msp, bbox, min_len=8.0, tmin=4.0, tmax=42.0, min_overlap=18.0
                     cand += _entity_segments(ve)[0]
         else:
             continue                              # ARC/CIRCLE/TEXT atla
+        lay_ok = e.dxf.layer in WALL_LAYERS
         for a, b in cand:
             if inb(a, b) and math.hypot(b[0] - a[0], b[1] - a[1]) >= min_len:
                 segs.append(((a[0], a[1]), (b[0], b[1])))
+                srcs.append("pair+layer" if lay_ok else "pair")
+    if with_sources:
+        return _pair_filter(segs, tmin=tmin, tmax=tmax, min_overlap=min_overlap, aux=srcs)
     return _pair_filter(segs, tmin=tmin, tmax=tmax, min_overlap=min_overlap)
 
 
@@ -929,6 +945,7 @@ def _segment_rooms(rasters, rooms, leak_fraction: float, seed_rad: int = 12):
     total = H * W
     labels = np.zeros((H, W), dtype=np.int32)
     idx_room: dict[int, Room] = {}
+    sources: dict[int, str] = {}                  # oda idx → hangi yol (kaynak bilgisi)
 
     # Her raster için tohumlar (duvara denk gelirse en yakın boş piksel)
     seeds = []
@@ -978,20 +995,20 @@ def _segment_rooms(rasters, rooms, leak_fraction: float, seed_rad: int = 12):
             for mask, cnt, sd, border in seen:
                 if border == want_border and not any(mask[o] for o in others):
                     seeds[k][i - 1] = sd
-                    return mask, cnt
+                    return mask, cnt, border
         for want_border in (False, True):
             for mask, cnt, sd, border in seen:
                 if border == want_border:
                     seeds[k][i - 1] = sd
-                    return mask, cnt
-        return None, 0
+                    return mask, cnt, border
+        return None, 0, False
 
     pending = []
     for i, room in enumerate(rooms, start=1):
         placed = False
         last = None
         for k, raster in enumerate(rasters):
-            mask, cnt = _best_flood(raster, k, i)
+            mask, cnt, border = _best_flood(raster, k, i)
             if mask is None or cnt / total > leak_fraction:
                 continue
             others = [j for j in range(len(rooms)) if j != i - 1 and mask[seeds[k][j]]]
@@ -1000,6 +1017,7 @@ def _segment_rooms(rasters, rooms, leak_fraction: float, seed_rad: int = 12):
                 continue
             labels[mask & (labels == 0)] = i
             idx_room[i] = room
+            sources[i] = "edge_fragment" if border else "exclusive"
             placed = True
             break
         if not placed and last is not None:
@@ -1031,6 +1049,7 @@ def _segment_rooms(rasters, rooms, leak_fraction: float, seed_rad: int = 12):
                 union |= mask
             labels[union & (labels == 0)] = prim
             idx_room[prim] = rooms[prim - 1]
+            sources[prim] = "alias_merge"
             merged[prim] = [rooms[j - 1] for j in idxs if j != prim]
             for j in idxs:
                 done.add(j)
@@ -1052,6 +1071,7 @@ def _segment_rooms(rasters, rooms, leak_fraction: float, seed_rad: int = 12):
             continue
         labels[ys[sel], xs[sel]] = i
         idx_room[i] = room
+        sources[i] = "voronoi"
 
     # Çok-kaynaklı sınırlı büyüme (gerçek duvarlara kadar geri kazanım).
     free = ~base_r.base
@@ -1071,7 +1091,7 @@ def _segment_rooms(rasters, rooms, leak_fraction: float, seed_rad: int = 12):
                 labels[r2, c2] = labels[r, c]
                 dq.append((r2, c2, d + 1))
 
-    return labels, idx_room, merged
+    return labels, idx_room, merged, sources
 
 
 def _is_stair(name: str) -> bool:
@@ -1079,19 +1099,25 @@ def _is_stair(name: str) -> bool:
     return "merdiven" in f or "stair" in f
 
 
-def _cluster_doors(pts, radius=25.0):
+def _cluster_doors(pts, radius=25.0, tags=None):
+    """Yakın kapı adaylarını küme merkezine indirger. tags verilirse (pts ile hizalı)
+    [(merkez, {etiketler})] döner — kaynak bilgisi (block/arc) için."""
     groups: list[list[tuple[float, float]]] = []
-    for p in pts:
-        for g in groups:
+    gtags: list[set] = []
+    for i, p in enumerate(pts):
+        for gi, g in enumerate(groups):
             if math.hypot(p[0] - g[0][0], p[1] - g[0][1]) < radius:
                 g.append(p)
+                if tags is not None:
+                    gtags[gi].add(tags[i])
                 break
         else:
             groups.append([p])
-    return [
-        (sum(q[0] for q in g) / len(g), sum(q[1] for q in g) / len(g))
-        for g in groups
-    ]
+            gtags.append({tags[i]} if tags is not None else set())
+    centers = [(sum(q[0] for q in g) / len(g), sum(q[1] for q in g) / len(g)) for g in groups]
+    if tags is not None:
+        return list(zip(centers, gtags))
+    return centers
 
 
 def _swing_dirs(msp, bbox, amin, amax, big_blocks=False):
@@ -1223,19 +1249,20 @@ def reconstruct(building: BuildingIR, dxf_path: str, *,
             wk = {}
         label_pts = [rm.label_xy for rm in floor.rooms]
         wk["label_pts"] = label_pts
-        floor.walls = _wall_segments(msp, bbox, min_len=8.0 * res, **wk)
+        floor.walls, floor.wall_sources = _wall_segments(msp, bbox, min_len=8.0 * res, with_sources=True, **wk)
         # ADAPTİF: modelspace'te oda başına <8 duvar parçası bulunduysa plan büyük ihtimalle
         # BLOK içinde yerleştirilmiş → ≥3 m'lik blokların içine de bakılır.
         # (Koşulsuz açmak Revit export'larında sahte duvar üretip IoU'yu düşürdü.)
         big = False
         if len(floor.walls) < 8 * len(floor.rooms):
-            walls_b = _wall_segments(msp, bbox, min_len=8.0 * res, big_blocks=True, **wk)
+            walls_b, srcs_b = _wall_segments(msp, bbox, min_len=8.0 * res, big_blocks=True, with_sources=True, **wk)
             if len(walls_b) > len(floor.walls):
-                floor.walls = walls_b
+                floor.walls, floor.wall_sources = walls_b, srcs_b
                 big = True
         floor.big_blocks = big
-        floor.windows = _window_segments(msp, bbox, min_len=8.0 * res,
-                                         upm=units_per_meter, walls=floor.walls, big_blocks=big)
+        floor.windows, floor.window_sources = _window_segments(
+            msp, bbox, min_len=8.0 * res, upm=units_per_meter, walls=floor.walls, big_blocks=big,
+            with_sources=True)
         # Kapı yayları (katman-bağımsız) → kapalı kanat bariyeri: açıklık mühürlenir,
         # böylece genel mühür küçük tutulabilir (dar odalar/WC kaybolmaz).
         amin, amax = door_arc_radius
@@ -1248,7 +1275,7 @@ def reconstruct(building: BuildingIR, dxf_path: str, *,
                    for sl in seals]
         raster = rasters[-1]                      # kapı adayları vb. için (büyük mühür = tam bariyer)
         seed_rad = int(round(0.7 * units_per_meter / res)) if units_per_meter else 12
-        labels, idx_room, merged = _segment_rooms(rasters, floor.rooms, leak_fraction, seed_rad=seed_rad)
+        labels, idx_room, merged, room_sources = _segment_rooms(rasters, floor.rooms, leak_fraction, seed_rad=seed_rad)
         # Takma ad birleştirme: birleşen etiketler oda listesinden çıkar, birincile eklenir.
         alias_rooms = set()
         for prim, others in merged.items():
@@ -1270,7 +1297,9 @@ def reconstruct(building: BuildingIR, dxf_path: str, *,
                 room.geometry_ok = False
                 room.center = room.label_xy
                 room.polygon = None
+                room.source = "fallback"
                 continue
+            room.source = room_sources.get(idx, "exclusive")
             mask = recovered[idx]
             ys, xs = np.where(mask)
             cx, cy = raster.to_world(float(xs.mean()), float(ys.mean()))
@@ -1289,10 +1318,16 @@ def reconstruct(building: BuildingIR, dxf_path: str, *,
         swing_arcs = [(x, y) for (x, y, rr) in raster.arcs if amin <= rr <= amax]
         primary = list(raster.door_blocks) + swing_arcs
         used_primary = len(primary) >= 2
+        cand_src: dict = {}                       # aday merkezi → kaynak (block+arc | arc | block | layer_raw)
         if used_primary:
-            candidates = _cluster_doors(primary, radius=max(20.0, amin * 0.5))
+            tagged = _cluster_doors(primary, radius=max(20.0, amin * 0.5),
+                                    tags=["block"] * len(raster.door_blocks) + ["arc"] * len(swing_arcs))
+            candidates = [c for c, _ in tagged]
+            for c, t in tagged:
+                cand_src[c] = "block+arc" if t == {"block", "arc"} else next(iter(t))
         else:
             candidates = _cluster_doors(raster.door_raw)
+            cand_src = {c: "layer_raw" for c in candidates}
 
         if vlm_door_points:
             from core.perception.vlm_doors import validate_doors
@@ -1351,7 +1386,7 @@ def reconstruct(building: BuildingIR, dxf_path: str, *,
                            key=lambda r: math.hypot((r.center or r.label_xy)[0] - dx,
                                                     (r.center or r.label_xy)[1] - dy),
                            default=None)
-            floor.doors.append(Door(xy=(dx, dy),
+            floor.doors.append(Door(xy=(dx, dy), source=cand_src.get((dx, dy), "vlm" if vlm_door_points else None),
                                     room_name=room.raw_name if room else None,
                                     strike_xy=strike))
 

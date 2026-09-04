@@ -10,7 +10,7 @@ Saf fonksiyon (DXF okumaz); deterministiktir.
 from __future__ import annotations
 import math
 
-from core.perception.ir import BuildingIR, Floor, Room, Door
+from core.perception.ir_v1 import BuildingIR, Floor, Room, Door
 from core.electrical.ir import Device
 
 # Oda ismi -> kanonik tip

@@ -31,7 +31,8 @@ def main():
     a = ap.parse_args()
     nf = unicodedata.normalize("NFC", a.name)
     pj = [p for p in glob.glob(f"{a.pred}/*.json") if unicodedata.normalize("NFC", p).find(nf) >= 0 and not p.endswith("results.json")][0]
-    pr = json.load(open(pj)); f = pr["floors"][0]
+    from core.perception.ir_compat import load_floor_for_eval
+    pr = json.load(open(pj)); f = load_floor_for_eval(pr)
     upm = 100.0
     for r in json.load(open(f"{a.pred}/results.json")):
         if unicodedata.normalize("NFC", r["file"]) in unicodedata.normalize("NFC", pj):

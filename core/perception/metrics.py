@@ -148,6 +148,34 @@ def evaluate_floor(gt: dict, pred: dict, iou_thr=0.5, door_tol_m=0.5, window_tol
     pr_win = [{"m": _mid(w)} for w in pred.get("windows", [])]
     wm = match_points(gt_win, pr_win, "m", "m", tol=window_tol_m * upm)
 
+    # Çift doğruluğu (v2 rooms=(a,b)): iki oda da tahminde varsa GT connects kümesiyle karşılaştır.
+    # Yalnız raporlanır; GT'de ikinci oda alanı olana kadar çoğunlukla boş kalır (DECISIONS).
+    pair_n = pair_ok = 0
+    for gi, pj, _ in dm.pairs:
+        p = pr_doors[pj]
+        n2 = p.get("room_name_2")
+        if p.get("room_name") and n2:
+            pair_n += 1
+            names = {_tr_fold(id2name.get(c, c)) for c in gt_doors[gi].get("connects", [])}
+            if {_tr_fold(p["room_name"]), _tr_fold(n2)} <= names:
+                pair_ok += 1
+    pair_acc = pair_ok / pair_n if pair_n else None
+
+    # Güven kalibrasyonu için: her tahminin (güven, eşleşti mi) çifti
+    def _cal(items, pairs, key="confidence"):
+        matched = {pj for _, pj, _ in pairs}
+        return [(it.get(key), j in matched) for j, it in enumerate(items) if it.get(key) is not None]
+    win_meta = pred.get("window_meta") or []
+    calibration = {
+        "rooms": _cal(pr_rooms, rm.pairs),
+        "doors": _cal(pr_doors, dm.pairs),
+        "windows": [(m.get("confidence"), j in {pj for _, pj, _ in wm.pairs}) for j, m in enumerate(win_meta)
+                    if m.get("confidence") is not None],
+        "sources": {"rooms": [(r.get("source"), j in {pj for _, pj, _ in rm.pairs}) for j, r in enumerate(pr_rooms) if r.get("source")],
+                    "doors": [(d.get("source"), j in {pj for _, pj, _ in dm.pairs}) for j, d in enumerate(pr_doors) if d.get("source")],
+                    "windows": [(m.get("source"), j in {pj for _, pj, _ in wm.pairs}) for j, m in enumerate(win_meta) if m.get("source")]},
+    }
+
     def block(m: Match, **extra):
         d = {"tp": m.tp, "fp": m.fp, "fn": m.fn, "precision": round(m.precision, 3),
              "recall": round(m.recall, 3), "f1": round(m.f1, 3)}
@@ -158,6 +186,8 @@ def evaluate_floor(gt: dict, pred: dict, iou_thr=0.5, door_tol_m=0.5, window_tol
         "rooms": block(rm, mean_iou=(round(rm.mean_iou, 3) if rm.mean_iou is not None else None),
                        name_acc=(round(rm.name_acc, 3) if rm.name_acc is not None else None)),
         "doors": block(dm, mean_err_m=(round(dm.mean_err / upm, 3) if dm.mean_err is not None else None),
-                       connect_acc=(round(connect_acc, 3) if connect_acc is not None else None)),
+                       connect_acc=(round(connect_acc, 3) if connect_acc is not None else None),
+                       pair_acc=(round(pair_acc, 3) if pair_acc is not None else None), pair_n=pair_n),
         "windows": block(wm, mean_err_m=(round(wm.mean_err / upm, 3) if wm.mean_err is not None else None)),
+        "calibration": calibration,
     }

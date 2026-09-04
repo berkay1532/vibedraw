@@ -4,7 +4,7 @@ import math
 
 import yaml
 
-from core.perception.ir import BuildingIR
+from core.perception.ir_v1 import BuildingIR
 from core.electrical.ir import DesignIR, RoomDesign, Symbol, Circuit
 from core.perception import llm
 

@@ -32,17 +32,17 @@ Fark çıkarsa refactor'da hata var demektir, önce onu bul.
 **Kabul:** testler geçer, eval değişmez.
 
 ## Adım 2 — IR v2: güven + kanıt
-- [ ] `core/perception/ir.py`'de ARCHITECTURE §3 şemasını yaz (`Detected`, `Evidence`,
+- [x] `core/perception/ir.py`'de ARCHITECTURE §3 şemasını yaz (`Detected`, `Evidence`,
       `Wall`, `Opening`, `Room`, `Unit`, `Floor`, `BuildingIR` v2).
-- [ ] Eski v1 IR'dan v2'ye dönüştürücü (`ir_compat.py`) yaz; `run_baseline` v2 JSON yazsın,
+- [x] Eski v1 IR'dan v2'ye dönüştürücü (`ir_compat.py`) yaz; `run_baseline` v2 JSON yazsın,
       `evaluate.py` v2 okusun (v1 alan adlarını da tanısın, geçiş süresince).
-- [ ] Mevcut mantıktan güven türet — ilk sürüm kaba ama dürüst:
+- [x] Mevcut mantıktan güven türet — ilk sürüm kaba ama dürüst:
   - kapı: blok+yay 0.95 · yalnız yay 0.75 · yalnız blok 0.7 · ham katman kümesi 0.4
   - oda: dışlayıcı flood + poligon kapalı 0.85 · Voronoi paylaşım 0.5 · fallback (label_xy) 0.2
   - duvar: paralel çift + katman eşleşmesi 0.9 · yalnız paralel çift 0.6
   - pencere: katman/blok anahtar kelime 0.85 · ince paralel çizgi grubu 0.55
-- [ ] Her tespite `evidence.source` ve `evidence.signals` doldur (hangi yol bulduysa).
-- [ ] `evaluate.py`'ye **güven kalibrasyonu** tablosu ekle: [0–0.5, 0.5–0.7, 0.7–0.9, 0.9–1]
+- [x] Her tespite `evidence.source` ve `evidence.signals` doldur (hangi yol bulduysa).
+- [x] `evaluate.py`'ye **güven kalibrasyonu** tablosu ekle: [0–0.5, 0.5–0.7, 0.7–0.9, 0.9–1]
       dilimlerinde TP oranı.
 
 **Kabul:** eval metrikleri değişmez; kalibrasyon tablosu üretilir. Yüksek dilimde
@@ -136,5 +136,7 @@ taşınır, mantık değişmez. `reconstruct` yalnızca sıralayan bir orkestrat
 
 ## Veri seti görevleri (paralel, kod değil)
 - [ ] GT dosyalarına `tier` alanı ekle (clean/typical/hard).
+- [ ] GT kapılarına `rooms: [a, b]` (kapının bağladığı iki oda; v1 `connects` zaten bunu taşıyor)
+      ve annotate aracına "ikinci oda" desteği → v2 "çift doğruluğu" metriği dolsun.
 - [ ] En az 3 Revit/ArchiCAD export, 2 patlatılmış blok, 1 yabancı dil dosyası bul; GT çıkar.
 - [ ] `triage` raporuna parmak izi başına dosya sayısı ve tier dağılımı ekle.

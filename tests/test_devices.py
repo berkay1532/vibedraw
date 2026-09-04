@@ -1,6 +1,6 @@
 # tests/test_devices.py
 """M2 cihaz yerleşimi (core.devices) — poligonsuz: duvara snap + etiket temelli."""
-from core.perception.ir import BuildingIR, Floor, Room, Door
+from core.perception.ir_v1 import BuildingIR, Floor, Room, Door
 from core.electrical.devices import (
     place_devices, is_wet, switch_outside, _covered,
 )

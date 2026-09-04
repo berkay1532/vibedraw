@@ -1,6 +1,6 @@
 # tests/test_rules.py
 import core.electrical.rules as R
-from core.perception.ir import Room, Floor, BuildingIR
+from core.perception.ir_v1 import Room, Floor, BuildingIR
 from core.electrical.rules import load_rules, decide
 
 
