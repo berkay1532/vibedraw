@@ -123,6 +123,22 @@ uygulanmayan iyileştirme fikri; uygulanınca "karar" olur ve commit'i yazılır
   çifti adayı" olarak raporlanır (`pair_candidates`). Yalnız katman adıyla (ELK/PRİZ/AYDINLATMA/LİNYE/ARMATÜR)
   2510-9 dosyaları 2 isabette kalıyordu (yalnız 'linye'); anahtar/buat/etanj blokları ayırt edici.
 
+- **[ölçüm] 2026-09-04 — Adım 5 sözlük kademesi ablasyonu (GT-7, karar bekliyor).** Eski tahminler 7147322
+  worktree'sinde yeniden üretilip varlık bazında karşılaştırıldı. Farkın kaynağı iki mekanizma:
+  (a) `text`/`stair` sınıfına düşen katmanlar (A_ANNO_*, A_STAIR_*) duvar taramasından çıkınca onların çizgileri
+  artık çift filtresine girmiyor → tip-1'de ANTRE+HOL birleşti (HOL kayıp, oda F1 1,0→0,842; DEPO sızdı IoU
+  0,96→0,11), tip-4'te aynı mekanizma ANTRE'yi doğru birleştirdi (0,957→1,0). HITL #1/#2 ile aynı belirsizlik.
+  (b) `door` sınıfına düşen A_DOOR_* katmanlarındaki INSERT'ler "kesin kapı" yoluna girdi → tip-1 +3, tip-6 +1
+  sahte aday, menteşe blok matrisinden alınınca hata 0→0,021 m. (c) `window` (A_GLZ_GLS) pencere kaynağı:
+  tip-6 pencere 0,75→0,828 (iyileşme). `wall` sınıfı yalnız IoU'yu ±0,01 oynatıyor.
+  Kapılı varyant ölçüldü: sözlük kademesi yalnız EKLEYİCİ tüketicilere (bariyer, pencere kaynağı, duvar-katmanı
+  güveni) beslenir; hariç tutma ve "kesin kapı" INSERT yolu profil güveni (0,9) ister → GT-7 toplam oda F1 0,901,
+  kapı F1 0,951, pencere F1 0,802, IoU 0,885, bağlantı 0,904 = baseline ile aynı (IoU −0,003); tip-4 iyileşmesi
+  ve tip-6 pencere iyileşmesi bu varyantta yok. Seçenekler: (1) kapılı varyant (baseline korunur, sinyal
+  güvenine göre tüketim — CLAUDE.md ilke 2 ile uyumlu), (2) tam varyant (toplam düşer, tip-4/tip-6 iyileşir),
+  (3) tam varyant + text/stair hariç tutmayı ve keyword-door INSERT yolunu ayrı sinyal ağırlığıyla Adım 6'ya
+  bırakmak. Öneri: (1) şimdi, (3) Adım 6'da.
+
 ## Adaylar (uygulanmadı)
 
 - **[aday] 2026-09-04 — `classify_layers` 3. kademe (içerik istatistiği: entity tipi dağılımı, ortalama uzunluk, paralel çift oranı) ve 4. kademe (LLM, cache'li).** Adım 5'te yalnız profil + sözlük yapıldı.
