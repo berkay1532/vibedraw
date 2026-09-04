@@ -19,7 +19,7 @@ from typing import Optional
 import ezdxf
 from ezdxf import recover
 
-from core.perception.vocab import ROOM_WORDS, fold
+from core.perception.vocab import ELECTRICAL_BLOCK_WORDS, ELECTRICAL_LAYER_WORDS, ROOM_WORDS, fold
 
 
 DWG_EXT = {".dwg"}
@@ -30,6 +30,9 @@ DXF_EXT = {".dxf"}
 # 582k → AVİDA_PLAN 547 s (Revit tarzı 24k blok tanımı). Ağır dosya = uzun zaman aşımı + tier: hard.
 HEAVY_ENTITIES = 250_000
 HEAVY_BLOCK_ENTITIES = 200_000
+# Elektrik çizimi eşiği (config/ adayı): katman + blok adı isabeti toplamı. Kalibrasyon 2026-09-04: mimari
+# altlıklarda 0-1 (tek 'ELE'/'ELEC' katmanı), elektrik projelerinde ≥4 (linye katmanları + anahtar/buat/etanj blokları).
+ELECTRICAL_MIN = 3
 
 
 tr_fold = fold   # Adım 4: tek uygulama vocab.fold
@@ -75,6 +78,8 @@ class FileProfile:
     bbox: Optional[tuple] = None        # (xmin, ymin, xmax, ymax)
     verdict: str = "HATA"               # ADAY | ZAYIF | HATA
     n_block_entities: int = 0           # blok tanımlarındaki toplam entity (Revit export'larında devasa)
+    electrical_hits: list = field(default_factory=list)   # elektrik ipucu taşıyan katman/blok adları
+    electrical_score: int = 0
     heavy: bool = False                 # HEAVY_* eşiklerinden biri aşıldı → uzun zaman aşımı, tier: hard
 
     @property
@@ -182,16 +187,52 @@ def profile_dxf(path: str) -> FileProfile:
     except Exception:
         p.n_block_entities = 0
     p.heavy = p.n_entities >= HEAVY_ENTITIES or p.n_block_entities >= HEAVY_BLOCK_ENTITIES
+    p.electrical_hits = electrical_hits(p.layers, list(blocks))
+    p.electrical_score = len(p.electrical_hits)
     p.room_hits = room_hits(texts)
     p.n_room_texts = sum(p.room_hits.values())
     if xs and ys:
         p.bbox = (min(xs), min(ys), max(xs), max(ys))
 
-    if p.n_room_texts >= 3 and p.n_lines >= 20:
+    if p.electrical_score >= ELECTRICAL_MIN:
+        p.verdict = "ELEKTRİK"            # elektrik projesi: mimari altlık değil (çift adayı)
+    elif p.n_room_texts >= 3 and p.n_lines >= 20:
         p.verdict = "ADAY"
     else:
         p.verdict = "ZAYIF"
     return p
+
+
+def electrical_hits(layers, block_names) -> list[str]:
+    """Elektrik ipucu taşıyan katman ve blok adları (fold sonrası alt-dizgi)."""
+    out = []
+    for l in layers:
+        if any(w in fold(l) for w in ELECTRICAL_LAYER_WORDS):
+            out.append(f"katman:{l}")
+    for b in block_names:
+        if any(w in fold(b) for w in ELECTRICAL_BLOCK_WORDS):
+            out.append(f"blok:{b}")
+    return out
+
+
+def _project_key(name: str) -> str:
+    """Dosya adının başındaki proje numarası ('2510-9_ELK' → '2510', '290_ADA_10' → '290')."""
+    import re as _re
+    m = _re.match(r"\s*(\d+)", name)
+    return m.group(1) if m else ""
+
+
+def pair_candidates(profiles: list[FileProfile]) -> list[tuple[str, list[str]]]:
+    """Elektrik çizimi ↔ aynı proje numaralı mimari ADAY dosyalar (girdi-çıktı çifti adayları)."""
+    arch = [p for p in profiles if p.verdict == "ADAY"]
+    out = []
+    for e in profiles:
+        if e.verdict != "ELEKTRİK":
+            continue
+        k = _project_key(e.name)
+        mates = [a.name for a in arch if k and _project_key(a.name) == k]
+        out.append((e.name, mates))
+    return out
 
 
 def jaccard(a, b) -> float:
@@ -301,6 +342,13 @@ def render_report(profiles: list[FileProfile], families: list[list[FileProfile]]
     L.append(f"- Taranan dosya: **{len(profiles)}**  (okunabilen: {len(ok)}, hatalı: {len(profiles) - len(ok)})")
     L.append(f"- ADAY kat planı (≥3 oda metni + çizgi geometrisi): **{len(cands)}**")
     L.append(f"- Katman ailesi (≈ farklı mimar/şablon): **{len(families)}**, aday içeren aile: **{len(cand_fams)}**")
+    elec = pair_candidates(profiles)
+    if elec:
+        L.append(f"- Elektrik çizimi (ADAY dışı): **{len(elec)}** — " + "; ".join(
+            f"{e} ↔ {', '.join(m) if m else 'eş yok'}" for e, m in elec))
+    heavy = [p.name for p in ok if p.heavy]
+    if heavy:
+        L.append(f"- Ağır dosya (uzun zaman aşımı, tier: hard adayı): **{len(heavy)}** — " + ", ".join(heavy))
     if skipped_dwg:
         L.append(f"- Dönüştürülemeyen DWG: {len(skipped_dwg)}")
     L.append("")

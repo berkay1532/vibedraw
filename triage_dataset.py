@@ -18,7 +18,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from core.perception.triage import (
-    scan_files, profile_dxf, group_families, render_report,
+    scan_files, profile_dxf, group_families, render_report, pair_candidates,
     find_converter, convert_dwg_dir, convert_dwg_files,
 )
 
@@ -70,12 +70,14 @@ def main(argv=None) -> int:
     out.with_suffix(".json").write_text(
         json.dumps({"profiles": [asdict(p) for p in profiles],
                     "families": [[p.path for p in f] for f in fams],
+                    "electrical_pairs": pair_candidates(profiles),
                     "skipped_dwg": skipped}, ensure_ascii=False, indent=1),
         encoding="utf-8")
 
+    n_e = sum(1 for p in profiles if p.verdict == "ELEKTRİK")
     n_c = sum(1 for p in profiles if p.verdict == "ADAY")
     n_cf = sum(1 for f in fams if any(p.verdict == "ADAY" for p in f))
-    print(f"\n{len(profiles)} dosya | {n_c} ADAY | {len(fams)} aile ({n_cf} aday içeren) → {out}")
+    print(f"\n{len(profiles)} dosya | {n_c} ADAY | {n_e} ELEKTRİK | {len(fams)} aile ({n_cf} aday içeren) → {out}")
     return 0
 
 

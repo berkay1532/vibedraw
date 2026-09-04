@@ -137,3 +137,14 @@ def test_profile_reads_room_names_from_block_attribs(tmp_path):
     p = profile_dxf(str(path))
     assert p.n_room_texts == 3
     assert p.verdict == "ADAY"
+
+
+def test_electrical_detection_and_pairs(tmp_path):
+    from core.perception.triage import electrical_hits, pair_candidates, ELECTRICAL_MIN
+    hits = electrical_hits(["linye", "linyee", "DUVAR"], ["_anahtardinamik", "buat", "etanj", "KOT"])
+    assert len(hits) >= ELECTRICAL_MIN and "katman:linye" in hits and "blok:buat" in hits
+    assert electrical_hits(["ELE", "DUVAR"], ["KOT"]) == []                     # "ELE" ipucu değil; mimari altlık kalır
+    e = FileProfile(path="/x/2510-9_ELK.dxf", ok=True, verdict="ELEKTRİK")
+    a = FileProfile(path="/x/2510_912.05.2023.dxf", ok=True, verdict="ADAY")
+    b = FileProfile(path="/x/290-10_KOLDERE.dxf", ok=True, verdict="ADAY")
+    assert pair_candidates([e, a, b]) == [("2510-9_ELK.dxf", ["2510_912.05.2023.dxf"])]
