@@ -2,7 +2,8 @@
 """Tek sözlük: perception'daki TÜM anahtar kelime listeleri burada yaşar (CLAUDE.md "yapma listesi").
 
 Dil-bağımsız = genel mimari kelimeler (Türkçe/İngilizce/Fransızca...), ofise özgü değil.
-Katman ADLARI (WALL_LAYERS vb.) burada değildir; Adım 5'te `source_profiles/` altına gider.
+Ofise özgü katman ADLARI burada değildir; `source_profiles/<family>.yaml` taşır (Adım 5). Genel katman
+kelimeleri (LAYER_WORDS) `names.keyword_class` ikinci kademesidir.
 Adım 4: parse.ROOM_WORDS + triage.ROOM_VOCAB (birleştirildi), semantics.ROOM_DICTIONARY,
 llm.CANONICAL_TYPES, windows.WINDOW_WORDS, walls._ANNO_LAYER_WORDS, sheets._KIND_WORDS/_FLOOR_WORDS
 buraya taşındı; mantık değişmedi.
@@ -12,7 +13,7 @@ from __future__ import annotations
 
 def fold(s: str) -> str:
     """Türkçe güvenli casefold: İ→i, I→ı, sonra casefold. Tüm kelime eşleşmeleri bununla yapılır."""
-    return (s or "").replace("İ", "i").replace("I", "ı").casefold()
+    return ("" if s is None else str(s)).replace("İ", "i").replace("I", "ı").casefold()
 
 
 # --- Oda adları ----------------------------------------------------------------
@@ -71,3 +72,30 @@ VIEW_KIND_WORDS = {
 }
 FLOOR_WORDS = ("bodrum", "zemin", "asma", "normal kat", "tip kat", "çatı kat", "cati kat",
                "kat planı", "kat plani", ". kat", ".kat", "giriş kat", "teras kat", "bahçe kat")
+
+# --- Katman adı sınıfları (names.keyword_class; ikinci kademe) --------------------------
+# Genel, çok dilli kelimeler; ofise özgü adlar burada DEĞİL, profilde.
+LAYER_WORDS = {
+    "ignore": ("defpoints", "xref", "antet", "pafta", "logo", "çerçeve", "cerceve"),
+    "text": ("yazi", "yazı", "text", "txt", "anno", "mahal", "etiket", "label"),
+    "dim": ("olcu", "ölçü", "dim", "kot"),
+    "grid": ("aks", "axis", "grid"),
+    "hatch": ("tarama", "hatch", "_pat", "-pat"),
+    "revision": ("revizyon", "tadilat", "revision"),
+    "stair": ("merdiven", "stair", "basamak"),
+    "furniture": ("tefris", "tefriş", "mobilya", "furniture", "fur", "fixt", "sanit"),
+    "door": ("kapi", "kapı", "door", "porte", "puertas"),
+    "window": ("pencere", "window", "cam", "glz", "glaz", "fenetre", "ventana"),
+    "column": ("kolon", "column"),
+    "beam": ("kiris", "kiriş", "beam"),
+    "chimney": ("baca", "chimney"),
+    "wall": ("duvar", "wall", "mur", "siva", "sıva", "perde"),
+}
+
+
+# --- Elektrik çizimi tespiti (triage) ----------------------------------------------------
+# Katman adı ve blok adı ipuçları; bir dosyada toplam ELECTRICAL_MIN ve üstü isabet → verdict ELEKTRİK
+# (mimari altlık değil; girdi-çıktı çifti adayı olarak raporlanır).
+ELECTRICAL_LAYER_WORDS = ("elk", "elektrik", "priz", "aydinlatma", "aydınlatma", "linye", "armatür", "armatur",
+                          "sigorta", "pano", "anahtar", "buat", "sorti", "kolon hatti", "kolon hattı")
+ELECTRICAL_BLOCK_WORDS = ("anahtar", "buat", "priz", "armatür", "armatur", "etanj", "ayd", "sigorta", "pano", "lamba", "aplik")

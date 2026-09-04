@@ -7,9 +7,8 @@ from __future__ import annotations
 import math
 
 from core.perception.blocks import _explode, _is_big_block
+from core.perception.names import DOOR_CLASSES, EMPTY
 
-
-DOOR_LAYERS = {"kapi", ".KAPI", ".ABM-KAPI"}
 
 
 def _door_like_arc(ent, sx, amin, amax, sweep=(55.0, 125.0)):
@@ -92,7 +91,7 @@ def _cluster_doors(pts, radius=25.0, tags=None):
     return centers
 
 
-def _swing_dirs(msp, bbox, amin, amax, big_blocks=False):
+def _swing_dirs(msp, bbox, amin, amax, big_blocks=False, names=EMPTY):
     """Her kapı yayı için (menteşe, açılış_yön_birimi, uç1, uç2). Standalone + blok.
 
     Bisektör = kapının açıldığı oda yönü. uç1/uç2 = leaf-tip noktaları (biri KAPALI
@@ -141,7 +140,7 @@ def _swing_dirs(msp, bbox, amin, amax, big_blocks=False):
                 blk = e.doc.blocks.get(e.dxf.name)
                 sx = abs(e.dxf.xscale) if e.dxf.xscale else 1.0
                 for ent in blk:
-                    if e.dxf.layer in DOOR_LAYERS:
+                    if names.has(e.dxf.layer, DOOR_CLASSES):
                         if ent.dxftype() != "ARC" or not (amin <= ent.dxf.radius * sx <= amax):
                             continue
                     elif not _door_like_arc(ent, sx, amin, amax):

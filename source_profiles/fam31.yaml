@@ -1,0 +1,116 @@
+# Kaynak profili (Adım 5). 'layers' yalnızca eski hardcode kümelerden taşınan ofise özgü adlar;
+# sınıf → tüketici eşlemesi kodda (core/perception/names.py). 'layer_union' Jaccard eşleşmesi için.
+family_id: fam31
+label: aile 31 — tip-8
+triage_family_index: 31
+fingerprints:
+- 5d0b0007
+learned_from:
+- tip-8_mimari
+layers:
+  KOLON: column
+notes: {}
+layer_union:
+- -DWG_DETAY1
+- '0'
+- 0-MEK-SHT-SÜZGEÇBANYO
+- '1'
+- 10-LNS-ELV 4
+- A-PG M-wood
+- AHŞAP
+- AKS
+- AKS-A
+- ANTET
+- A_ANNO_AREA_NET
+- A_ANNO_DIM_EXT_H
+- A_ANNO_DIM_EXT_V
+- A_ANNO_DIM_INT_H
+- A_ANNO_DIM_INT_V
+- A_ANNO_DOOR
+- A_ANNO_GLZ
+- A_ANNO_GRID
+- A_ANNO_GRID_BOX
+- A_ANNO_GRID_TECH
+- A_ANNO_HELPR_HID
+- A_ANNO_SMB
+- A_ANNO_SMB_SECT
+- A_ANNO_SMB_SPT
+- A_ANNO_TXT
+- A_ANNO_TXT_TABLE
+- A_ANNO_TXT_TAG_WALL
+- A_CLNG_CLAD
+- A_DOOR
+- A_DOOR_METL
+- A_DOOR_PAT
+- A_DOOR_TIMBR
+- A_ELEV_1
+- A_ELEV_2
+- A_ELEV_3
+- A_ELEV_4
+- A_ELEV_5
+- A_ELEV_PAT_1
+- A_ELEV_PAT_3
+- A_FLOR_CLAD
+- A_GLZ_GLS
+- A_GLZ_PRFL
+- A_INST_DSPOUT
+- A_INS_DRNJ
+- A_INS_NOIS
+- A_INS_THRML
+- A_INS_WATR
+- A_LND_EARTH
+- A_LND_PAVMT
+- A_LND_ROAD_VHC
+- A_LNE_REF_DONTMOVE
+- A_PROFL
+- A_PROFL_ALU
+- A_ROOF
+- A_ROOF_PAT
+- A_ROOF_TIMB
+- A_SHET
+- A_SHET_MV
+- A_SHET_TXT
+- A_STAIR
+- A_STAIR_SMB
+- A_STAIR_STR
+- A_STAIR_TXT
+- A_STR_CONRT
+- A_STR_HID
+- A_STR_PAT
+- A_STR_PROJ
+- A_STR_STEEL
+- A_WALL_BIMS
+- A_WALL_CLAD_CERMC
+- A_WALL_CLAD_PLSTR
+- A_WALL_CLAD_PLSTR_EXT
+- A_WALL_CLAD_TIMBR
+- A_WALL_GAS
+- A_WALL_HID
+- A_WALL_PAT
+- DEFPOINTS
+- DETAIL4
+- DUVAR
+- DV
+- G-ANNO-DIMS
+- IK_A_DOOR
+- IK_A_FCDE_COMP
+- IK_A_HTCH
+- ISDB-CB1.3-000-MD-10-R00$0$PRT-MI-a_str_slab-edges_over
+- KIRIS A BLOK
+- KIRIS A BLOK T
+- KOLON
+- KOLON İSMİ
+- KİRİŞ B BLOK
+- MAT_FND3
+- OLCU
+- T-PLAK
+- TAKIMA TAŞINACAK$0$ESATPAŞA KESİTLER$0$AARCH-elev3
+- TAR3
+- TEF
+- TRM DUVAR
+- YAZI3
+- eğim
+- görünüş
+- oku-aks
+- tarama
+- İl Numara

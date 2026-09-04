@@ -10,8 +10,9 @@ from collections import deque
 import numpy as np
 
 from core.perception.blocks import _entity_segments, _explode, _is_big_block
-from core.perception.openings import DOOR_LAYERS, _block_door_hinge, _door_like_arc
-from core.perception.walls import WALL_LAYERS, _ladder_filter
+from core.perception.names import BARRIER_CLASSES, DOOR_CLASSES, EMPTY
+from core.perception.openings import _block_door_hinge, _door_like_arc
+from core.perception.walls import _ladder_filter
 
 
 def _dilate(grid: np.ndarray, k: int) -> np.ndarray:
@@ -29,9 +30,10 @@ class _Raster:
     """Hedef kat için duvar/kapı raster ızgarası + koordinat dönüşümü."""
 
     def __init__(self, msp, bbox, res: float, seal: int, extra_segs=None,
-                 door_arc_radius=None, big_blocks=False):
+                 door_arc_radius=None, big_blocks=False, names=EMPTY):
         """extra_segs: katman-bağımsız tespit edilmiş duvar/pencere parçaları — bariyer
-        olarak WALL_LAYERS'a EK çizilir (mimarın katman adlarından bağımsızlık)."""
+        olarak bariyer sınıfı katmanlara EK çizilir (mimarın katman adlarından bağımsızlık).
+        names: katman sınıfları (profil + sözlük)."""
         self.x0, self.y0, self.x1, self.y1 = bbox
         self.res = res
         self.W = int((self.x1 - self.x0) / res) + 1
@@ -44,9 +46,11 @@ class _Raster:
 
         for e in msp:
             lay = e.dxf.layer
+            is_door = names.has(lay, DOOR_CLASSES)
+            is_barrier = names.has(lay, BARRIER_CLASSES)
             # Kapı katmanındaki BLOK yerleşimi = kesin kapı (insert noktası).
             if e.dxftype() == "INSERT":
-                if lay in DOOR_LAYERS:
+                if is_door:
                     # Gerçek menteşe = blok içi swing ARC merkezi (matrix44). Yoksa insert.
                     hinge = _block_door_hinge(e)
                     ix, iy = (hinge[0], hinge[1]) if hinge else (e.dxf.insert[0], e.dxf.insert[1])
@@ -75,21 +79,21 @@ class _Raster:
                 if self._in_bbox(cx_, cy_):
                     self.arcs.append((cx_, cy_, e.dxf.radius))
                 # devam: yay duvar katmanındaysa bariyer olarak da çizilebilir
-            if lay not in WALL_LAYERS and lay not in DOOR_LAYERS:
+            if not is_barrier and not is_door:
                 continue
             segs, allp = _entity_segments(e)
             # Kapı katmanı çizgileri BARİYER DEĞİL: kapı bir açıklıktır; kapalı kanat
             # mührü _door_barriers ile ayrıca çizilir. (Referans dosyada merdiven
             # basamakları 'kapi' katmanındaydı → merdiven alanı bölünüyordu.)
-            if lay in WALL_LAYERS:
+            if is_barrier:
                 for a, b in segs:
                     if self._in_bbox(*a) or self._in_bbox(*b):
                         self._draw(grid, a, b)
-            elif lay in DOOR_LAYERS:
+            elif is_door:
                 for a, b in segs:
                     if self._in_bbox(*a) or self._in_bbox(*b):
                         door_segs.append(((a[0], a[1]), (b[0], b[1])))
-            if lay in DOOR_LAYERS and allp:
+            if is_door and allp:
                 cx = sum(p[0] for p in allp) / len(allp)
                 cy = sum(p[1] for p in allp) / len(allp)
                 if self._in_bbox(cx, cy):

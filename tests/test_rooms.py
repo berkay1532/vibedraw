@@ -7,10 +7,10 @@ def _two_label_dxf(tmp_path, second_name):
     """Tek kapalı dikdörtgen (600x300), içinde iki etiket; ikinci etiketin adı parametre."""
     import ezdxf
     doc = ezdxf.new("R2010"); msp = doc.modelspace()
-    for lyr in ("YAZI", "duv"):
+    for lyr in ("YAZI", "DUVAR"):
         doc.layers.add(lyr)
-    msp.add_lwpolyline([(0, 0), (600, 0), (600, 300), (0, 300)], close=True, dxfattribs={"layer": "duv"})
-    msp.add_lwpolyline([(-12, -12), (612, -12), (612, 312), (-12, 312)], close=True, dxfattribs={"layer": "duv"})
+    msp.add_lwpolyline([(0, 0), (600, 0), (600, 300), (0, 300)], close=True, dxfattribs={"layer": "DUVAR"})
+    msp.add_lwpolyline([(-12, -12), (612, -12), (612, 312), (-12, 312)], close=True, dxfattribs={"layer": "DUVAR"})
     msp.add_mtext("Salon", dxfattribs={"layer": "YAZI", "insert": (150, 150)})
     msp.add_mtext(second_name, dxfattribs={"layer": "YAZI", "insert": (450, 150)})
     p = tmp_path / f"two_{second_name}.dxf"; doc.saveas(p); return str(p)
@@ -45,10 +45,10 @@ def test_outside_label_does_not_flood_background(tmp_path):
     from core.perception.ir_v1 import BuildingIR
     from core.perception.pipeline import label_floors, run_floor
     doc = ezdxf.new("R2010"); msp = doc.modelspace()
-    for lyr in ("YAZI", "duv"):
+    for lyr in ("YAZI", "DUVAR"):
         doc.layers.add(lyr)
-    msp.add_lwpolyline([(0, 0), (400, 0), (400, 300), (0, 300)], close=True, dxfattribs={"layer": "duv"})
-    msp.add_lwpolyline([(-12, -12), (412, -12), (412, 312), (-12, 312)], close=True, dxfattribs={"layer": "duv"})
+    msp.add_lwpolyline([(0, 0), (400, 0), (400, 300), (0, 300)], close=True, dxfattribs={"layer": "DUVAR"})
+    msp.add_lwpolyline([(-12, -12), (412, -12), (412, 312), (-12, 312)], close=True, dxfattribs={"layer": "DUVAR"})
     msp.add_mtext("Salon", dxfattribs={"layer": "YAZI", "insert": (200, 150)})
     msp.add_mtext("Balkon", dxfattribs={"layer": "YAZI", "insert": (200, 420)})   # dışarıda, duvarsız
     msp.add_mtext("Hol", dxfattribs={"layer": "YAZI", "insert": (200, 450)})      # dışarıda

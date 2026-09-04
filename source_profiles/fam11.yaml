@@ -1,0 +1,168 @@
+# Kaynak profili (Adım 5). 'layers' yalnızca eski hardcode kümelerden taşınan ofise özgü adlar;
+# sınıf → tüketici eşlemesi kodda (core/perception/names.py). 'layer_union' Jaccard eşleşmesi için.
+family_id: fam11
+label: aile 11 — AVİDA_PLAN (Revit tarzı)
+triage_family_index: 11
+fingerprints:
+- 8c8cc24d
+learned_from:
+- AVİDA_PLAN
+layers:
+  KAPEN: window
+  KOLON: column
+  YAZI: text
+notes:
+  KAPEN: kapı içerebilir
+layer_union:
+- $ insaatim.com
+- + Denizlik
+- + İç Ölçü
+- +KOT ÖLÇÜ
+- +dış ölçü
+- +görünüş çizgi 0.30
+- .
+- '0'
+- 001_Dark_1 20
+- 1._Story (6)_33_0
+- 10 CM DUVAR
+- 20 CM DUVAR
+- A-ANNO-NPLT
+- A-ANNO-TEXT
+- A-DETL
+- A-DETL-GENF
+- A-DETL-MLIN
+- A-EQPM
+- A-FLOR-CASE
+- A-FLOR-HRAL
+- A-FLOR-LEVL
+- A-FLOR-OTLN
+- A-FLOR-PATT
+- A-FLOR-STRS
+- A-WALL
+- AKS ADI
+- AKSNO
+- Aks
+- Annotation - Text_Pen_No__86
+- Archicad Doors
+- Archicad Doors_Pen_No__213
+- Archicad Windows_Pen_No__213
+- BACALAR
+- BITIS - DUVAR_Pen_No__120
+- Balkon
+- CAM-PR
+- DIM
+- DIPNOT - YAZI
+- DUVAR
+- Defpoints
+- Dimensioning - General
+- Drawing & Figure_Pen_No__2
+- Duvar Kesit Tarama
+- Döşeme
+- EMSAL TABLOSU
+- G-ANNO-LLIN
+- G-ANNO-MLIN
+- G-ANNO-TTLB
+- IC MEKAN - BÖLGELER
+- IC MEKAN - BÖLGELER_Pen_No__213
+- IC MEKAN - MOBILYA
+- IC MEKAN - MOBILYA_Pen_No__101
+- Interior - Furniture
+- Interior - Furniture _Pen_No__4
+- KAPEN
+- KAPI_PEN-PR
+- KESİK
+- KESİT
+- KOLON
+- Kapı Etiket
+- Kapı Görünüş
+- Kapı Kesit
+- Kesit Kot
+- Kesit Çizgi
+- Kolon Görünüş
+- Kolon Kesit
+- Kot
+- KİRİİŞŞŞ
+- M-DUVAR-KESIM
+- M-KAPI
+- M-YALITIM
+- M-ince hidden
+- Mahal Etiket
+- Marker - Section
+- Marker - Section_Pen_No__85
+- NUMARATAJ
+- N_Antet
+- New_Archicad Door Markers_Pen_No__2
+- New_Archicad Door Markers_Pen_No__5
+- New_Archicad Door Markers_Pen_No__7
+- New_Archicad Doors_Pen_No__141
+- New_Archicad Doors_Pen_No__21
+- New_Archicad Doors_Pen_No__23
+- New_Archicad Doors_Pen_No__3
+- New_Archicad Windows_Pen_No__23
+- New_Archicad Windows_Pen_No__3
+- New_Interior - Furniture
+- New_Interior - Furniture _Pen_No__104
+- New_Interior - Furniture _Pen_No__15
+- New_Interior - Furniture _Pen_No__24
+- New_Interior - Furniture _Pen_No__4
+- New_Interior - Stair & Railing_Pen_No__11
+- New_Interior - Stair & Railing_Pen_No__91
+- New_Structural - Bearing_Pen_No__141
+- New_Structural - Bearing_Pen_No__2
+- New_Structural - Bearing_Pen_No__23
+- New_Structural - Bearing_Pen_No__3
+- New_Structural - Bearing_Pen_No__41
+- New_Structural - Bearing_Pen_No__5
+- New_Structural - Bearing_Pen_No__7
+- New_Structural - Bearing_Pen_No__89
+- New_Structural - Stair & Railing_Pen_No__11
+- New_Structural - Stair & Railing_Pen_No__71
+- New_Structural - Stair & Railing_Pen_No__91
+- OLCU
+- P-KOLON
+- P-MALZEME YAZI TEK
+- P-MALZEME ÇİZGİ
+- P-TARAMA KOLON
+- P-ıZ1
+- S-BEAM
+- S-GRID
+- SEMBOL
+- SIVA
+- Stair Tread_Riser Numbers
+- Structural - Bearing
+- Structural - Bearing_Pen_No__88
+- Structural - Grid
+- TARAMA
+- TEFRIS03-SABIT TEFRIS_Pen_No__213
+- TEFRIŞ
+- TEXT
+- THIET-BI
+- TİK
+- Up Arrows
+- VAZIYET_PEYZAJ - ARAZI
+- Y
+- YALITIM-PR
+- YAZI
+- baca
+- betonarme_tasiyici
+- cephe çizgi
+- dimension f
+- dograma
+- görünüş
+- kalın
+- kapı
+- kiriş
+- kiriş izdüşümü
+- m_TARAMA1
+- otopark
+- sarı kot
+- sıva
+- tefris
+- wc tarama
+- yardimci_cizgi
+- yazı FFF
+- Çizgi
+- ÇİZ KALIN
+- ÇİZ İNCE
+- Ölçü
+- çatı

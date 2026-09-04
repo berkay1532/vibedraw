@@ -105,7 +105,28 @@ uygulanmayan iyileştirme fikri; uygulanınca "karar" olur ve commit'i yazılır
   run_floor boyunca taşımak (davranış değişmez, ~10× okuma kalkar); `experiments/` zaman aşımını dosya boyutuna
   göre ölçeklemek.
 
+- **[karar] 2026-09-04 — Adım 5 kaynak profilleri (kullanıcı kararları + uygulama).** Anahtar triage ailesi
+  (`source_profiles/fam<NN>.yaml`, NN = triage aile indeksi; aile 4+5 ve aynı parmak izli 33 → fam04).
+  Profil yalnızca eski hardcode kümelerden taşınan ofise özgü adları taşır (12 profil, 3-19 ad); anahtar
+  kelime kademesi kodda (`vocab.LAYER_WORDS`, `names.keyword_class`). Sınıf → tüketici kodda: bariyer
+  {wall, beam, column, chimney, window}, duvar taraması {wall}, hariç {door, text, stair, beam} (eski
+  WALL_EXCLUDE anlamı; dim/grid/hatch hariç tutulmadı — davranış değişmesin), kapı {door}, pencere {window}.
+  Aile eşleştirme: parmak izi → yapısal örtüşme ≥0,5 → Jaccard ≥0,5 (`layer_union` profilde; 77-505 ad)
+  → unknown. `.ABM-KIRIS`, `MERDIVEN YAZI` silindi (hiç dosyada yok). Kabul grep'i core/perception'da
+  boş; `core/electrical/appliances.py` "ince" eşitliği elektrik prototipinde kaldı (dokunulmaz).
+  Bilinen davranış değişiklikleri: (1) `pair+layer` kaynağı artık yalnız wall sınıfı (eskiden KOLON/BACA/
+  pencere de) → duvar güveni 0,9→0,6 bazı parçalarda; (2) anahtar kelime kademesi profilsiz/ek katmanları
+  da sınıflar (DUVAR, A_WALL_*, PENCERE, KAPI, A_DOOR_*, YAZI, OLCU, AKS…) → bariyer/kapı/pencere kaynağı
+  genişledi. Eval farkları EVAL_HISTORY adım 5 satırında dosya bazında açıklanır.
+- **[karar] 2026-09-04 — elektrik çizimi tespiti (triage).** Katman + blok adı ipuçları (`vocab.ELECTRICAL_*`),
+  toplam ≥ ELECTRICAL_MIN=3 → verdict ELEKTRİK, ADAY dışı; aynı proje numaralı mimari dosyalar "girdi-çıktı
+  çifti adayı" olarak raporlanır (`pair_candidates`). Yalnız katman adıyla (ELK/PRİZ/AYDINLATMA/LİNYE/ARMATÜR)
+  2510-9 dosyaları 2 isabette kalıyordu (yalnız 'linye'); anahtar/buat/etanj blokları ayırt edici.
+
 ## Adaylar (uygulanmadı)
+
+- **[aday] 2026-09-04 — `classify_layers` 3. kademe (içerik istatistiği: entity tipi dağılımı, ortalama uzunluk, paralel çift oranı) ve 4. kademe (LLM, cache'li).** Adım 5'te yalnız profil + sözlük yapıldı.
+- **[aday] 2026-09-04 — WALL_EXCLUDE_CLASSES'a dim/grid/hatch/revision/ignore eklensin** (ölçü/aks çizgileri sahte duvar üretebilir); eval ile ölçülmeli.
 
 - **[aday] 2026-09-04 — DXF tek okuma.** `select_plan`/`estimate_units_from_doors`/`run_floor`/parmak izi aynı `doc`'u paylaşsın; AVİDA'da ~12 `readfile` → 1 (performans gözlemi yukarıda).
 

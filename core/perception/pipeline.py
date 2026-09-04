@@ -19,6 +19,7 @@ from core.perception.ir_v1 import BuildingIR, Door, Floor, Room
 from core.perception.binding import _room_by_swing, pair_names_with_areas
 from core.perception.calibration import estimate_units_from_doors, estimate_units_per_meter, scaled_params
 from core.perception.ir_compat import to_v2
+from core.perception.names import NameMap, names_for
 from core.perception.parse import (cluster_floors_2d, dedupe_labels, extract_room_labels, grid_likeness,
                                    pick_plan_floor)
 from core.perception.triage import layer_fingerprint
@@ -37,15 +38,18 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
                 door_arc_radius: tuple = (50.0, 130.0),
                 door_wall_dist: float = 25.0,
                 units_per_meter: float | None = None,
-                doc=None) -> BuildingIR:
+                doc=None, names: NameMap | None = None) -> BuildingIR:
     """M1 giriş noktası: her kat için oda merkezi/poligonu doldur, kapıları tespit et.
 
     geometry_ok=False olan odalar (sızma/boş) için center=label_xy fallback uygulanır.
-    doc verilirse dosya yeniden okunmaz (DXF tek okuma).
+    doc verilirse dosya yeniden okunmaz (DXF tek okuma). names: katman sınıfları (profil +
+    sözlük); verilmezse belgeden türetilir.
     """
     if doc is None:
         doc = ezdxf.readfile(dxf_path)
     msp = doc.modelspace()
+    if names is None:
+        names = names_for(doc)
 
     for floor in building.floors:
         if not floor.rooms:
@@ -61,29 +65,30 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
             wk = {}
         label_pts = [rm.label_xy for rm in floor.rooms]
         wk["label_pts"] = label_pts
-        floor.walls, floor.wall_sources = _wall_segments(msp, bbox, min_len=8.0 * res, with_sources=True, **wk)
+        floor.walls, floor.wall_sources = _wall_segments(msp, bbox, min_len=8.0 * res, with_sources=True, names=names, **wk)
         # ADAPTİF: modelspace'te oda başına <8 duvar parçası bulunduysa plan büyük ihtimalle
         # BLOK içinde yerleştirilmiş → ≥3 m'lik blokların içine de bakılır.
         # (Koşulsuz açmak Revit export'larında sahte duvar üretip IoU'yu düşürdü.)
         big = False
         if len(floor.walls) < 8 * len(floor.rooms):
-            walls_b, srcs_b = _wall_segments(msp, bbox, min_len=8.0 * res, big_blocks=True, with_sources=True, **wk)
+            walls_b, srcs_b = _wall_segments(msp, bbox, min_len=8.0 * res, big_blocks=True, with_sources=True, names=names, **wk)
             if len(walls_b) > len(floor.walls):
                 floor.walls, floor.wall_sources = walls_b, srcs_b
                 big = True
         floor.big_blocks = big
         floor.windows, floor.window_sources = _window_segments(
             msp, bbox, min_len=8.0 * res, upm=units_per_meter, walls=floor.walls, big_blocks=big,
-            with_sources=True)
+            with_sources=True, names=names)
         # Kapı yayları (katman-bağımsız) → kapalı kanat bariyeri: açıklık mühürlenir,
         # böylece genel mühür küçük tutulabilir (dar odalar/WC kaybolmaz).
         amin, amax = door_arc_radius
-        swing = _swing_dirs(msp, bbox, amin, amax, big_blocks=big)
+        swing = _swing_dirs(msp, bbox, amin, amax, big_blocks=big, names=names)
         barriers = _door_barriers(swing, floor.walls)
         extra = floor.walls + floor.windows + barriers
         seal_small = max(3, int(round(0.25 * units_per_meter / res))) if units_per_meter else max(3, seal // 2)
         seals = sorted({seal_small, seal})
-        rasters = [_Raster(msp, bbox, res, sl, extra_segs=extra, door_arc_radius=door_arc_radius, big_blocks=big)
+        rasters = [_Raster(msp, bbox, res, sl, extra_segs=extra, door_arc_radius=door_arc_radius, big_blocks=big,
+                           names=names)
                    for sl in seals]
         raster = rasters[-1]                      # kapı adayları vb. için (büyük mühür = tam bariyer)
         seed_rad = int(round(0.7 * units_per_meter / res)) if units_per_meter else 12
@@ -100,7 +105,7 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
             floor.rooms = [rm for rm in floor.rooms if id(rm) not in alias_rooms]
         recovered = {i: (labels == i) for i in idx_room}
         wall_xs, wall_ys, angled_walls = _wall_lines(
-            msp, bbox, angled_min_len=15.0 * res, cluster_tol=3.0 * res, extra_segs=floor.walls)
+            msp, bbox, angled_min_len=15.0 * res, cluster_tol=3.0 * res, extra_segs=floor.walls, names=names)
 
         for room in floor.rooms:
             idx = next((i for i, r in idx_room.items() if r is room), None)
@@ -220,6 +225,8 @@ class PlanSelection:
     upm: float = 100.0
     stats: dict = field(default_factory=dict)
     doc: object = field(default=None, repr=False)   # okunmuş ezdxf belgesi (tek okuma; run_selected paylaşır)
+    names: NameMap = field(default_factory=NameMap, repr=False)   # katman sınıfları (profil + sözlük)
+    fingerprint: str = ""
 
 
 def label_floors(dxf_path: str, gap: float) -> list[Floor]:
@@ -233,6 +240,11 @@ def select_plan(dxf_path: str, doc=None) -> PlanSelection:
     if doc is None:
         doc = ezdxf.readfile(dxf_path)
     msp = doc.modelspace()
+    try:
+        fingerprint = layer_fingerprint(l.dxf.name for l in doc.layers)
+    except Exception:
+        fingerprint = ""
+    names = names_for(doc, fingerprint=fingerprint)      # kaynak profili + sözlük → katman sınıfları
     labels = extract_room_labels(dxf_path, msp=msp)
     upm0 = estimate_units_per_meter(labels)
     labels = dedupe_labels(labels, tol=0.5 * upm0)      # 50 cm içindeki tekrarlar
@@ -241,8 +253,10 @@ def select_plan(dxf_path: str, doc=None) -> PlanSelection:
     floors = cluster_floors_2d(rooms, gap=7.0 * upm)    # 7 m'den yakın etiketler aynı çizim
     floors = [f for f in floors if len(f.rooms) >= 3]
     stats = {"labels": len(labels), "rooms": len(rooms), "upm": round(upm, 1),
-             "floors": [len(f.rooms) for f in floors]}
-    sel = PlanSelection(labels=labels, rooms=rooms, floors=floors, upm=upm, stats=stats, doc=doc)
+             "floors": [len(f.rooms) for f in floors],
+             "family": names.family_id, "family_match": f"{names.match}:{names.match_score:.2f}"}
+    sel = PlanSelection(labels=labels, rooms=rooms, floors=floors, upm=upm, stats=stats, doc=doc,
+                        names=names, fingerprint=fingerprint)
     if not floors:
         return sel
     floor = pick_plan_floor(floors, upm); floor.index = 0
@@ -253,13 +267,13 @@ def select_plan(dxf_path: str, doc=None) -> PlanSelection:
     for f in sorted(floors, key=lambda f: -len(f.rooms))[:8]:
         if len(f.rooms) < 3:
             continue
-        if estimate_units_from_doors(dxf_path, _floor_bbox(f, 2.5 * upm), upm, msp=msp) is not None:
+        if estimate_units_from_doors(dxf_path, _floor_bbox(f, 2.5 * upm), upm, msp=msp, names=names) is not None:
             with_doors.append(f)
     if with_doors and floor not in with_doors:
         floor = with_doors[0]; floor.index = 0
         stats["pick"] = "doors"
     # Ölçeği kapı yaylarından düzelt (etiket-mesafesi tahmini kaba)
-    upm_doors = estimate_units_from_doors(dxf_path, _floor_bbox(floor, 2.5 * upm), upm, msp=msp)
+    upm_doors = estimate_units_from_doors(dxf_path, _floor_bbox(floor, 2.5 * upm), upm, msp=msp, names=names)
     stats["upm_labels"] = round(upm, 1)
     if upm_doors and 0.25 * upm <= upm_doors <= 4.0 * upm:   # etiket öncülü kaba; kapı kümesi güçlü kanıt
         upm = upm_doors
@@ -291,15 +305,15 @@ def run_selected(dxf_path: str, sel: PlanSelection, *, max_cells: int = MAX_CELL
         p["res"] *= math.sqrt(cells / max_cells)
     doc = sel.doc if sel.doc is not None else ezdxf.readfile(dxf_path)
     b = BuildingIR(floors=[floor], source_path=dxf_path)
-    b = run_floor(b, dxf_path, units_per_meter=upm, doc=doc, **p)
+    b = run_floor(b, dxf_path, units_per_meter=upm, doc=doc, names=sel.names, **p)
     f = b.floors[0]
     # v2 çıktı: güven + kanıt (ir_compat). Koordinatlar çizim biriminde, ölçek params'ta.
-    try:
-        fp = layer_fingerprint(l.dxf.name for l in doc.layers)
-    except Exception:
-        fp = ""
+    fp = sel.fingerprint
     extra = {k: (list(v) if isinstance(v, tuple) else v) for k, v in p.items()}
     extra["big_blocks"] = bool(getattr(f, "big_blocks", False))
+    extra["family_id"] = sel.names.family_id
+    extra["family_match"] = sel.names.match
+    extra["layer_classes"] = sel.names.summary()
     b2 = to_v2(b, units_per_meter=upm, units_source=sel.stats.get("upm_source", "labels"),
                fingerprint=fp, params_extra=extra)
     return p, f, b2

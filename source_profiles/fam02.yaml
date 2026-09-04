@@ -1,0 +1,112 @@
+# Kaynak profili (Adım 5). 'layers' yalnızca eski hardcode kümelerden taşınan ofise özgü adlar;
+# sınıf → tüketici eşlemesi kodda (core/perception/names.py). 'layer_union' Jaccard eşleşmesi için.
+family_id: fam02
+label: aile 2 — 110/127/1481/2510 şablonu
+triage_family_index: 2
+fingerprints:
+- 4c3f311b
+- 7874a69e
+- 830e4436
+- 89fb4dc0
+- b62354d0
+- e4c40d03
+learned_from:
+- 110-11822.10.2024SON
+- 127-26-NACİZAĞLI-22.01.2025KLİMA
+- 1481-826.05.2023
+- 2510_912.05.2023
+- Hilmi_Serkan_Emir_0-916_uygulama_2
+- Nihal_Akgöl_139-629mayıs2023
+layers:
+  BACA: chimney
+  KAPEN: window
+  KOLON: column
+  YAZI: text
+  cam: window
+notes:
+  KAPEN: kapı içerebilir
+layer_union:
+- ..taramam
+- .duvarım
+- .tefrişim
+- '0'
+- AA-0.00
+- AA-0.05
+- AA-0.09
+- AA-0.15
+- AA-0.20
+- AA-0.30
+- AA-0.40
+- AA-0.50
+- AA-0.60
+- AHSAP
+- AKS
+- ALAN HESAP
+- Ahşap
+- BACA
+- BALKON
+- Balkon
+- C_Gorunus 0.15
+- DIŞ ÖLÇÜ
+- DOS
+- DOĞRAMA
+- DUVAR
+- Defpoints
+- Döşeme
+- Dübel
+- IN
+- Isı Yalıtımı
+- KAPEN
+- KAPI PENCERE
+- KAPI___PENCERE
+- KESİT
+- KOLON
+- KOORDİNAT
+- Kiremit
+- KİRİŞ İZD
+- MAHAL HESAP
+- ME
+- MERDIVEN
+- MERİZD
+- MKA01
+- OLCU
+- SEMBOL
+- SIVA
+- Su Yalıtımı
+- Sıva
+- TARAMA
+- TAŞ DUVAR HESAP
+- TEFRIS
+- TEFRİŞ
+- TF1
+- Tefriş
+- YAZI
+- YAZI2
+- Yardımcı Çizgiler
+- _APLİKASYON
+- _BACA
+- _DUVAR
+- _KOLON
+- _TARAMA
+- _TEFRISAGAC
+- _TEFRİŞ
+- _Tarama
+- _aplikasyon
+- _yazıyalıtım
+- _yedek
+- beyaz
+- cam
+- dograma-kapı-görünüs
+- gor01
+- gri
+- kahverengi
+- kapı
+- korkuluk
+- macun
+- olçü
+- orta yazı
+- profil
+- yazı
+- ÇERÇEVE
+- ÇİZ KALIN
+- İÇ ÖLÇÜ

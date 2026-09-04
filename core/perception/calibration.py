@@ -9,12 +9,13 @@ import math
 import ezdxf
 
 from core.perception.ir import FileParams  # noqa: F401 (yeniden dışa aktarım)
+from core.perception.names import EMPTY
 from core.perception.openings import _swing_dirs
 from core.perception.parse import YaziText, is_area_text
 
 
 def estimate_units_from_doors(dxf_path: str, bbox, upm_prior: float, door_m: float = 0.875,
-                              min_doors: int = 3, msp=None):
+                              min_doors: int = 3, msp=None, names=EMPTY):
     """Kapı yayı yarıçaplarından birim/metre.
 
     Yarıçaplar karışık: fikstür yayları (~45 cm), dar banyo kapıları (60-70), ana kapılar
@@ -30,7 +31,7 @@ def estimate_units_from_doors(dxf_path: str, bbox, upm_prior: float, door_m: flo
     # (10) sembol yaylarını kapı sanıp yanlış ölçek veriyor → denenmez; "en çok yay"
     # seçimi de aynı tuzağa düşüyordu → ilk başarılı öncül alınır.
     for prior in (upm_prior, 100.0, 1000.0):
-        sw = _swing_dirs(msp, bbox, 0.3 * prior, 2.0 * prior)
+        sw = _swing_dirs(msp, bbox, 0.3 * prior, 2.0 * prior, names=names)
         radii = sorted(math.hypot(e1[0] - h[0], e1[1] - h[1]) for h, _b, e1, _e2 in sw)
         if len(radii) < min_doors:
             continue

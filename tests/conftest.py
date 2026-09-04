@@ -35,15 +35,15 @@ def synthetic_walled_dxf(tmp_path):
     M1 geometri testleri için (flood-fill ile ayrışmalı)."""
     doc = ezdxf.new("R2010")
     msp = doc.modelspace()
-    for lyr in ("YAZI", "duv", "kapi"):
+    for lyr in ("YAZI", "DUVAR", "kapi"):
         doc.layers.add(lyr)
 
     # Dış duvar (kapalı dikdörtgen) 0,0 - 100,50
     msp.add_lwpolyline([(0, 0), (100, 0), (100, 50), (0, 50)],
-                       close=True, dxfattribs={"layer": "duv"})
+                       close=True, dxfattribs={"layer": "DUVAR"})
     # Bölme duvarı x=50, y=20..30 arası kapı boşluğu (iki parça)
-    msp.add_line((50, 0), (50, 20), dxfattribs={"layer": "duv"})
-    msp.add_line((50, 30), (50, 50), dxfattribs={"layer": "duv"})
+    msp.add_line((50, 0), (50, 20), dxfattribs={"layer": "DUVAR"})
+    msp.add_line((50, 30), (50, 50), dxfattribs={"layer": "DUVAR"})
     # Kapı boşluğunda kapı entity'si (tespit için)
     msp.add_lwpolyline([(50, 20), (50, 30)], dxfattribs={"layer": "kapi"})
 

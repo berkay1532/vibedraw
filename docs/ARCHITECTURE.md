@@ -226,26 +226,40 @@ Eşik ve sabitler iki yerden gelir:
 
 ## 5. Kaynak profili (source profile)
 
-`source_profiles/<layer_fingerprint>.yaml`:
+`source_profiles/<family_id>.yaml` — anahtar **triage ailesi** (katman kümesi Jaccard ≥ 0.5), parmak izi
+değil: parmak izi fiilen dosya başına tekil çıktı (53 dosya → 51 parmak izi), aile ise ofis/şablonu temsil eder.
 
 ```yaml
-fingerprint: 3fa9c1d2
-label: "Ofis X (tahmini)"
-layers:
+family_id: fam04
+label: "ABM / PislikMimar şablonu (triage aile 4+5)"
+fingerprints: [64782cf1, a3f0…]          # bu ailede görülen parmak izleri (birinci kademe eşleşme)
+learned_from: [KAYAPINAR_…, input-2-clean]
+layers:                                   # yalnızca ofise özgü adlar; sınıf = LayerClass enum
   ".ABM-DUVAR": wall
-  ".ABM-SIVA": wall
-  "kapi": door
+  ".ABM-KİRİŞ": beam
+  "KOLON": column
+  "BACA": chimney
+  "KAPEN": window
   "ince": furniture
-blocks:
-  "KAPI80": door
-  "PEN120": window
-room_names:
-  "Y.O.": bedroom
-learned_from: [tip-2_mimari, tip-4_mimari]
+  "YAZI": text
+  "merdiven": stair
+notes:
+  "KAPEN": "kapı içerebilir"
+layer_union: [...]                        # aile dosyalarının katman birleşimi; Jaccard eşleşmesi için, sınıf taşımaz
 ```
 
-Profil `triage`'ın ürettiği parmak izinden bulunur. Yoksa boş profil ile başlanır;
-HITL cevapları profile yazılır. Kodda hiçbir ofis katman adı yer almaz.
+`LayerClass`: wall, beam, column, chimney, door, window, furniture, text, dim, grid, stair, hatch,
+revision, ignore, unknown. **Sınıf → tüketici eşlemesi kodda** (`names.py`): raster bariyeri
+{wall, beam, column, chimney, window}, duvar taraması {wall}, duvar taramasından hariç
+{door, text, stair, beam}, kapı {door}, pencere {window}.
+
+Aile eşleştirme üç kademeli: (1) dosyanın parmak izi bir profilde kayıtlıysa o; (2) profilin kayıtlı
+yapısal adlarının ≥ %50'si dosyada varsa; (3) tam katman kümesi Jaccard ≥ 0.5; hiçbiri tutmazsa boş
+profil (`family: unknown`) ve yalnızca genel sözlük + katman-bağımsız yol çalışır.
+
+`classify_layers` kademeleri: profil (güven 0,9) → genel sözlük anahtar kelimesi (0,6; kapı+pencere
+çakışması → window 0,5; yazı/ölçü/aks/tarama kelimesi yapısal kelimeyi yener) → içerik istatistiği
+ve LLM (henüz yok). Anahtar kelime önerileri profile yazılmaz, kodda kalır.
 
 Genel sözlük (`perception/vocab.py`) yalnızca dil-bağımsız anahtar kelimeler içerir
 (`duvar/wall/mur`, `kapi/door/porte`, `salon/living`...). Tek dosya, tek kaynak.

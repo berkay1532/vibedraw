@@ -9,17 +9,10 @@ import math
 from shapely.geometry import LineString
 
 from core.perception.blocks import _entity_segments, _explode, _is_big_block
-from core.perception.openings import DOOR_LAYERS
+from core.perception.names import BARRIER_CLASSES, EMPTY, WALL_EXCLUDE_CLASSES, WALL_SCAN_CLASSES
 from core.perception.vocab import ANNO_LAYER_WORDS, fold
 
 
-# Bariyer sayılan katmanlar (oda sınırını oluşturanlar).
-# .ABM-SIVA = sıva = duvarın İÇ YÜZÜ (oda sınırı için en kritik katman),
-# .ABM-KİRİŞ = kiriş. Bunlar olmadan snap hedefi eksik kalıp poligon jaggy oluyordu.
-WALL_LAYERS = {
-    "duv", "PislikMimar.com - duvar", ".ABM-DUVAR", ".ABM-SIVA", ".ABM-KİRİŞ",
-    "KOLON", "pencere", "cam", "KAPI_PENCERE", "BACA",
-}  # NOT: "ince" çıkarıldı — mutfak tezgahı/dolap gibi mobilya da orada (duvar değil)
 
 
 def _ladder_filter(segs, dmin, dmax, ang_tol_deg=8.0, min_overlap_frac=0.5, min_neighbors=3):
@@ -72,7 +65,7 @@ def _cluster(vals, tol=3.0):
     return [sum(g) / len(g) for g in out]
 
 
-def _wall_lines(msp, bbox, ang_tol=10.0, angled_min_len=15.0, cluster_tol=3.0, extra_segs=None):
+def _wall_lines(msp, bbox, ang_tol=10.0, angled_min_len=15.0, cluster_tol=3.0, extra_segs=None, names=EMPTY):
     """Duvarlardan: eksen-x kümeleri, eksen-y kümeleri, gerçek açılı duvar çizgileri.
     extra_segs: katman-bağımsız tespit edilmiş duvar parçaları (snap hedefine eklenir)."""
     x0, y0, x1, y1 = bbox
@@ -80,7 +73,7 @@ def _wall_lines(msp, bbox, ang_tol=10.0, angled_min_len=15.0, cluster_tol=3.0, e
 
     def _segs():
         for e in msp:
-            if e.dxf.layer in WALL_LAYERS:
+            if names.has(e.dxf.layer, BARRIER_CLASSES):      # bariyer sınıfı = snap hedefi
                 yield from _entity_segments(e)[0]
         yield from (extra_segs or [])
 
@@ -111,10 +104,6 @@ def _is_anno_layer(name: str) -> bool:
     return any(w in fold(name) for w in ANNO_LAYER_WORDS)
 
 
-WALL_EXCLUDE_LAYERS = DOOR_LAYERS | {
-    "YAZI", "MAHAL ADI", "MERDİVEN YAZI", "merdiven", "MERDIVEN YAZI",
-    ".ABM-KİRİŞ", ".ABM-KIRIS",
-}
 
 
 def _hatch_segments(e):
@@ -196,11 +185,11 @@ def _is_label_frame(e, label_pts, max_area):
 
 
 def _wall_segments(msp, bbox, min_len=8.0, tmin=4.0, tmax=42.0, min_overlap=18.0, big_blocks=False,
-                   label_pts=None, with_sources=False):
+                   label_pts=None, with_sources=False, names=EMPTY):
     """TÜM düz duvar geometrisi (katman-bağımsız) — cihaz snap + M3 routing için.
     tmin/tmax/min_overlap çizim biriminde (varsayılanlar 1 birim = 1 cm için).
 
-    Katman etiketine güvenmez (mimar tutarsız: dış duvar 'ince'de, bazıları hatch/'0').
+    Katman etiketine güvenmez (mimar tutarsız: dış duvar mobilya katmanında, bazıları hatch/'0').
     Düz çizgi (LINE/LWPOLYLINE) + HATCH sınırı alınır; yuvarlak tesisat (ARC/CIRCLE),
     kapı/metin/merdiven katmanları dışlanır (sahte duvar olmasın).
     """
@@ -215,7 +204,7 @@ def _wall_segments(msp, bbox, min_len=8.0, tmin=4.0, tmax=42.0, min_overlap=18.0
     upm_est = tmin / 0.06 if tmin else 100.0
     frame_area = 3.0 * upm_est * upm_est
     for e in msp:
-        if e.dxf.layer in WALL_EXCLUDE_LAYERS:
+        if names.has(e.dxf.layer, WALL_EXCLUDE_CLASSES):
             continue
         t = e.dxftype()
         if t in ("LINE", "LWPOLYLINE", "POLYLINE"):
@@ -229,13 +218,13 @@ def _wall_segments(msp, bbox, min_len=8.0, tmin=4.0, tmax=42.0, min_overlap=18.0
             # de duvar adayı. Mobilya blokları (<3 m) girmez.
             cand = []
             for ve in _explode(e):
-                if ve.dxf.layer in WALL_EXCLUDE_LAYERS:
+                if names.has(ve.dxf.layer, WALL_EXCLUDE_CLASSES):
                     continue
                 if ve.dxftype() in ("LINE", "LWPOLYLINE", "POLYLINE"):
                     cand += _entity_segments(ve)[0]
         else:
             continue                              # ARC/CIRCLE/TEXT atla
-        lay_ok = e.dxf.layer in WALL_LAYERS
+        lay_ok = names.has(e.dxf.layer, WALL_SCAN_CLASSES)
         for a, b in cand:
             if inb(a, b) and math.hypot(b[0] - a[0], b[1] - a[1]) >= min_len:
                 segs.append(((a[0], a[1]), (b[0], b[1])))

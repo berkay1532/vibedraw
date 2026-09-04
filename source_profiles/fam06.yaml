@@ -1,0 +1,163 @@
+# Kaynak profili (Adım 5). 'layers' yalnızca eski hardcode kümelerden taşınan ofise özgü adlar;
+# sınıf → tüketici eşlemesi kodda (core/perception/names.py). 'layer_union' Jaccard eşleşmesi için.
+family_id: fam06
+label: aile 6 — hafif çelik tip köy konutu
+triage_family_index: 6
+fingerprints:
+- 1db2dc6b
+- 2fa82921
+- cbd6ad5f
+learned_from:
+- hafif_celik_tip_koy_konutu_100_m2_mimari
+- hafif_celik_tip_koy_konutu_70_m2_mimari
+- hafif_celik_tip_koy_konutu_90_m2_mimari
+layers:
+  YAZI: text
+notes: {}
+layer_union:
+- + + mdsy.ANTET
+- '- KOLON'
+- '- SIVA'
+- '- TRETUAR'
+- --TEFRIS
+- --ÖLÇÜ İÇ
+- -ALT
+- -GORUNUS_INCE
+- -KAPI
+- -MALZEME
+- -TARAMA DOSEME
+- -TARAMA SOLİD
+- -TEFRIS
+- -TEFRIS ISLAK
+- -_Yazı_malzeme_DOSEME-Karo mozaik
+- -_Yazı_not
+- -_isaret_kot
+- -ÖLÇÜ İÇ
+- '0'
+- 0-RefEdit0
+- 12mm çimento levha
+- 7-ÖLÇÜ
+- A-DOOR
+- A-DOOR-FRAM
+- A-FLOR-HRAL
+- A-GENM
+- A-GLAZ
+- A-ROOF-OTLN
+- A-Yazi-Kot
+- AHŞAP
+- AHŞAP İNCE
+- AKSBALONU
+- ALÜMİNYUM_DOĞRAMA
+- ANTET_TEXT
+- ANYAZI
+- A_ANNO_HELPR_HID
+- A_ANNO_TXT_TABLE
+- A_ELEV_1
+- A_ELEV_4
+- A_ELEV_5
+- A_STR_HID
+- A_STR_PROJ
+- BB_isaret_egim
+- CAM
+- CERCEVE
+- CK BLOK
+- CK SIVA
+- Cam KGK
+- DEVRİM
+- DUVAR
+- Defpoints
+- E-ALT
+- E-CAM
+- E-FITIL
+- E-GORUNUS_INCE
+- E-KAPI
+- E-POZ
+- E-PROFIL
+- E-TEFRIS ISLAK
+- EPS
+- FURNITURE
+- G-IMPT
+- GOR-015
+- GOR-020
+- GOR-030
+- GORUNUS6
+- GORUNUS_10
+- GORUNUS_15
+- KA
+- KAPI
+- KAPI-PLAN
+- KAPLAMA
+- KOLTEK_ANTET
+- KOLTEK_LOGO
+- KORKULUK_m
+- Kenar Omegası
+- Koltek
+- LCAD_DOWN
+- LCAD_RIGHT
+- LCAD_TEXT
+- M2
+- MERDIVEN
+- METAL
+- MH
+- MS TEFRİŞ
+- MS ÖLÇÜ İÇ
+- MS-ISLAK
+- OLCU
+- OLCU IC YATAY
+- OLUK
+- ONEM-TEMİZ SU CAP
+- ORİ-[ DIŞ ÖLÇÜ
+- ORİ-[ DUVAR
+- ORİ-[ KESİK KESİK
+- ORİ-[ KOLON
+- P-SANR-FIXT
+- PDF_0
+- PDF_DUVAR-2
+- PDF_Text
+- PEN-tugba
+- PENCERE
+- Part
+- Pencere KGK
+- Perçin
+- Q-SPCQ
+- ReferenceModel
+- SAC
+- SERAMİK
+- SI
+- SULAMA_SINIRI
+- T
+- T1
+- TARAMAAA
+- TAŞ GRİ İNCE
+- TAŞIYICI
+- TEK KATLI TİP KÖYEVİ XREF$0$MS TEFRİŞ
+- U PROFILE
+- VITRIFIYE
+- Y
+- Y YATAY
+- YA
+- YALITIM SU
+- YAZI
+- YAZİ
+- YAĞMURLUK
+- YD
+- YZ
+- ZIRHLI BETOPAN 12
+- _1
+- _2
+- _DUVAR
+- _GÖRÜNÜŞ BEYAZ
+- _KESİK
+- _NTS_AKS
+- _PAFTA
+- __dograma
+- __gorunus
+- __iz dusum
+- celik
+- hidden
+- m2
+- tarama
+- tarama1
+- yalıtımm
+- ÇERÇEVE
+- İZDÜŞÜM

@@ -80,16 +80,16 @@ taşınır, mantık değişmez. `reconstruct` yalnızca sıralayan bir orkestrat
 **Kabul:** testler geçer, eval değişmez.
 
 ## Adım 5 — Katman adlarını koddan çıkar
-- [ ] `source_profiles/` + `SourceProfile` dataclass + yükleyici (`names.py`).
+- [x] `source_profiles/` + `SourceProfile` dataclass + yükleyici (`names.py`).
       `triage.layer_fingerprint` ile eşleşme.
-- [ ] Mevcut `WALL_LAYERS`, `DOOR_LAYERS`, `WINDOW_LAYERS`, `WALL_EXCLUDE_LAYERS`,
+- [x] Mevcut `WALL_LAYERS`, `DOOR_LAYERS`, `WINDOW_LAYERS`, `WALL_EXCLUDE_LAYERS`,
       `"ince"` içeriğini ilgili parmak izlerinin profil dosyalarına dağıt
       (hangi ofis hangi ad — triage çıktısına bak). Kodda kümeler boşalır.
-- [ ] `names.py::classify_layers(drawing, profile) -> NameMap`:
+- [~] `names.py::classify_layers(drawing, profile) -> NameMap`: (1-2 yapıldı; 3-4 aday)
       1) profil eşlemesi, 2) vocab anahtar kelimesi, 3) içerik istatistiği
       (entity tipi dağılımı, ortalama uzunluk, paralel çift oranı), 4) LLM (cache'li).
       Her katman için `LayerClass` + güven.
-- [ ] `walls/openings/rooms` modülleri katman adı yerine `NameMap` sınıfını kullanır.
+- [x] `walls/openings/rooms` modülleri katman adı yerine `NameMap` sınıfını kullanır.
 
 **Kabul:** eval aynı ya da daha iyi; `grep -r "ABM\|PislikMimar\|\"ince\"" core/` boş.
 

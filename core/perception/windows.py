@@ -9,10 +9,9 @@ import math
 from core.perception.blocks import _entity_segments, _explode, _is_big_block
 from core.perception.openings import _door_like_arc
 from core.perception.vocab import WINDOW_WORDS
-from core.perception.walls import WALL_EXCLUDE_LAYERS
+from core.perception.names import EMPTY, WALL_EXCLUDE_CLASSES, WINDOW_CLASSES
 
 
-WINDOW_LAYERS = {"pencere", "cam", "KAPEN", "KAPI_PENCERE"}
 
 
 
@@ -110,14 +109,14 @@ def _insert_window(e, upm, x0, y0, x1, y1, walls=None, with_source=False):
     return seg
 
 
-def _thin_line_windows(msp, bbox, upm, walls):
+def _thin_line_windows(msp, bbox, upm, walls, names=EMPTY):
     """Serbest çizgilerden pencere: duvar bandı içinde, birbirine ≤10 cm mesafede, boyuna
     örtüşen ≥2 paralel çizgi grubu (cam çizgileri). Duvar yüzleri hariç."""
     x0, y0, x1, y1 = bbox
     wall_set = {(round(a[0], 1), round(a[1], 1), round(b[0], 1), round(b[1], 1)) for a, b in walls}
     segs = []
     for e in msp:
-        if e.dxf.layer in WALL_EXCLUDE_LAYERS or e.dxftype() not in ("LINE", "LWPOLYLINE", "POLYLINE"):
+        if names.has(e.dxf.layer, WALL_EXCLUDE_CLASSES) or e.dxftype() not in ("LINE", "LWPOLYLINE", "POLYLINE"):
             continue
         for a, b in _entity_segments(e)[0]:
             if not ((x0 <= a[0] <= x1 and y0 <= a[1] <= y1) or (x0 <= b[0] <= x1 and y0 <= b[1] <= y1)):
@@ -204,15 +203,16 @@ def _dedupe_windows(wins, tol, aux=None):
     return out
 
 
-def _window_segments(msp, bbox, min_len=8.0, upm=None, walls=None, big_blocks=False, with_sources=False):
+def _window_segments(msp, bbox, min_len=8.0, upm=None, walls=None, big_blocks=False, with_sources=False,
+                     names=EMPTY):
     """Pencere parçaları — cihaz yerleşiminde yasak bölge.
-    (1) WINDOW_LAYERS çizgileri; upm verilirse ek olarak (2) pencere BLOKLARI (ad/katman
+    (1) pencere sınıfı katman çizgileri; upm verilirse ek olarak (2) pencere BLOKLARI (ad/katman
     anahtar kelimesi ya da ince-uzun cam geometrisi) ve (3) duvar bandındaki ince paralel
     çizgi grupları (katman-bağımsız)."""
     x0, y0, x1, y1 = bbox
     segs = []
     for e in msp:
-        if e.dxf.layer not in WINDOW_LAYERS:
+        if not names.has(e.dxf.layer, WINDOW_CLASSES):
             continue
         if e.dxftype() not in ("LINE", "LWPOLYLINE", "POLYLINE"):
             continue
@@ -240,7 +240,7 @@ def _window_segments(msp, bbox, min_len=8.0, upm=None, walls=None, big_blocks=Fa
         r = _insert_window(e, upm, x0, y0, x1, y1, walls=walls, with_source=True)
         if r:
             extra.append(r[0]); extra_src.append(r[1])
-    thin = _thin_line_windows(msp, bbox, upm, walls or [])
+    thin = _thin_line_windows(msp, bbox, upm, walls or [], names=names)
     extra += thin; extra_src += ["thin_lines"] * len(thin)
     ded, ded_src = _dedupe_windows(extra, 0.3 * upm, aux=extra_src)
     if with_sources:

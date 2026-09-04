@@ -20,6 +20,11 @@ from core.perception.metrics import evaluate_floor
 from core.perception.ir_compat import load_floor_for_eval
 from core.perception.run_stamp import check_fresh, code_hash, git_info
 
+# Aile grupları (source_profiles/<family_id>.yaml; docs/DATASET.md). ABM = aynı ofis şablonu aileleri,
+# tip = Bakanlık tip projeleri. Listede olmayan aile "diğer" satırına girer.
+FAMILY_GROUPS = {"ABM aileleri (fam00, fam02, fam04)": {"fam00", "fam02", "fam04"},
+                 "tip aileleri (fam01, fam03)": {"fam01", "fam03"}}
+
 
 def _freshness_gate(pred_dir: Path, gt_paths: list[Path]) -> tuple[dict, list[str]]:
     """results.json damgalarını şimdiki kodla karşılaştırır; (koşu damgası, sorun listesi) döner."""
@@ -60,13 +65,16 @@ def main(argv=None) -> int:
     cal_src = {"rooms": [], "doors": [], "windows": []}
     pair_acc = []
     tiers = {}                                  # GT meta.tier: easy | normal | hard (dosya zorluğu, raporda)
+    fam_of = {}                                 # GT dosyası → pred params.extra.family_id
     for gp in gt_paths:
         gt = json.loads(gp.read_text(encoding="utf-8"))
         tiers[gp.stem] = (gt.get("meta") or {}).get("tier", "")
         pp = Path(args.pred) / gp.name
         if not pp.exists():
             rows.append((gp.stem, None)); continue
-        pred = load_floor_for_eval(json.loads(pp.read_text(encoding="utf-8")))   # v1 veya v2 JSON
+        pj = json.loads(pp.read_text(encoding="utf-8"))
+        fam_of[gp.stem] = (((pj.get("floors") or [{}])[0].get("params") or {}).get("extra") or {}).get("family_id", "unknown")
+        pred = load_floor_for_eval(pj)   # v1 veya v2 JSON
         r = evaluate_floor(gt, pred)
         rows.append((gp.stem, r))
         for k in ("rooms", "doors", "windows"):
@@ -124,13 +132,46 @@ def main(argv=None) -> int:
             by.setdefault(src, []).append(m)
         for src, xs in sorted(by.items(), key=lambda kv: -len(kv[1])):
             L.append(f"| {k} | {src} | {len(xs)} | {sum(xs) / len(xs):.2f} |")
+    # Aile bazında (zorunlu, Adım 5): grup satırları + aile satırları + toplam
+    L.append("\n## Aile bazında\n")
+    L.append("| Grup / aile | Dosya | Oda F1 | Oda IoU | Kapı F1 | Bağlantı | Pencere F1 |")
+    L.append("|---|---:|---:|---:|---:|---:|---:|")
+
+    def _agg(names):
+        sub = [(n, r) for n, r in rows if r and n in names]
+        if not sub:
+            return None
+        t = {k: [sum(r[k][m] for _, r in sub) for m in ("tp", "fp", "fn")] for k in ("rooms", "doors", "windows")}
+        f1 = {k: prf(*t[k])[2] for k in t}
+        iou = mean([r["rooms"]["mean_iou"] for _, r in sub if r["rooms"]["mean_iou"] is not None])
+        con = mean([r["doors"]["connect_acc"] for _, r in sub if r["doors"]["connect_acc"] is not None])
+        return len(sub), f1, iou, con
+
+    def _row(label, names):
+        a = _agg(names)
+        if a is None:
+            L.append(f"| {label} | 0 | — | — | — | — | — |"); return
+        n, f1, iou, con = a
+        L.append(f"| {label} | {n} | {f1['rooms']:.3f} | {iou} | {f1['doors']:.3f} | {con} | {f1['windows']:.3f} |")
+    grouped = set()
+    for label, fams in FAMILY_GROUPS.items():
+        names = {n for n, f in fam_of.items() if f in fams}; grouped |= names
+        _row(f"**{label}**", names)
+        for f in sorted(fams):
+            sub = {n for n, ff in fam_of.items() if ff == f}
+            if sub:
+                _row(f"&nbsp;&nbsp;{f}", sub)
+    other = {n for n in fam_of if n not in grouped}
+    if other:
+        _row("**diğer** (" + ", ".join(sorted({fam_of[n] for n in other})) + ")", other)
+    _row("**toplam**", set(fam_of))
     L.append("\n## Dosya bazında\n")
-    L.append("| Dosya | Tier | Oda F1 | Oda IoU | Ad | Kapı F1 | Kapı hata (m) | Bağlantı | Pencere F1 |")
-    L.append("|---|---|---:|---:|---:|---:|---:|---:|---:|")
+    L.append("| Dosya | Aile | Tier | Oda F1 | Oda IoU | Ad | Kapı F1 | Kapı hata (m) | Bağlantı | Pencere F1 |")
+    L.append("|---|---|---|---:|---:|---:|---:|---:|---:|---:|")
     for name, r in rows:
         if not r:
-            L.append(f"| {name} | | pred yok | | | | | | |"); continue
-        L.append(f"| {name} | {tiers.get(name, '')} | {r['rooms']['f1']} | {r['rooms']['mean_iou']} | {r['rooms']['name_acc']} | "
+            L.append(f"| {name} | | | pred yok | | | | | | |"); continue
+        L.append(f"| {name} | {fam_of.get(name, '')} | {tiers.get(name, '')} | {r['rooms']['f1']} | {r['rooms']['mean_iou']} | {r['rooms']['name_acc']} | "
                  f"{r['doors']['f1']} | {r['doors']['mean_err_m']} | {r['doors']['connect_acc']} | {r['windows']['f1']} |")
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text("\n".join(L) + "\n", encoding="utf-8")
