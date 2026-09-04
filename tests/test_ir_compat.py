@@ -36,7 +36,7 @@ def test_to_v2_confidence_and_evidence():
     assert abs(doors[0].width - 90.0) < 1e-6 and doors[0].center == (400.0, 145.0)
     assert doors[1].confidence == DOOR_CONF["layer_raw"]
     wins = [o for o in fl.openings if o.kind == "window"]
-    assert len(wins) == 1 and wins[0].confidence == 0.55 and abs(wins[0].width - 100.0) < 1e-6
+    assert len(wins) == 1 and wins[0].confidence == 0.3 and abs(wins[0].width - 100.0) < 1e-6
     assert [w.confidence for w in fl.walls] == [0.9, 0.6] and fl.walls[0].thickness is None
     # her tespit güven + kanıt taşır
     for det in fl.rooms + fl.openings + fl.walls:

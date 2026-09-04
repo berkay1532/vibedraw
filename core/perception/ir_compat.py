@@ -19,7 +19,7 @@ from core.perception.ir import (BuildingIR, Evidence, FileParams, Floor, Opening
 DOOR_CONF = {"block+arc": 0.95, "arc": 0.75, "block": 0.7, "layer_raw": 0.4, "vlm": 0.8}
 ROOM_CONF = {"exclusive": 0.85, "voronoi": 0.5, "alias_merge": 0.6, "edge_fragment": 0.4, "fallback": 0.2}
 WALL_CONF = {"pair+layer": 0.9, "pair": 0.6}
-WINDOW_CONF = {"layer": 0.85, "block_keyword": 0.85, "block_geometry": 0.7, "thin_lines": 0.55}
+WINDOW_CONF = {"layer": 0.85, "block_keyword": 0.85, "block_geometry": 0.7, "thin_lines": 0.3}  # thin_lines: 0/9 sahte (DECISIONS)
 
 
 def _ev(source: str, conf: float, **signals) -> Evidence:
