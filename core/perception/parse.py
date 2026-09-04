@@ -78,12 +78,12 @@ def room_label_name(content: str):
     return name if name and looks_like_room_label(name) else None
 
 
-def extract_room_labels(dxf_path: str) -> list[YaziText]:
+def extract_room_labels(dxf_path: str, msp=None) -> list[YaziText]:
     """Katman adına bakmadan modelspace'teki TEXT/MTEXT ve INSERT ATTRIB'lerinden
     oda-adı gibi görünen metinleri toplar. Alan yazıları ("A: 12m²") da eklenir
-    (pair_names_with_areas için)."""
-    doc = ezdxf.readfile(dxf_path)
-    msp = doc.modelspace()
+    (pair_names_with_areas için). msp verilirse dosya yeniden okunmaz (DXF tek okuma)."""
+    if msp is None:
+        msp = ezdxf.readfile(dxf_path).modelspace()
     out: list[YaziText] = []
     for e in msp:
         t = e.dxftype()

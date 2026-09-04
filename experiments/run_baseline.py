@@ -24,14 +24,16 @@ sys.path.insert(0, str(ROOT))
 from core.perception.run_stamp import make_stamp  # noqa: E402
 
 
-def _render(dxf_path, floor, out_png, margin):
+def _render(dxf_path, floor, out_png, margin, doc=None):
     import ezdxf
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     xs = [r.label_xy[0] for r in floor.rooms]; ys = [r.label_xy[1] for r in floor.rooms]
     x0, y0, x1, y1 = min(xs) - margin, min(ys) - margin, max(xs) + margin, max(ys) + margin
-    doc = ezdxf.readfile(dxf_path); msp = doc.modelspace()
+    if doc is None:
+        doc = ezdxf.readfile(dxf_path)
+    msp = doc.modelspace()
     fig, ax = plt.subplots(figsize=(14, 14 * max(0.3, (y1 - y0) / max(1e-6, x1 - x0))))
     for e in msp:
         t = e.dxftype()
@@ -100,7 +102,7 @@ def run_one(dxf_path: str, out_dir: str, q):
         }
         Path(out_dir, f"{name}.json").write_text(json.dumps(asdict(b2), ensure_ascii=False, indent=1, default=str), encoding="utf-8")
         try:
-            _render(dxf_path, f, str(Path(out_dir, f"{name}.png")), p["margin"])
+            _render(dxf_path, f, str(Path(out_dir, f"{name}.png")), p["margin"], doc=sel.doc)
         except Exception as ex:
             r["stages"]["geometry"]["render_error"] = f"{type(ex).__name__}: {ex}"[:120]
     except Exception as ex:
@@ -169,10 +171,12 @@ def main(argv=None):
     ap.add_argument("--triage", default="output/dataset_triage.json")
     ap.add_argument("--out", default="output/baseline")
     ap.add_argument("--timeout", type=int, default=180)
+    ap.add_argument("--heavy-timeout", type=int, default=900, help="triage 'heavy' dosyalar için zaman aşımı")
     ap.add_argument("--only", default=None, help="sadece adı bu alt-dizgiyi içeren dosyalar")
     args = ap.parse_args(argv)
     tri = json.loads(Path(args.triage).read_text(encoding="utf-8"))
     paths = [p["path"] for p in tri["profiles"] if p["verdict"] == "ADAY"]
+    heavy = {p["path"] for p in tri["profiles"] if p.get("heavy")}
     if args.only:
         keys = [k for k in args.only.split(",") if k]
         paths = [p for p in paths if any(k in p for k in keys)]
@@ -191,7 +195,7 @@ def main(argv=None):
     print(f"koşu damgası: {stamp}", file=sys.stderr, flush=True)
     for i, p in enumerate(paths, 1):
         print(f"[{i}/{len(paths)}] {Path(p).name}", file=sys.stderr, flush=True)
-        r = run_with_timeout(p, args.out, args.timeout)
+        r = run_with_timeout(p, args.out, args.heavy_timeout if p in heavy else args.timeout)
         r["stamp"] = stamp
         results.append(r)
         merged[r["file"]] = r

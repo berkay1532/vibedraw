@@ -36,12 +36,15 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
                 vlm_door_points: list | None = None,
                 door_arc_radius: tuple = (50.0, 130.0),
                 door_wall_dist: float = 25.0,
-                units_per_meter: float | None = None) -> BuildingIR:
+                units_per_meter: float | None = None,
+                doc=None) -> BuildingIR:
     """M1 giriş noktası: her kat için oda merkezi/poligonu doldur, kapıları tespit et.
 
     geometry_ok=False olan odalar (sızma/boş) için center=label_xy fallback uygulanır.
+    doc verilirse dosya yeniden okunmaz (DXF tek okuma).
     """
-    doc = ezdxf.readfile(dxf_path)
+    if doc is None:
+        doc = ezdxf.readfile(dxf_path)
     msp = doc.modelspace()
 
     for floor in building.floors:
@@ -216,6 +219,7 @@ class PlanSelection:
     floor: Floor | None = None
     upm: float = 100.0
     stats: dict = field(default_factory=dict)
+    doc: object = field(default=None, repr=False)   # okunmuş ezdxf belgesi (tek okuma; run_selected paylaşır)
 
 
 def label_floors(dxf_path: str, gap: float) -> list[Floor]:
@@ -223,9 +227,13 @@ def label_floors(dxf_path: str, gap: float) -> list[Floor]:
     return cluster_floors_2d(pair_names_with_areas(extract_room_labels(dxf_path)), gap=gap)
 
 
-def select_plan(dxf_path: str) -> PlanSelection:
-    """Genel etiket çıkarımı + ölçek + kat seçimi (tek yol)."""
-    labels = extract_room_labels(dxf_path)
+def select_plan(dxf_path: str, doc=None) -> PlanSelection:
+    """Genel etiket çıkarımı + ölçek + kat seçimi (tek yol). DXF bir kez okunur; belge
+    PlanSelection.doc ile run_selected/run_floor'a taşınır (AVİDA: 12 okuma → 1, DECISIONS)."""
+    if doc is None:
+        doc = ezdxf.readfile(dxf_path)
+    msp = doc.modelspace()
+    labels = extract_room_labels(dxf_path, msp=msp)
     upm0 = estimate_units_per_meter(labels)
     labels = dedupe_labels(labels, tol=0.5 * upm0)      # 50 cm içindeki tekrarlar
     upm = estimate_units_per_meter(labels)
@@ -234,7 +242,7 @@ def select_plan(dxf_path: str) -> PlanSelection:
     floors = [f for f in floors if len(f.rooms) >= 3]
     stats = {"labels": len(labels), "rooms": len(rooms), "upm": round(upm, 1),
              "floors": [len(f.rooms) for f in floors]}
-    sel = PlanSelection(labels=labels, rooms=rooms, floors=floors, upm=upm, stats=stats)
+    sel = PlanSelection(labels=labels, rooms=rooms, floors=floors, upm=upm, stats=stats, doc=doc)
     if not floors:
         return sel
     floor = pick_plan_floor(floors, upm); floor.index = 0
@@ -245,13 +253,13 @@ def select_plan(dxf_path: str) -> PlanSelection:
     for f in sorted(floors, key=lambda f: -len(f.rooms))[:8]:
         if len(f.rooms) < 3:
             continue
-        if estimate_units_from_doors(dxf_path, _floor_bbox(f, 2.5 * upm), upm) is not None:
+        if estimate_units_from_doors(dxf_path, _floor_bbox(f, 2.5 * upm), upm, msp=msp) is not None:
             with_doors.append(f)
     if with_doors and floor not in with_doors:
         floor = with_doors[0]; floor.index = 0
         stats["pick"] = "doors"
     # Ölçeği kapı yaylarından düzelt (etiket-mesafesi tahmini kaba)
-    upm_doors = estimate_units_from_doors(dxf_path, _floor_bbox(floor, 2.5 * upm), upm)
+    upm_doors = estimate_units_from_doors(dxf_path, _floor_bbox(floor, 2.5 * upm), upm, msp=msp)
     stats["upm_labels"] = round(upm, 1)
     if upm_doors and 0.25 * upm <= upm_doors <= 4.0 * upm:   # etiket öncülü kaba; kapı kümesi güçlü kanıt
         upm = upm_doors
@@ -281,12 +289,13 @@ def run_selected(dxf_path: str, sel: PlanSelection, *, max_cells: int = MAX_CELL
     cells = (w / p["res"]) * (h / p["res"])
     if cells > max_cells:
         p["res"] *= math.sqrt(cells / max_cells)
+    doc = sel.doc if sel.doc is not None else ezdxf.readfile(dxf_path)
     b = BuildingIR(floors=[floor], source_path=dxf_path)
-    b = run_floor(b, dxf_path, units_per_meter=upm, **p)
+    b = run_floor(b, dxf_path, units_per_meter=upm, doc=doc, **p)
     f = b.floors[0]
     # v2 çıktı: güven + kanıt (ir_compat). Koordinatlar çizim biriminde, ölçek params'ta.
     try:
-        fp = layer_fingerprint(l.dxf.name for l in ezdxf.readfile(dxf_path).layers)
+        fp = layer_fingerprint(l.dxf.name for l in doc.layers)
     except Exception:
         fp = ""
     extra = {k: (list(v) if isinstance(v, tuple) else v) for k, v in p.items()}

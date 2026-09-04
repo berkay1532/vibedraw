@@ -59,8 +59,10 @@ def main(argv=None) -> int:
     cal = {"rooms": [], "doors": [], "windows": []}
     cal_src = {"rooms": [], "doors": [], "windows": []}
     pair_acc = []
+    tiers = {}                                  # GT meta.tier: easy | normal | hard (dosya zorluğu, raporda)
     for gp in gt_paths:
         gt = json.loads(gp.read_text(encoding="utf-8"))
+        tiers[gp.stem] = (gt.get("meta") or {}).get("tier", "")
         pp = Path(args.pred) / gp.name
         if not pp.exists():
             rows.append((gp.stem, None)); continue
@@ -123,12 +125,12 @@ def main(argv=None) -> int:
         for src, xs in sorted(by.items(), key=lambda kv: -len(kv[1])):
             L.append(f"| {k} | {src} | {len(xs)} | {sum(xs) / len(xs):.2f} |")
     L.append("\n## Dosya bazında\n")
-    L.append("| Dosya | Oda F1 | Oda IoU | Ad | Kapı F1 | Kapı hata (m) | Bağlantı | Pencere F1 |")
-    L.append("|---|---:|---:|---:|---:|---:|---:|---:|")
+    L.append("| Dosya | Tier | Oda F1 | Oda IoU | Ad | Kapı F1 | Kapı hata (m) | Bağlantı | Pencere F1 |")
+    L.append("|---|---|---:|---:|---:|---:|---:|---:|---:|")
     for name, r in rows:
         if not r:
-            L.append(f"| {name} | pred yok | | | | | | |"); continue
-        L.append(f"| {name} | {r['rooms']['f1']} | {r['rooms']['mean_iou']} | {r['rooms']['name_acc']} | "
+            L.append(f"| {name} | | pred yok | | | | | | |"); continue
+        L.append(f"| {name} | {tiers.get(name, '')} | {r['rooms']['f1']} | {r['rooms']['mean_iou']} | {r['rooms']['name_acc']} | "
                  f"{r['doors']['f1']} | {r['doors']['mean_err_m']} | {r['doors']['connect_acc']} | {r['windows']['f1']} |")
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text("\n".join(L) + "\n", encoding="utf-8")

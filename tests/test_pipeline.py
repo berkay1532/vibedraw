@@ -49,3 +49,20 @@ def test_fallback_when_no_walls(synthetic_dxf):
         if not r.geometry_ok:
             assert r.center == r.label_xy
 
+
+
+def test_run_file_reads_dxf_once(synthetic_dxf, monkeypatch):
+    """DXF tek okuma: select_plan → calibration → run_floor → parmak izi aynı belgeyi paylaşır."""
+    import ezdxf
+    import core.perception.pipeline as P
+    import core.perception.parse as PARSE
+    calls = []
+    real = ezdxf.readfile
+    def counting(path, *a, **k):
+        calls.append(path); return real(path, *a, **k)
+    monkeypatch.setattr(P.ezdxf, "readfile", counting)
+    monkeypatch.setattr(PARSE.ezdxf, "readfile", counting)
+    import core.perception.calibration as C
+    monkeypatch.setattr(C.ezdxf, "readfile", counting)
+    P.run_file(synthetic_dxf)
+    assert len(calls) == 1

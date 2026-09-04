@@ -25,6 +25,12 @@ from core.perception.vocab import ROOM_WORDS, fold
 DWG_EXT = {".dwg"}
 DXF_EXT = {".dxf"}
 
+# Ağır dosya eşiği (config/thresholds.yaml adayı, Adım 6). Kalibrasyon 2026-09-04, 53 dosya:
+# modelspace ≥250k entity → 250-360 s (6249, 554_1, 553_3, 132_SÜMBÜLTEPE); blok içi entity
+# 582k → AVİDA_PLAN 547 s (Revit tarzı 24k blok tanımı). Ağır dosya = uzun zaman aşımı + tier: hard.
+HEAVY_ENTITIES = 250_000
+HEAVY_BLOCK_ENTITIES = 200_000
+
 
 tr_fold = fold   # Adım 4: tek uygulama vocab.fold
 
@@ -68,6 +74,8 @@ class FileProfile:
     n_room_texts: int = 0
     bbox: Optional[tuple] = None        # (xmin, ymin, xmax, ymax)
     verdict: str = "HATA"               # ADAY | ZAYIF | HATA
+    n_block_entities: int = 0           # blok tanımlarındaki toplam entity (Revit export'larında devasa)
+    heavy: bool = False                 # HEAVY_* eşiklerinden biri aşıldı → uzun zaman aşımı, tier: hard
 
     @property
     def name(self) -> str:
@@ -169,6 +177,11 @@ def profile_dxf(path: str) -> FileProfile:
     p.n_inserts = types["INSERT"]
     p.block_names = [n for n, _ in blocks.most_common(15)]
     p.n_texts = len(texts)
+    try:
+        p.n_block_entities = sum(len(b) for b in doc.blocks if not b.name.lower().startswith(("*model_space", "*paper_space")))
+    except Exception:
+        p.n_block_entities = 0
+    p.heavy = p.n_entities >= HEAVY_ENTITIES or p.n_block_entities >= HEAVY_BLOCK_ENTITIES
     p.room_hits = room_hits(texts)
     p.n_room_texts = sum(p.room_hits.values())
     if xs and ys:
@@ -298,12 +311,12 @@ def render_report(profiles: list[FileProfile], families: list[list[FileProfile]]
         L.append(f"### Aile {i} — {len(fam)} dosya, {n_c} aday")
         L.append(f"Ortak katmanlar ({len(common)}): " + ", ".join(sorted(common)[:20]) + ("…" if len(common) > 20 else ""))
         L.append("")
-        L.append("| Dosya | Karar | Oda metni | Çizgi | Yay | INSERT | HATCH | Katman | Birim | Boyut | Oda eşleşmeleri |")
-        L.append("|---|---|---:|---:|---:|---:|---:|---:|---|---|---|")
+        L.append("| Dosya | Karar | Ağır | Oda metni | Çizgi | Yay | INSERT | Blok entity | HATCH | Katman | Birim | Boyut | Oda eşleşmeleri |")
+        L.append("|---|---|---|---:|---:|---:|---:|---:|---:|---:|---|---|---|")
         for p in sorted(fam, key=lambda q: (q.verdict != "ADAY", q.name)):
             w, h = p.extent
             hits = ", ".join(f"{k}:{v}" for k, v in sorted(p.room_hits.items(), key=lambda kv: -kv[1])[:6])
-            L.append(f"| {p.name} | {p.verdict} | {p.n_room_texts} | {p.n_lines} | {p.n_arcs} | {p.n_inserts} | {p.n_hatch} | {len(p.layers)} | {_UNITS.get(p.units, str(p.units))} | {w:.0f}×{h:.0f} | {hits} |")
+            L.append(f"| {p.name} | {p.verdict} | {'AĞIR' if p.heavy else ''} | {p.n_room_texts} | {p.n_lines} | {p.n_arcs} | {p.n_inserts} | {p.n_block_entities} | {p.n_hatch} | {len(p.layers)} | {_UNITS.get(p.units, str(p.units))} | {w:.0f}×{h:.0f} | {hits} |")
         L.append("")
     bad = [p for p in profiles if not p.ok]
     if bad:
