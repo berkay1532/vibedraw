@@ -33,10 +33,10 @@ Aynı proje numaralı mimari ADAY dosya = çift adayı (elektrik motoru eval'i i
 
 | Elektrik çizimi | Mimari eş (çift adayı) | Not |
 |---|---|---|
-| 1484A7P | — | elektrik çizimi; aynı numaralı mimari dosya veri setinde yok |
+| 1484A7P | — | **combined**: altlık + elektrik aynı dosyada (mimari eş yok); ileride altlık katmanları ayrıştırılarak çift üretilebilir |
 | 2510-9_ELEKTRİK_3 | 2510_912.05.2023 | elektrik çizimi; 2510_912.05.2023 ile girdi-çıktı çifti adayı |
 | 2510-9_ELK | 2510_912.05.2023 | elektrik çizimi; 2510_912.05.2023 ile girdi-çıktı çifti adayı (aynı projenin iki sürümü) |
-| 290-10_KOLDERE | 290_ADA_10_PARSEL_KOLDERE_21062023 | elektrik çizimi; 290_ADA_10_PARSEL_KOLDERE ile çift adayı |
+| 290-10_KOLDERE | 290_ADA_10_PARSEL_KOLDERE_21062023 | normal çift: elektrik çizimi ↔ mimari altlık |
 
 ### Elle atlananlar (`data/raw/atlanan`, girdi değil)
 

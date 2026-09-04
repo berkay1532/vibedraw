@@ -7,7 +7,7 @@ from __future__ import annotations
 import math
 
 from core.perception.blocks import _explode, _is_big_block
-from core.perception.names import DOOR_CLASSES, EMPTY
+from core.perception.names import DOOR_CLASSES, EMPTY, GATED_MIN_CONF
 
 
 
@@ -140,7 +140,7 @@ def _swing_dirs(msp, bbox, amin, amax, big_blocks=False, names=EMPTY):
                 blk = e.doc.blocks.get(e.dxf.name)
                 sx = abs(e.dxf.xscale) if e.dxf.xscale else 1.0
                 for ent in blk:
-                    if names.has(e.dxf.layer, DOOR_CLASSES):
+                    if names.has(e.dxf.layer, DOOR_CLASSES, GATED_MIN_CONF):   # blok yayı süzgeci gevşetme: profil güveni
                         if ent.dxftype() != "ARC" or not (amin <= ent.dxf.radius * sx <= amax):
                             continue
                     elif not _door_like_arc(ent, sx, amin, amax):

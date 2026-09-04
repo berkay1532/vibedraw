@@ -13,6 +13,7 @@
 """
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -26,6 +27,12 @@ ROOT = Path(__file__).resolve().parents[2]
 PROFILE_DIR = ROOT / "source_profiles"
 STRUCT_MIN = 0.5      # kayıtlı yapısal adların en az bu oranı dosyada varsa aile eşleşti (config/ adayı)
 JACCARD_MIN = 0.5     # triage aile eşiğiyle aynı
+PROFILE_CONF = 0.9    # profil kaynaklı sınıf güveni
+KEYWORD_CONF = 0.6    # genel sözlük kaynaklı sınıf güveni (kapı+pencere çakışması: KEYWORD_CONF - 0.1)
+# Kapılı tüketim (DECISIONS 2026-09-04 ablasyon): sözlük güvenindeki sınıflar yalnız EKLEYİCİ tüketicilere
+# (bariyer, pencere kaynağı, duvar-katmanı güveni, ince-çizgi pencere adayı dışlama) beslenir; duvar taramasından
+# HARİÇ tutma ve "kesin kapı" INSERT yolu profil güveni ister (GATED_MIN_CONF).
+GATED_MIN_CONF = PROFILE_CONF
 
 
 class LayerClass(str, Enum):
@@ -51,16 +58,18 @@ class SourceProfile:
     layers: dict = field(default_factory=dict)       # katman adı (birebir) → LayerClass
     notes: dict = field(default_factory=dict)
     learned_from: list = field(default_factory=list)
-    layer_union: list = field(default_factory=list)  # aile dosyalarının katman birleşimi (Jaccard için; sınıf taşımaz)
+    layer_union: list = field(default_factory=list)  # aile katman birleşimi; yan dosya unions/<fam>.json (Jaccard için)
 
     @classmethod
     def from_yaml(cls, path: Path) -> "SourceProfile":
         d = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        side = path.parent / "unions" / f"{path.stem}.json"
+        union = json.loads(side.read_text(encoding="utf-8")) if side.exists() else (d.get("layer_union") or [])
         return cls(family_id=str(d.get("family_id", path.stem)), label=d.get("label", ""),
                    fingerprints=list(d.get("fingerprints") or []),
                    layers={str(k): LayerClass(v) for k, v in (d.get("layers") or {}).items()},
                    notes=dict(d.get("notes") or {}), learned_from=list(d.get("learned_from") or []),
-                   layer_union=[str(x) for x in (d.get("layer_union") or [])])
+                   layer_union=[str(x) for x in union])
 
 
 @dataclass
@@ -74,8 +83,9 @@ class NameMap:
     def cls(self, layer: str) -> LayerClass:
         return self.classes.get(layer, (LayerClass.unknown, 0.0, "none"))[0]
 
-    def has(self, layer: str, classes) -> bool:
-        return self.cls(layer) in classes
+    def has(self, layer: str, classes, min_conf: float = 0.0) -> bool:
+        c, conf, _ = self.classes.get(layer, (LayerClass.unknown, 0.0, "none"))
+        return c in classes and conf >= min_conf
 
     def summary(self) -> dict:
         out: dict = {}
@@ -137,11 +147,11 @@ def keyword_class(layer: str):
     if ann:
         for c in (LayerClass.ignore, LayerClass.text, LayerClass.dim, LayerClass.grid, LayerClass.hatch, LayerClass.revision):
             if c in ann:
-                return c, 0.6
+                return c, KEYWORD_CONF
     if len(hits) == 1:
-        return next(iter(hits)), 0.6
+        return next(iter(hits)), KEYWORD_CONF
     if {LayerClass.door, LayerClass.window} <= hits:
-        return LayerClass.window, 0.5          # kapı-pencere ortak katmanı: kapı içerebilir (profil notu)
+        return LayerClass.window, KEYWORD_CONF - 0.1          # kapı-pencere ortak katmanı: kapı içerebilir (profil notu)
     return LayerClass.unknown, 0.0
 
 
@@ -149,7 +159,7 @@ def classify_layers(layer_names, profile: Optional[SourceProfile], match: str = 
     nm = NameMap(family_id=profile.family_id if profile else "unknown", match=match, match_score=score)
     for name in layer_names:
         if profile and name in profile.layers:
-            nm.classes[name] = (profile.layers[name], 0.9, "profile")
+            nm.classes[name] = (profile.layers[name], PROFILE_CONF, "profile")
             continue
         c, conf = keyword_class(name)
         nm.classes[name] = (c, conf, "keyword" if conf else "none")

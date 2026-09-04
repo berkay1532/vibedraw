@@ -201,6 +201,10 @@ def main(argv=None):
         merged[r["file"]] = r
         rp.write_text(json.dumps(sorted(merged.values(), key=lambda x: x["file"]), ensure_ascii=False, indent=1), encoding="utf-8")
         print(f"    → {r['fail_stage'] or 'ok'} {r.get('error') or r['stages'].get('geometry', '')}", file=sys.stderr, flush=True)
+    if not args.only:                          # tam koşu: ADAY dışına çıkmış dosyaların eski kayıtları atılır
+        keep = {Path(p).stem for p in paths}
+        merged = {k: v for k, v in merged.items() if k in keep}
+        rp.write_text(json.dumps(sorted(merged.values(), key=lambda x: x["file"]), ensure_ascii=False, indent=1), encoding="utf-8")
     all_results = sorted(merged.values(), key=lambda r: r["file"])
     report(all_results if not args.only else results, Path(args.out).parent / "baseline_report.md")
     print(f"→ {Path(args.out).parent / 'baseline_report.md'}")

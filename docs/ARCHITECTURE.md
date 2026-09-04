@@ -245,8 +245,9 @@ layers:                                   # yalnızca ofise özgü adlar; sını
   "merdiven": stair
 notes:
   "KAPEN": "kapı içerebilir"
-layer_union: [...]                        # aile dosyalarının katman birleşimi; Jaccard eşleşmesi için, sınıf taşımaz
 ```
+
+Aile katman birleşimi (Jaccard eşleşmesi için) yaml'da değil, `source_profiles/unions/<family_id>.json` yan dosyasındadır.
 
 `LayerClass`: wall, beam, column, chimney, door, window, furniture, text, dim, grid, stair, hatch,
 revision, ignore, unknown. **Sınıf → tüketici eşlemesi kodda** (`names.py`): raster bariyeri
@@ -260,6 +261,10 @@ profil (`family: unknown`) ve yalnızca genel sözlük + katman-bağımsız yol 
 `classify_layers` kademeleri: profil (güven 0,9) → genel sözlük anahtar kelimesi (0,6; kapı+pencere
 çakışması → window 0,5; yazı/ölçü/aks/tarama kelimesi yapısal kelimeyi yener) → içerik istatistiği
 ve LLM (henüz yok). Anahtar kelime önerileri profile yazılmaz, kodda kalır.
+
+Kapılı tüketim: sözlük güvenindeki (0,6) sınıflar yalnız ekleyici tüketicilere beslenir (bariyer, snap hedefi,
+pencere kaynağı, duvar-katmanı güveni, kapı katmanı çizgi adayı, ince-çizgi pencere adayı dışlama); duvar
+taramasından hariç tutma ve "kesin kapı" INSERT yolu profil güveni (0,9) ister (`names.GATED_MIN_CONF`).
 
 Genel sözlük (`perception/vocab.py`) yalnızca dil-bağımsız anahtar kelimeler içerir
 (`duvar/wall/mur`, `kapi/door/porte`, `salon/living`...). Tek dosya, tek kaynak.

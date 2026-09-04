@@ -9,7 +9,8 @@ import math
 from shapely.geometry import LineString
 
 from core.perception.blocks import _entity_segments, _explode, _is_big_block
-from core.perception.names import BARRIER_CLASSES, EMPTY, WALL_EXCLUDE_CLASSES, WALL_SCAN_CLASSES
+from core.perception.names import (BARRIER_CLASSES, EMPTY, GATED_MIN_CONF, WALL_EXCLUDE_CLASSES,
+                                   WALL_SCAN_CLASSES)
 from core.perception.vocab import ANNO_LAYER_WORDS, fold
 
 
@@ -204,7 +205,7 @@ def _wall_segments(msp, bbox, min_len=8.0, tmin=4.0, tmax=42.0, min_overlap=18.0
     upm_est = tmin / 0.06 if tmin else 100.0
     frame_area = 3.0 * upm_est * upm_est
     for e in msp:
-        if names.has(e.dxf.layer, WALL_EXCLUDE_CLASSES):
+        if names.has(e.dxf.layer, WALL_EXCLUDE_CLASSES, GATED_MIN_CONF):   # hariç tutma profil güveni ister
             continue
         t = e.dxftype()
         if t in ("LINE", "LWPOLYLINE", "POLYLINE"):
@@ -218,7 +219,7 @@ def _wall_segments(msp, bbox, min_len=8.0, tmin=4.0, tmax=42.0, min_overlap=18.0
             # de duvar adayı. Mobilya blokları (<3 m) girmez.
             cand = []
             for ve in _explode(e):
-                if names.has(ve.dxf.layer, WALL_EXCLUDE_CLASSES):
+                if names.has(ve.dxf.layer, WALL_EXCLUDE_CLASSES, GATED_MIN_CONF):
                     continue
                 if ve.dxftype() in ("LINE", "LWPOLYLINE", "POLYLINE"):
                     cand += _entity_segments(ve)[0]

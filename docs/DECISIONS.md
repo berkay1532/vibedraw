@@ -139,6 +139,18 @@ uygulanmayan iyileştirme fikri; uygulanınca "karar" olur ve commit'i yazılır
   (3) tam varyant + text/stair hariç tutmayı ve keyword-door INSERT yolunu ayrı sinyal ağırlığıyla Adım 6'ya
   bırakmak. Öneri: (1) şimdi, (3) Adım 6'da.
 
+- **[karar] 2026-09-04 — Adım 5 kapılı varyant uygulandı (kullanıcı kararı).** `NameMap.has(layer, classes,
+  min_conf)`; `GATED_MIN_CONF = PROFILE_CONF (0,9)`. Profil güveni isteyen yollar: duvar taramasından hariç
+  tutma (`_wall_segments`) ve "kesin kapı" INSERT yolu (`_Raster`, `_swing_dirs` blok süzgeci gevşetme).
+  Sözlük güveni (0,6) yeten ekleyici yollar: raster bariyeri, snap hedefi, pencere katman kaynağı, duvar
+  katmanı güveni (`pair+layer`), kapı katmanı çizgileri (`layer_raw` adayı) ve ince-çizgi pencere adayı
+  dışlaması. Pencere açıklaması: tip-6'daki 0,75→0,828 iyileşmesi pencere KAYNAĞINDAN değil, A_ANNO_* yazı
+  katmanı çizgilerinin `_thin_line_windows` adaylarından dışlanmasından geliyordu (3 `thin_lines` sahtesi
+  gitti: FP 5→2); ilk kapılı ölçümde bu dışlama da kapatıldığı için 0,802'ye dönmüştü. Dışlama pencere
+  tarafında ekleyici tüketici sayıldı (kapının dışında) → tip-6 0,828 korunur, tip-1 1,0'a döner, tip-4 0,957
+  (HITL #22 çelişen sinyal). `layer_union` yaml'dan `source_profiles/unions/<fam>.json` yan dosyasına taşındı.
+  results.json tam koşuda ADAY dışına çıkan dosyaların eski kayıtlarını atar (rapor 49 satır).
+
 ## Adaylar (uygulanmadı)
 
 - **[aday] 2026-09-04 — `classify_layers` 3. kademe (içerik istatistiği: entity tipi dağılımı, ortalama uzunluk, paralel çift oranı) ve 4. kademe (LLM, cache'li).** Adım 5'te yalnız profil + sözlük yapıldı.

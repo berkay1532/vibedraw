@@ -1,5 +1,5 @@
 # Kaynak profili (Adım 5). 'layers' yalnızca eski hardcode kümelerden taşınan ofise özgü adlar;
-# sınıf → tüketici eşlemesi kodda (core/perception/names.py). 'layer_union' Jaccard eşleşmesi için.
+# sınıf → tüketici eşlemesi kodda (core/perception/names.py). Katman birleşimi unions/<fam>.json yan dosyasında (Jaccard eşleşmesi için).
 family_id: fam15
 label: aile 15 — MURADİYE
 triage_family_index: 15
@@ -13,81 +13,3 @@ layers:
   YAZI: text
 notes:
   KAPI_PENCERE: kapı içerebilir
-layer_union:
-- '0'
-- '0.25'
-- 01-AKSLAR
-- 02-KOLONLAR
-- 03-DÖŞEME
-- 04-DUVAR
-- 05-KİRİŞ
-- 06-PENCERE
-- 08-MERDİVEN
-- 09-TEFRİS
-- 11-YAZI
-- 11-YAZI @ 1
-- 13-İÇ ÖLÇÜ
-- 14-DIŞ ÖLÇÜ
-- 15-DIŞ SIVA
-- 17-ÇATI
-- 20 GÖR2
-- '25'
-- 32-kesit çizgisi
-- A-DIM IN VER
-- AA-0.00
-- AA-0.05
-- AA-0.15
-- AA-0.20
-- AA-0.30
-- Balkon
-- Block1
-- CIZGI
-- DUVAR
-- DUVAR-PR
-- DVR
-- Defpoints
-- Döşeme
-- GOR2-PR
-- IZ1-PR
-- IZ2-PR
-- KAPI_PEN-PR
-- KAPI_PENCERE
-- KAPI___PENCERE
-- KAPı-PEN
-- KOLON
-- KOLON-PR
-- KP
-- KUTUPHANE
-- MERDIVEN
-- MERMER
-- MERMER-PR
-- Not - Metin
-- OLCU
-- OLCULENDIRME
-- P-DUVAR
-- P-KOLON
-- P-MALZEME YAZI TEK
-- P-MALZEME ÇİZGİ
-- P-TARAMA KOLON
-- P-ıZ1
-- PLANKOT
-- POZ-K
-- SIVA
-- SIVA-PR
-- Su Yalıtımı
-- SıLıK
-- SıVA
-- TARAMA
-- TARAMA DUVAR-PR
-- TARAMA KOLON-PR
-- TESVIYE-PR
-- TESVıYE
-- YALITIM-PR
-- YAZI
-- YAZI_20
-- Yardımcı Çizgiler
-- kapı
-- prrrrof
-- yazı
-- ÇİZ KALIN
-- ÖLÇÜLENDİRME

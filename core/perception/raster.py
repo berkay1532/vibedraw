@@ -10,7 +10,7 @@ from collections import deque
 import numpy as np
 
 from core.perception.blocks import _entity_segments, _explode, _is_big_block
-from core.perception.names import BARRIER_CLASSES, DOOR_CLASSES, EMPTY
+from core.perception.names import BARRIER_CLASSES, DOOR_CLASSES, EMPTY, GATED_MIN_CONF
 from core.perception.openings import _block_door_hinge, _door_like_arc
 from core.perception.walls import _ladder_filter
 
@@ -46,11 +46,12 @@ class _Raster:
 
         for e in msp:
             lay = e.dxf.layer
-            is_door = names.has(lay, DOOR_CLASSES)
+            is_door = names.has(lay, DOOR_CLASSES)                    # kapı katmanı çizgileri: layer_raw adayı (sözlük yeter)
+            sure_door = names.has(lay, DOOR_CLASSES, GATED_MIN_CONF)  # 'kesin kapı' INSERT yolu profil güveni ister
             is_barrier = names.has(lay, BARRIER_CLASSES)
             # Kapı katmanındaki BLOK yerleşimi = kesin kapı (insert noktası).
             if e.dxftype() == "INSERT":
-                if is_door:
+                if sure_door:
                     # Gerçek menteşe = blok içi swing ARC merkezi (matrix44). Yoksa insert.
                     hinge = _block_door_hinge(e)
                     ix, iy = (hinge[0], hinge[1]) if hinge else (e.dxf.insert[0], e.dxf.insert[1])

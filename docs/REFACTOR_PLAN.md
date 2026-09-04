@@ -136,6 +136,7 @@ taşınır, mantık değişmez. `reconstruct` yalnızca sıralayan bir orkestrat
 
 ## Veri seti görevleri (paralel, kod değil)
 - [ ] GT dosyalarına `tier` alanı ekle (clean/typical/hard).
+- [ ] **fam00'dan 2–3 dosyaya GT önceliği** (10 dosyalık en büyük aile, GT'si yok; aile tablosunda ABM satırı yalnız fam04'ten besleniyor).
 - [ ] GT kapılarına `rooms: [a, b]` (kapının bağladığı iki oda; v1 `connects` zaten bunu taşıyor)
       ve annotate aracına "ikinci oda" desteği → v2 "çift doğruluğu" metriği dolsun.
 - [ ] En az 3 Revit/ArchiCAD export, 2 patlatılmış blok, 1 yabancı dil dosyası bul; GT çıkar.

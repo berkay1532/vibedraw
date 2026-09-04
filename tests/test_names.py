@@ -66,3 +66,21 @@ def test_repo_profiles_load_and_have_classes():
     for p in profs:
         assert p.family_id and p.fingerprints and p.layers
         assert all(isinstance(v, LayerClass) for v in p.layers.values())
+
+
+def test_has_min_conf_gates_keyword_classes(tmp_path):
+    from core.perception.names import GATED_MIN_CONF, WALL_EXCLUDE_CLASSES
+    profs = _profile(tmp_path)
+    prof, how, sc = match_profile(["OFIS-KAP", "OFIS-DUV"], profs)
+    nm = classify_layers(["OFIS-KAP", "YAZI"], prof, how, sc)
+    assert nm.has("YAZI", WALL_EXCLUDE_CLASSES)                          # sözlük: ekleyici tüketiciler için yeter
+    assert not nm.has("YAZI", WALL_EXCLUDE_CLASSES, GATED_MIN_CONF)      # hariç tutma profil güveni ister
+    assert nm.has("OFIS-KAP", {LayerClass.door}, GATED_MIN_CONF)
+
+
+def test_union_side_file_used_for_jaccard(tmp_path):
+    (tmp_path / "famYY.yaml").write_text("family_id: famYY\nfingerprints: [ab]\nlayers:\n  X-DUV: wall\n", encoding="utf-8")
+    (tmp_path / "unions").mkdir(); (tmp_path / "unions" / "famYY.json").write_text('["X-DUV", "A", "B", "C"]', encoding="utf-8")
+    profs = load_profiles(tmp_path)
+    assert profs[0].layer_union == ["X-DUV", "A", "B", "C"]
+    assert match_profile(["A", "B", "C", "Q"], profs)[1] == "jaccard"      # 3/5 ≥ 0.5, yapısal ad yok
