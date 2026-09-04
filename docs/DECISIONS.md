@@ -151,6 +151,10 @@ uygulanmayan iyileştirme fikri; uygulanınca "karar" olur ve commit'i yazılır
   (HITL #22 çelişen sinyal). `layer_union` yaml'dan `source_profiles/unions/<fam>.json` yan dosyasına taşındı.
   results.json tam koşuda ADAY dışına çıkan dosyaların eski kayıtlarını atar (rapor 49 satır).
 
+- **[karar] 2026-09-04 — HITL #22 çelişen sinyal, Adım 6'da genel sinyal olarak.** Özel kural yok: `parallel_pair`
+  katman sınıfından bağımsız her segment için hesaplanır, `layer_class` ayrı sinyal; ikisi çelişince düşük güvenli
+  duvar + `conflicting_signal` issue (Adım 7). Adım 5'teki IoU −0,003 bilinçli kabul (EVAL_HISTORY).
+
 ## Adaylar (uygulanmadı)
 
 - **[aday] 2026-09-04 — `classify_layers` 3. kademe (içerik istatistiği: entity tipi dağılımı, ortalama uzunluk, paralel çift oranı) ve 4. kademe (LLM, cache'li).** Adım 5'te yalnız profil + sözlük yapıldı.
