@@ -17,9 +17,16 @@ import numpy as np
 
 from core.perception.ir_v1 import BuildingIR, Door, Floor, Room
 from core.perception.binding import _room_by_swing, pair_names_with_areas
-from core.perception.calibration import estimate_units_from_doors, estimate_units_per_meter, scaled_params
+from core.perception.calibration import (estimate_units_from_doors, estimate_units_per_meter, file_params,
+                                         scaled_params)
+from core.perception.config import T
 from core.perception.ir_compat import to_v2
 from core.perception.names import NameMap, names_for
+from core.perception.scoring import score
+from core.perception.signals.block import block_class
+from core.perception.signals.geometry import arc_signature, wall_gap
+from core.perception.signals.layer import layer_raw
+from core.perception.signals.topology import room_boundary
 from core.perception.parse import (cluster_floors_2d, dedupe_labels, extract_room_labels, grid_likeness,
                                    pick_plan_floor)
 from core.perception.triage import layer_fingerprint
@@ -33,7 +40,7 @@ from core.perception.windows import _window_segments
 
 def run_floor(building: BuildingIR, dxf_path: str, *,
                 res: float = 1.0, seal: int = 8, margin: float = 25.0,
-                leak_fraction: float = 0.45, door_max_boundary_dist: float = 15.0,
+                leak_fraction: float | None = None, door_max_boundary_dist: float = 15.0,
                 vlm_door_points: list | None = None,
                 door_arc_radius: tuple = (50.0, 130.0),
                 door_wall_dist: float = 25.0,
@@ -50,34 +57,39 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
     msp = doc.modelspace()
     if names is None:
         names = names_for(doc)
+    TW, TR, TD = T("wall"), T("raster"), T("door")          # adlandırılmış sabitler (config/thresholds.yaml)
+    if leak_fraction is None:
+        leak_fraction = TW["leak_fraction"]
 
     for floor in building.floors:
         if not floor.rooms:
             continue
         bbox = _floor_bbox(floor, margin)
         # Katman-bağımsız duvar/pencere tespiti ÖNCE: raster bariyeri bunlardan da beslenir.
-        if units_per_meter:   # duvar kalınlığı 4-45 cm, boyuna örtüşme ≥18 cm (metre-tabanlı)
+        if units_per_meter:   # duvar kalınlığı 6-45 cm, boyuna örtüşme ≥18 cm (metre-tabanlı, thresholds wall.*)
             # tmin 6 cm: 4 cm'lik "duvar" yapıda yok (duş kabini camı, cam bölme, çift çizgi
             # kaplama 2-4 cm → duvar sayılmaz); en ince bölme duvarı 7-8 cm.
-            wk = dict(tmin=0.06 * units_per_meter, tmax=0.45 * units_per_meter,
-                      min_overlap=0.18 * units_per_meter)
+            th = TW["thickness_m"]
+            wk = dict(tmin=th[0] * units_per_meter, tmax=th[1] * units_per_meter,
+                      min_overlap=TW["min_overlap_m"] * units_per_meter)
         else:
             wk = {}
         label_pts = [rm.label_xy for rm in floor.rooms]
         wk["label_pts"] = label_pts
-        floor.walls, floor.wall_sources = _wall_segments(msp, bbox, min_len=8.0 * res, with_sources=True, names=names, **wk)
-        # ADAPTİF: modelspace'te oda başına <8 duvar parçası bulunduysa plan büyük ihtimalle
+        min_len = TW["min_len_res"] * res
+        floor.walls, floor.wall_sources = _wall_segments(msp, bbox, min_len=min_len, with_sources=True, names=names, **wk)
+        # ADAPTİF: modelspace'te oda başına <N duvar parçası bulunduysa plan büyük ihtimalle
         # BLOK içinde yerleştirilmiş → ≥3 m'lik blokların içine de bakılır.
         # (Koşulsuz açmak Revit export'larında sahte duvar üretip IoU'yu düşürdü.)
         big = False
-        if len(floor.walls) < 8 * len(floor.rooms):
-            walls_b, srcs_b = _wall_segments(msp, bbox, min_len=8.0 * res, big_blocks=True, with_sources=True, names=names, **wk)
+        if len(floor.walls) < TW["adaptive_walls_per_room"] * len(floor.rooms):
+            walls_b, srcs_b = _wall_segments(msp, bbox, min_len=min_len, big_blocks=True, with_sources=True, names=names, **wk)
             if len(walls_b) > len(floor.walls):
                 floor.walls, floor.wall_sources = walls_b, srcs_b
                 big = True
         floor.big_blocks = big
         floor.windows, floor.window_sources = _window_segments(
-            msp, bbox, min_len=8.0 * res, upm=units_per_meter, walls=floor.walls, big_blocks=big,
+            msp, bbox, min_len=min_len, upm=units_per_meter, walls=floor.walls, big_blocks=big,
             with_sources=True, names=names)
         # Kapı yayları (katman-bağımsız) → kapalı kanat bariyeri: açıklık mühürlenir,
         # böylece genel mühür küçük tutulabilir (dar odalar/WC kaybolmaz).
@@ -85,13 +97,14 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
         swing = _swing_dirs(msp, bbox, amin, amax, big_blocks=big, names=names)
         barriers = _door_barriers(swing, floor.walls)
         extra = floor.walls + floor.windows + barriers
-        seal_small = max(3, int(round(0.25 * units_per_meter / res))) if units_per_meter else max(3, seal // 2)
+        seal_small = (max(TR["seal_small_min_px"], int(round(TR["seal_small_m"] * units_per_meter / res)))
+                      if units_per_meter else max(TR["seal_small_min_px"], seal // TR["seal_fallback_div"]))
         seals = sorted({seal_small, seal})
         rasters = [_Raster(msp, bbox, res, sl, extra_segs=extra, door_arc_radius=door_arc_radius, big_blocks=big,
                            names=names)
                    for sl in seals]
         raster = rasters[-1]                      # kapı adayları vb. için (büyük mühür = tam bariyer)
-        seed_rad = int(round(0.7 * units_per_meter / res)) if units_per_meter else 12
+        seed_rad = int(round(TR["seed_radius_m"] * units_per_meter / res)) if units_per_meter else TR["seed_radius_fallback_px"]
         labels, idx_room, merged, room_sources = _segment_rooms(rasters, floor.rooms, leak_fraction, seed_rad=seed_rad)
         # Takma ad birleştirme: birleşen etiketler oda listesinden çıkar, birincile eklenir.
         alias_rooms = set()
@@ -105,11 +118,12 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
             floor.rooms = [rm for rm in floor.rooms if id(rm) not in alias_rooms]
         recovered = {i: (labels == i) for i in idx_room}
         wall_xs, wall_ys, angled_walls = _wall_lines(
-            msp, bbox, angled_min_len=15.0 * res, cluster_tol=3.0 * res, extra_segs=floor.walls, names=names)
+            msp, bbox, angled_min_len=TW["angled_min_len_res"] * res, cluster_tol=TW["cluster_tol_res"] * res,
+            extra_segs=floor.walls, names=names)
 
         for room in floor.rooms:
             idx = next((i for i, r in idx_room.items() if r is room), None)
-            if idx is None or int(recovered[idx].sum()) < 30:
+            if idx is None or int(recovered[idx].sum()) < TR["min_room_px"]:
                 # Fallback: güvenilir geometri yok, etiket noktasını kullan.
                 room.geometry_ok = False
                 room.center = room.label_xy
@@ -124,72 +138,60 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
             room.center = (cx, cy)
             room.polygon = _mask_polygon(mask, raster, wall_xs, wall_ys, angled_walls)
 
-        # Kapı konumlarını belirle:
-        #  - vlm_door_points verildiyse: adayları VLM kapılarıyla DOĞRULA (manuel/VLM mod)
-        #  - verilmediyse: deterministik filtre (oda sınırına uzak sahteleri ele)
-        from shapely.geometry import Polygon as _P, Point as _Pt
+        # Kapı adayları ve sinyaller (Adım 6): block_class / arc_signature / layer_class / vlm, kapı (gate)
+        # sinyalleri wall_gap ve room_boundary. Adaylar: kapı BLOKLARI + kapı-genişliği YAYLARI; ikisi de
+        # yeterince yoksa ham kapı-katmanı kümelemesine (layer_raw) düşülür. Güven scoring.score'dan.
+        from shapely.geometry import Polygon as _P
         room_polys = [(r, _P(r.polygon).buffer(0))
                       for r in floor.rooms if r.polygon]
-        # Kapı adayları: kapı BLOKLARI (kesin) + kapı-genişliği YAYLARI (kesin).
-        # İkisi de yeterince yoksa ham kapı-katmanı kümelemesine düş.
         swing_arcs = [(x, y) for (x, y, rr) in raster.arcs if amin <= rr <= amax]
         primary = list(raster.door_blocks) + swing_arcs
-        used_primary = len(primary) >= 2
-        cand_src: dict = {}                       # aday merkezi → kaynak (block+arc | arc | block | layer_raw)
+        used_primary = len(primary) >= TD["primary_min"]
+        cand_sig: dict = {}                       # aday merkezi → ham sinyaller
         if used_primary:
-            tagged = _cluster_doors(primary, radius=max(20.0, amin * 0.5),
+            tagged = _cluster_doors(primary, radius=max(TD["cluster_radius_min_units"], amin * TD["cluster_radius_frac"]),
                                     tags=["block"] * len(raster.door_blocks) + ["arc"] * len(swing_arcs))
             candidates = [c for c, _ in tagged]
             for c, t in tagged:
-                cand_src[c] = "block+arc" if t == {"block", "arc"} else next(iter(t))
+                cand_sig[c] = {"block_class": block_class("block" in t), "arc_signature": arc_signature("arc" in t)}
         else:
             candidates = _cluster_doors(raster.door_raw)
-            cand_src = {c: "layer_raw" for c in candidates}
+            cand_sig = {c: {"layer_class": layer_raw(True)} for c in candidates}
 
         if vlm_door_points:
             from core.perception.vlm_doors import validate_doors
-            # tol=10: yalnızca çok yakın aday varsa ince-ayar snap; yoksa VLM noktası korunur
-            door_pts = validate_doors(candidates, vlm_door_points, tol=10.0)
-        elif used_primary:
-            # Blok + yay = yüksek güven; gürültü filtresi gerekmez.
-            door_pts = candidates
+            # tol: yalnızca çok yakın aday varsa ince-ayar snap; yoksa VLM noktası korunur
+            door_pts = validate_doors(candidates, vlm_door_points, tol=TD["vlm_snap_tol_units"])
         else:
-            # Fallback (ham kapı-katmanı): oda sınırına uzak sahteleri ele.
-            door_pts = []
-            for (dx, dy) in candidates:
-                if room_polys:
-                    bd = min(poly.exterior.distance(_Pt(dx, dy))
-                             for _, poly in room_polys)
-                    if bd > door_max_boundary_dist:
-                        continue
-                door_pts.append((dx, dy))
+            door_pts = candidates
 
-        # Fikstür yaylarını (klozet/lavabo vb.) ELE: gerçek kapı menteşesi bir DUVARIN
-        # üstündedir (~5-10 br); fikstür yayı merkezi oda ortasında (>30 br). Geniş
-        # margin'de bbox'a giren fikstürlerin sahte-kapı olmasını engeller.
         def _dist_walls(p):
-            best = float("inf")
-            for a, b in floor.walls:
-                ax, ay = a
-                ex, ey = b[0] - a[0], b[1] - a[1]
-                L2 = ex * ex + ey * ey or 1.0
-                t = max(0.0, min(1.0, ((p[0] - ax) * ex + (p[1] - ay) * ey) / L2))
-                d = math.hypot(ax + t * ex - p[0], ay + t * ey - p[1])
-                if d < best:
-                    best = d
-            return best
-        if floor.walls:   # duvar yoksa filtre uygulanmaz (_dist_walls yine tanımlı: inf döner)
-            door_pts = [p for p in door_pts if _dist_walls(p) <= door_wall_dist]
+            return _seg_dist(p, floor.walls) if floor.walls else float("inf")
 
         # Kapı = menteşe (blok matrix44 / yay merkezi). Standart: tüm kapılar menteşede.
         # room_name = AÇILIŞ YAYI YÖNÜ ile (etiket-mesafesi değil): menteşeye en yakın
         # yayı bul, bisektör yönündeki odayı seç. Yay eşleşmezse merkez-mesafesi fallback.
         floor.doors = []
         for (dx, dy) in door_pts:
-            sd = min(swing, key=lambda s: math.hypot(s[0][0] - dx, s[0][1] - dy),
+            is_vlm_pt = bool(vlm_door_points) and (dx, dy) not in cand_sig
+            sig = dict(cand_sig.get((dx, dy), {"vlm": 1.0} if is_vlm_pt else {}))
+            # Kapı sinyalleri: fikstür yayları (klozet/lavabo) ELE: gerçek menteşe bir DUVARIN üstündedir;
+            # layer_raw yolunda ayrıca oda sınırına uzak sahteler elenir (VLM yolunda uygulanmaz).
+            sig["wall_gap"] = wall_gap((dx, dy), floor.walls, door_wall_dist)
+            sig["room_boundary"] = room_boundary((dx, dy), room_polys, door_max_boundary_dist,
+                                                 enabled=(not used_primary and not vlm_door_points))
+            src = ("vlm" if is_vlm_pt else
+                   "layer_raw" if "layer_class" in sig else
+                   "block+arc" if sig.get("block_class") and sig.get("arc_signature") else
+                   "arc" if sig.get("arc_signature") else "block")
+            scored = score("door", sig, src)
+            if scored is None:                    # bir kapı sinyali 0 → aday elendi
+                continue
+            conf, ev = scored
+            sd = min(swing, key=lambda s_: math.hypot(s_[0][0] - dx, s_[0][1] - dy),
                      default=None)
             room, strike = None, None
-            if sd is not None and math.hypot(sd[0][0] - dx, sd[0][1] - dy) <= door_wall_dist * 1.6:
+            if sd is not None and math.hypot(sd[0][0] - dx, sd[0][1] - dy) <= door_wall_dist * TD["swing_match_factor"]:
                 room = _room_by_swing((dx, dy), sd[1], floor.rooms)
                 # kilit sövesi = KAPALI kanat ucu = kanat ortası bir duvara YASLI olan
                 # uç (açık kanat oda boşluğuna gider, duvara uzak). Köşe menteşelerde
@@ -203,15 +205,14 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
                            key=lambda r: math.hypot((r.center or r.label_xy)[0] - dx,
                                                     (r.center or r.label_xy)[1] - dy),
                            default=None)
-            floor.doors.append(Door(xy=(dx, dy), source=cand_src.get((dx, dy), "vlm" if vlm_door_points else None),
-                                    room_name=room.raw_name if room else None,
-                                    strike_xy=strike))
+            floor.doors.append(Door(xy=(dx, dy), source=src, room_name=room.raw_name if room else None,
+                                    strike_xy=strike, confidence=conf, signals=ev.signals))
 
     return building
 
 
 # --- Plan seçimi ve dosya koşusu -------------------------------------------------------
-MAX_CELLS = 30_000_000   # raster hücre üst sınırı; aşılırsa res büyütülür (config/ adayı, Adım 6)
+MAX_CELLS = int(T("raster", "max_cells"))   # raster hücre üst sınırı; aşılırsa res büyütülür
 
 
 @dataclass
@@ -245,13 +246,14 @@ def select_plan(dxf_path: str, doc=None) -> PlanSelection:
     except Exception:
         fingerprint = ""
     names = names_for(doc, fingerprint=fingerprint)      # kaynak profili + sözlük → katman sınıfları
+    TL, TD = T("labels"), T("door")
     labels = extract_room_labels(dxf_path, msp=msp)
     upm0 = estimate_units_per_meter(labels)
-    labels = dedupe_labels(labels, tol=0.5 * upm0)      # 50 cm içindeki tekrarlar
+    labels = dedupe_labels(labels, tol=TL["dedupe_m"] * upm0)      # 50 cm içindeki tekrarlar
     upm = estimate_units_per_meter(labels)
     rooms = pair_names_with_areas(labels)
-    floors = cluster_floors_2d(rooms, gap=7.0 * upm)    # 7 m'den yakın etiketler aynı çizim
-    floors = [f for f in floors if len(f.rooms) >= 3]
+    floors = cluster_floors_2d(rooms, gap=TL["cluster_gap_m"] * upm)    # 7 m'den yakın etiketler aynı çizim
+    floors = [f for f in floors if len(f.rooms) >= TL["min_rooms"]]
     stats = {"labels": len(labels), "rooms": len(rooms), "upm": round(upm, 1),
              "floors": [len(f.rooms) for f in floors],
              "family": names.family_id, "family_match": f"{names.match}:{names.match_score:.2f}"}
@@ -260,28 +262,29 @@ def select_plan(dxf_path: str, doc=None) -> PlanSelection:
     if not floors:
         return sel
     floor = pick_plan_floor(floors, upm); floor.index = 0
-    stats["grid"] = [round(grid_likeness(f.rooms, 0.3 * upm), 2) for f in floors]
+    stats["grid"] = [round(grid_likeness(f.rooms, TL["grid_tol_m"] * upm), 2) for f in floors]
     # Kapı-yayı kanıtı: mahal listesi tabloları (döndürülmüş olsa bile) kapı yayı içermez.
     # Kapı yayı bulunan en kalabalık kümeyi tercih et.
     with_doors = []
-    for f in sorted(floors, key=lambda f: -len(f.rooms))[:8]:
-        if len(f.rooms) < 3:
+    for f in sorted(floors, key=lambda f: -len(f.rooms))[:TL["door_evidence_top"]]:
+        if len(f.rooms) < TL["min_rooms"]:
             continue
-        if estimate_units_from_doors(dxf_path, _floor_bbox(f, 2.5 * upm), upm, msp=msp, names=names) is not None:
+        if estimate_units_from_doors(dxf_path, _floor_bbox(f, TL["bbox_margin_m"] * upm), upm, msp=msp, names=names) is not None:
             with_doors.append(f)
     if with_doors and floor not in with_doors:
         floor = with_doors[0]; floor.index = 0
         stats["pick"] = "doors"
     # Ölçeği kapı yaylarından düzelt (etiket-mesafesi tahmini kaba)
-    upm_doors = estimate_units_from_doors(dxf_path, _floor_bbox(floor, 2.5 * upm), upm, msp=msp, names=names)
+    upm_doors = estimate_units_from_doors(dxf_path, _floor_bbox(floor, TL["bbox_margin_m"] * upm), upm, msp=msp, names=names)
     stats["upm_labels"] = round(upm, 1)
-    if upm_doors and 0.25 * upm <= upm_doors <= 4.0 * upm:   # etiket öncülü kaba; kapı kümesi güçlü kanıt
+    acc = TD["upm_ratio_accept"]
+    if upm_doors and acc[0] * upm <= upm_doors <= acc[1] * upm:   # etiket öncülü kaba; kapı kümesi güçlü kanıt
         upm = upm_doors
         stats["upm"] = round(upm, 1)
         stats["upm_source"] = "doors"
         # Düzeltilmiş ölçekle YENİDEN kümele: kaba ölçekle 7 m eşiği büyük salon
         # etiketini kümenin dışında bırakabiliyor.
-        floors2 = [f for f in cluster_floors_2d(rooms, gap=8.0 * upm) if len(f.rooms) >= 3]
+        floors2 = [f for f in cluster_floors_2d(rooms, gap=TL["recluster_gap_m"] * upm) if len(f.rooms) >= TL["min_rooms"]]
         if floors2:
             # yeniden kümelemede: önceki seçimin etiketlerini içeren kümeyi koru
             prev = {id(rm) for rm in floor.rooms}
@@ -314,8 +317,10 @@ def run_selected(dxf_path: str, sel: PlanSelection, *, max_cells: int = MAX_CELL
     extra["family_id"] = sel.names.family_id
     extra["family_match"] = sel.names.match
     extra["layer_classes"] = sel.names.summary()
+    fparams = file_params(upm, sel.stats.get("upm_source", "labels"), extra)   # dosyadan türeyenler tek nesnede
+    fparams.res = p["res"]                                                    # hücre sınırı düzeltmesi dahil
     b2 = to_v2(b, units_per_meter=upm, units_source=sel.stats.get("upm_source", "labels"),
-               fingerprint=fp, params_extra=extra)
+               fingerprint=fp, file_params=fparams)
     return p, f, b2
 
 

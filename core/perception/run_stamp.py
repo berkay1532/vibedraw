@@ -15,7 +15,8 @@ from pathlib import Path
 from typing import Optional
 
 ROOT = Path(__file__).resolve().parents[2]
-CODE_GLOBS = ("core/perception/*.py", "experiments/run_baseline.py")
+CODE_GLOBS = ("core/perception/*.py", "core/perception/signals/*.py", "config/*.yaml", "source_profiles/*.yaml",
+              "experiments/run_baseline.py")
 
 
 def code_files(root: Path = ROOT, globs=CODE_GLOBS) -> list[Path]:

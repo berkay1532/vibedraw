@@ -1,0 +1,59 @@
+# config/thresholds.yaml — dosyadan TÜRETİLEMEYEN, adlandırılmış sabitler (CLAUDE.md ilke 6; Adım 6).
+# Dosyadan türeyenler (upm ve upm'e bağlı koşu parametreleri) FileParams'tadır; buradaki "*_m" değerleri
+# metre cinsindendir ve calibration.scaled_params / pipeline ile upm'e çarpılır.
+# NOT: "base_*" değerleri 1 birim = 1 cm referans dosyada elle ayarlanmış BASE parametreleridir; upm/base_upm
+# ile ölçeklenir (ifade biçimi korunur ki eval bit-bit aynı kalsın).
+base_upm: 100.0
+base:                      # calibration.BASE (1 birim = 1 cm için)
+  res: 3.0                 # raster hücre boyu (birim)
+  seal: 18                 # morfolojik kapama (piksel) — ölçeklenmez
+  margin: 250.0            # kat bbox marjı (birim)
+  door_arc_radius: [55.0, 130.0]   # kapı kanadı yayı yarıçapı (birim)
+  door_wall_dist: 25.0     # menteşe ↔ duvar en büyük uzaklık (birim)
+  door_max_boundary_dist: 15.0     # layer_raw yolunda aday ↔ oda sınırı (birim)
+raster:
+  max_cells: 30000000      # hücre üst sınırı; aşılırsa res büyütülür
+  seal_small_m: 0.25       # çok kademeli mühür: küçük mühür (m)
+  seal_small_min_px: 3
+  seal_fallback_div: 2     # upm yoksa: seal // 2
+  seed_radius_m: 0.7       # etiketten tohum arama yarıçapı (m)
+  seed_radius_fallback_px: 12
+  min_room_px: 30          # bu kadar pikselden küçük bölge oda değil (fallback)
+  door_seg_ladder_m: [0.15, 1.0]   # kapı katmanı çizgilerinde merdiven basamağı elemesi (m)
+wall:
+  thickness_m: [0.06, 0.45]        # paralel çift kalınlık aralığı (m); 6 cm: duş kabini camı elenir
+  min_overlap_m: 0.18
+  min_len_res: 8.0                 # en kısa duvar parçası (res katı)
+  angled_min_len_res: 15.0
+  cluster_tol_res: 3.0
+  adaptive_walls_per_room: 8       # oda başına bu kadardan az duvar → büyük blok modu denenir
+  leak_fraction: 0.45
+door:
+  arc_sweep_deg: [55.0, 125.0]     # kapı kanadı yayı süpürme açısı
+  upm_from_arc_min_m: 0.55         # amin / 0.55 → upm tahmini (arc_radius alt sınırı, m)
+  cluster_radius_frac: 0.5         # aday kümeleme yarıçapı = max(min_units, amin × frac)
+  cluster_radius_min_units: 20.0
+  primary_min: 2                   # blok+yay adayı bu kadardan azsa layer_raw yoluna düş
+  swing_match_factor: 1.6          # menteşe ↔ yay eşleşme toleransı = door_wall_dist × faktör
+  vlm_snap_tol_units: 10.0
+  leaf_m: 0.875                    # ana kapı kanadı ≈ 0.875 m (ölçek kestirimi)
+  calib_top_frac: 0.85             # yarıçap kümesi: max'ın ≥ %85'i
+  calib_min_doors: 3
+  calib_priors: [100.0, 1000.0]    # etiket öncülü başarısızsa denenen upm öncülleri (cm, mm)
+  calib_radius_frac: [0.3, 2.0]    # öncül × [0.3, 2.0] yarıçap aralığı
+  upm_ratio_accept: [0.25, 4.0]    # kapı upm'i etiket upm'inin bu katları arasında ise kabul
+swing:                             # binding._room_by_swing
+  cos_min: 0.2
+  dist_penalty: 0.4
+  max_dist_units: 460.0            # ÖLÇEKLENMEMİŞ çizim birimi (aday: metreye çevir; davranış değişmesin diye korundu)
+labels:                            # pipeline.select_plan / parse.pick_plan_floor
+  dedupe_m: 0.5
+  cluster_gap_m: 7.0
+  recluster_gap_m: 8.0
+  min_rooms: 3
+  door_evidence_top: 8
+  bbox_margin_m: 2.5
+  typical_room_m: 3.5              # etiket-mesafesi ölçek kestirimi
+  table_thr: 0.85
+  table_max_n: 16
+  grid_tol_m: 0.3

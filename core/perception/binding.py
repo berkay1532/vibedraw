@@ -6,16 +6,19 @@ from __future__ import annotations
 
 import math
 
+from core.perception.config import T
 from core.perception.ir_v1 import Room
 from core.perception.parse import YaziText, is_area_text, parse_area
 
 
-def _room_by_swing(hinge, bdir, rooms, max_dist=460.0):
+def _room_by_swing(hinge, bdir, rooms, max_dist=None):
     """Kapının açıldığı oda: yay yönündeki (cos>0.2) odalar arası score=cos-0.4·(d/D) max.
 
     'En yakın etiket' değil 'yay YÖNÜ'; merkezi oda etiketi (Banyo) fazla sahiplenmez,
     bitişik kapılar (Salon/Mutfak) açılış yönüyle ayrışır.
     """
+    max_dist = T("swing", "max_dist_units") if max_dist is None else max_dist
+    cos_min, pen = T("swing", "cos_min"), T("swing", "dist_penalty")
     bx, by = bdir
     best, bscore = None, -9.0
     for r in rooms:
@@ -25,9 +28,9 @@ def _room_by_swing(hinge, bdir, rooms, max_dist=460.0):
         if d < 1e-6:
             continue
         cos = (bx * dx + by * dy) / d            # bdir birim
-        if cos < 0.2:
+        if cos < cos_min:
             continue
-        score = cos - 0.4 * (d / max_dist)
+        score = cos - pen * (d / max_dist)
         if score > bscore:
             bscore, best = score, r
     return best

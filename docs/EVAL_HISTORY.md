@@ -30,3 +30,4 @@ görünür. Kapı bağlantı = eşleşen kapılarda "açıldığı oda" doğrulu
 | toplam | 7 | 0.901 | 0.885 | 0.951 | 0.904 | 0.817 |
 
 fam00 (10 dosya) ve fam02 (6 dosya) GT'siz → veri seti görevi: fam00'dan 2–3 dosyaya GT önceliği.
+| 2026-09-04 | 4c14649 | adım 6 iskeleti: config/thresholds+weights, scoring, signals/ (kapı yolu sinyallere), FileParams koşu parametreleri | 0.901 | 0.885 | 0.951 | 0.006 | 0.904 | 0.817 | 7 / 49 | adım 5 ile BİREBİR aynı: 49 dosyada 413 kapının menteşe/güven/kaynak/oda, tüm oda/pencere/duvar sayıları eşit (varlık bazında karşılaştırıldı); eval raporu satır satır aynı; 99 test |

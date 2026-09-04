@@ -213,8 +213,11 @@ door:
   layer_class: 0.10
 ```
 
-Ağırlıklar başta elle; learning log biriktikçe lojistik regresyonla yeniden
-hesaplanır (`learning/calibrate.py`). Kod içine yeni ağırlık yazılmaz.
+Birleşim (Adım 6, `scoring.score`): conf = max(w_i × s_i) + agreement_bonus × (pozitif sinyal − 1), cap ile
+sınırlı; `gates` listesindeki sinyal 0 dönerse aday elenir (eski deterministik filtreler). Başlangıç
+ağırlıkları Adım 2 güven tablosunu birebir üretir (kapı: block 0,70 / arc 0,75 / block+arc 0,95 /
+layer_raw 0,40 / vlm 0,80). Ağırlık ayarı elle yapılmaz; yeni kaynak ve fam00 GT sonrası holdout ile
+(`learning/calibrate.py`). Kod içine yeni ağırlık yazılmaz.
 
 Eşik ve sabitler iki yerden gelir:
 - `FileParams` — dosyadan türetilen (upm, kalınlık modları, kapı genişliği medyanı,
@@ -365,13 +368,16 @@ core/
     sheets.py  sheet_segment.py           # pafta anlama: görünüm ayırma + sınıflama (runner'a bağlı değil)
     triage.py  metrics.py  run_stamp.py   # veri seti profili/parmak izi, ölçüm, koşu damgası (tazelik)
     semantics.py  llm.py  vlm_doors.py    # isim normalizasyonu ve LLM/VLM (planlı: second_opinion/ altına)
-    (planlı) names.py  scoring.py  signals/{layer,geometry,block,topology,text}.py
+    names.py  config.py  scoring.py       # katman sınıfları (profil+sözlük), config yükleyici, sinyal birleşimi
+    signals/{layer,geometry,block,topology,text}.py   # saf sinyaller (kapı bağlı; text henüz boş)
     (planlı) second_opinion/  providers/anthropic.py  providers/openai.py
   electrical/  ir.py rules.py layout.py devices.py cad.py appliances.py validate.py   # eski prototip (dokunulmaz)
 graph.py                                  # elektrik prototipi LangGraph kablolaması (opsiyonel bağımlılık)
 experiments/ run_baseline.py  survey_views.py        # koşucular: pipeline'ı çağırır, mantık taşımaz
 evaluate.py  annotate.py  triage_dataset.py          # (planlı: experiments/ altına)
 tools/       debug_*.py  render_raw.py  clean_input.py
-(planlı) hitl/cli.py  learning/  config/  source_profiles/
+config/      thresholds.yaml  weights.yaml       # adlandırılmış sabitler ve sinyal ağırlıkları
+source_profiles/  fam*.yaml  unions/*.json         # ofise özgü katman adları (aile başına)
+(planlı) hitl/cli.py  learning/
 docs/        ARCHITECTURE.md  REFACTOR_PLAN.md  EVAL_HISTORY.md  DECISIONS.md  HITL_QUESTIONS.md
 ```

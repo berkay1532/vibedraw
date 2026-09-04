@@ -39,12 +39,13 @@ def _poly_area(poly) -> float:
 
 def to_v2(b1, units_per_meter: float = 100.0, units_source: str = "labels",
           fingerprint: str = "", params_extra: Optional[dict] = None,
-          floor_names: Optional[dict] = None) -> BuildingIR:
+          floor_names: Optional[dict] = None, file_params: Optional[FileParams] = None) -> BuildingIR:
     """v1 BuildingIR → v2 BuildingIR. Koordinatlar çizim biriminde kalır."""
     out = BuildingIR(source_path=getattr(b1, "source_path", "") or "", source_fingerprint=fingerprint)
     for f1 in b1.floors:
-        params = FileParams(units_per_meter=float(units_per_meter), units_source=units_source,
-                            extra=dict(params_extra or {}))
+        params = file_params if file_params is not None else FileParams(
+            units_per_meter=float(units_per_meter), units_source=units_source)
+        params.extra = {**params.extra, **dict(params_extra or {})}
         fl = Floor(index=f1.index, name=(floor_names or {}).get(f1.index), params=params)
         # --- odalar
         id_by_room = {}
@@ -79,12 +80,15 @@ def to_v2(b1, units_per_meter: float = 100.0, units_source: str = "labels",
             n_op += 1
             src = getattr(d, "source", None) or "arc"
             conf = DOOR_CONF.get(src, 0.5)
+            sig = dict(getattr(d, "signals", None) or {})
+            if getattr(d, "confidence", None) is not None:      # Adım 6: scoring.score (weights.yaml)
+                conf = float(d.confidence)
             hinge = (float(d.xy[0]), float(d.xy[1]))
             strike = tuple(map(float, d.strike_xy)) if getattr(d, "strike_xy", None) else None
             center = ((hinge[0] + strike[0]) / 2, (hinge[1] + strike[1]) / 2) if strike else hinge
             width = math.hypot(strike[0] - hinge[0], strike[1] - hinge[1]) if strike else None
             fl.openings.append(Opening(
-                id=f"op{n_op}", confidence=conf, evidence=_ev(src, conf), kind="door",
+                id=f"op{n_op}", confidence=conf, evidence=(Evidence(signals=sig, source=src) if sig else _ev(src, conf)), kind="door",
                 center=center, width=width, hinge=hinge,
                 rooms=(room_id_for(d.room_name, hinge) if d.room_name else None, None)))
         # --- pencereler

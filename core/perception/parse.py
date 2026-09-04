@@ -11,6 +11,7 @@ from dataclasses import dataclass
 
 import ezdxf
 
+from core.perception.config import T
 from core.perception.ir_v1 import Room, Floor
 from core.perception.vocab import NON_ROOM_WORDS, ROOM_WORDS, SHORT_ROOM_WORDS, fold
 
@@ -180,14 +181,17 @@ def grid_likeness(rooms: list[Room], tol: float) -> float:
     return (col_score + aligned / len(rooms)) / 2
 
 
-def pick_plan_floor(floors: list[Floor], upm: float, table_thr: float = 0.85, table_max_n: int = 16) -> Floor | None:
+def pick_plan_floor(floors: list[Floor], upm: float, table_thr: float | None = None, table_max_n: int | None = None) -> Floor | None:
     """Kat kümeleri arasından PLAN olanı seç: tablo-benzeri (grid_likeness ≥ eşik VE
     ≤table_max_n etiket) kümeler elenir, kalanların en kalabalığı alınır; hepsi tabloysa en
     kalabalık. (Çok daireli katlarda aynı tip dairelerin etiketleri de hizalıdır → büyük
     kümeler tablo sayılmaz.)"""
-    cand = [f for f in floors if len(f.rooms) >= 3]
+    L = T("labels")
+    table_thr = L["table_thr"] if table_thr is None else table_thr
+    table_max_n = L["table_max_n"] if table_max_n is None else table_max_n
+    cand = [f for f in floors if len(f.rooms) >= L["min_rooms"]]
     if not cand:
         return None
-    plans = [f for f in cand if not (len(f.rooms) <= table_max_n and grid_likeness(f.rooms, 0.3 * upm) >= table_thr)]
+    plans = [f for f in cand if not (len(f.rooms) <= table_max_n and grid_likeness(f.rooms, L["grid_tol_m"] * upm) >= table_thr)]
     pool = plans or cand
     return max(pool, key=lambda f: len(f.rooms))

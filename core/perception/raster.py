@@ -10,6 +10,7 @@ from collections import deque
 import numpy as np
 
 from core.perception.blocks import _entity_segments, _explode, _is_big_block
+from core.perception.config import T
 from core.perception.names import BARRIER_CLASSES, DOOR_CLASSES, EMPTY, GATED_MIN_CONF
 from core.perception.openings import _block_door_hinge, _door_like_arc
 from core.perception.walls import _ladder_filter
@@ -106,8 +107,9 @@ class _Raster:
         # Kapı katmanı çizgileri: kapı KANADI (sürgülü/yaysız kapıda tek bariyer) çizilir;
         # aynı katmana çizilmiş MERDİVEN basamakları (≥4 eşit aralıklı paralel) çizilmez.
         if door_segs:
-            upm_est = (door_arc_radius[0] / 0.55) if door_arc_radius else 100.0
-            for a, b in _ladder_filter(door_segs, 0.15 * upm_est, 1.0 * upm_est):
+            upm_est = (door_arc_radius[0] / T("door", "upm_from_arc_min_m")) if door_arc_radius else T("base_upm")
+            lad = T("raster", "door_seg_ladder_m")
+            for a, b in _ladder_filter(door_segs, lad[0] * upm_est, lad[1] * upm_est):
                 self._draw(grid, a, b)
 
         # base: dilatasyonsuz gerçek duvarlar (extent geri kazanımı için).

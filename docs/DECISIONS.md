@@ -155,7 +155,43 @@ uygulanmayan iyileştirme fikri; uygulanınca "karar" olur ve commit'i yazılır
   katman sınıfından bağımsız her segment için hesaplanır, `layer_class` ayrı sinyal; ikisi çelişince düşük güvenli
   duvar + `conflicting_signal` issue (Adım 7). Adım 5'teki IoU −0,003 bilinçli kabul (EVAL_HISTORY).
 
+- **[karar] 2026-09-04 — Adım 6 iskeleti (davranış değiştirmeden).** `config/thresholds.yaml` (adlandırılmış
+  sabitler), `config/weights.yaml` (sinyal ağırlıkları), `config.py` (önbellekli yükleyici, eksik anahtar
+  KeyError), `scoring.py`, `signals/{layer,geometry,block,topology,text}.py`. Kapı yolu: block+arc / arc /
+  block / layer_raw / vlm etiketleri `block_class`, `arc_signature`, `layer_class` (geçiş: layer_raw yolu),
+  `vlm` sinyallerine; eski deterministik filtreler kapı (gate) sinyali: `wall_gap` (menteşe ↔ duvar ≤
+  door_wall_dist; duvar yoksa None = uygulanmaz) ve `room_boundary` (yalnız layer_raw yolunda, oda poligonu
+  varsa). Birleşim max + uyum bonusu (0,20) tabloyu birebir üretir: 0,75+0,20 = 0,95. ARCHITECTURE'daki
+  "ağırlıklı toplam" yerine bu biçim seçildi çünkü toplam (0,70+0,75) tabloyu üretemezdi. `Door.confidence`
+  ve `Door.signals` v1'e eklendi; `ir_compat` varsa bunu kullanır (tablo yedek). `FileParams` dosyadan
+  türeyen koşu parametrelerini alan olarak taşır (`calibration.file_params`); BASE ölçekleme ifadesi
+  korundu (bit-bit aynı eval). config/*.yaml ve source_profiles/*.yaml koşu damgası hash'ine girdi.
+  Ağırlık ayarı yapılmadı (kullanıcı kararı: holdout ile, fam00 GT sonrası).
+
+  **Sabit envanteri (nereye gitti):**
+  | Sabit (eski yer) | Değer | Yeni yer |
+  |---|---|---|
+  | BASE res/seal/margin/door_arc_radius/door_wall_dist/door_max_boundary_dist (calibration) | 3.0/18/250/(55,130)/25/15 @upm 100 | thresholds `base.*` → `FileParams` alanları (`file_params`) |
+  | MAX_CELLS (pipeline) | 30 M | thresholds `raster.max_cells` |
+  | seal_small 0.25 m, min 3 px, `seal // 2` (run_floor) | | `raster.seal_small_m / seal_small_min_px / seal_fallback_div` |
+  | seed_rad 0.7 m / 12 px (run_floor) | | `raster.seed_radius_m / seed_radius_fallback_px` |
+  | oda min piksel 30 (run_floor) | | `raster.min_room_px` |
+  | kapı çizgisi merdiven elemesi 0.15–1.0 m, upm_est = amin/0.55 (raster, openings) | | `raster.door_seg_ladder_m`, `door.upm_from_arc_min_m` |
+  | duvar kalınlığı 0.06–0.45 m, örtüşme 0.18 m (run_floor) | | `wall.thickness_m`, `wall.min_overlap_m` (+ FileParams.wall_thickness/wall_min_overlap) |
+  | min_len 8·res, açılı 15·res, küme 3·res, oda başına 8 duvar, leak 0.45 (run_floor) | | `wall.min_len_res / angled_min_len_res / cluster_tol_res / adaptive_walls_per_room / leak_fraction` |
+  | kapı yayı süpürme 55–125° (openings) | | `door.arc_sweep_deg` |
+  | aday kümeleme max(20, amin·0.5), primary ≥2, yay eşleşme ×1.6, VLM tol 10 (run_floor) | | `door.cluster_radius_min_units / cluster_radius_frac / primary_min / swing_match_factor / vlm_snap_tol_units` |
+  | kanat 0.875 m, küme %85, ≥3 yay, öncüller 100/1000, yarıçap 0.3–2.0×, kabul 0.25–4× (calibration, select_plan) | | `door.leaf_m / calib_top_frac / calib_min_doors / calib_priors / calib_radius_frac / upm_ratio_accept` |
+  | açılış yönü cos ≥0.2, ceza 0.4, 460 birim (binding) | | `swing.cos_min / dist_penalty / max_dist_units` (460 ölçeklenmemiş — aday: metreye çevir) |
+  | etiket: dedupe 0.5 m, küme 7/8 m, ≥3 oda, ilk 8 küme, bbox 2.5 m, tipik oda 3.5 m, tablo 0.85/16/0.3 m (select_plan, parse, calibration) | | `labels.*` |
+  | run_floor imza varsayılanları (res 1.0, seal 8, margin 25, door_arc_radius (50,130), door_wall_dist 25, boundary 15) | | KALDI: API varsayılanı; sentetik testler kullanır (aday: FileParams zorunlu yapıp kaldır) |
+  | walls: _pair_filter 4/42/8°/18, _ladder_filter 8°/0.5/3, _wall_lines 10°/15/3/90, etiket çerçevesi 3 m² | | KALDI (sonraki tur, `wall.*`) |
+  | windows: yakın duvar 0.25/0.3 m, paralellik 0.97, blok 0.3–4.5 m / 0.4–4.0 m / 1.2 m, kapı yayı 0.65–1.5 m, aykırı 5 m, ince çizgi ≤0.1 m / 0.4–3.5 m / 0.6 m / 6, dedupe 0.3 m | | KALDI (sonraki tur, `window.*`) |
+  | rooms/raster/polygons/blocks: leak 0.2, edge 40 %/30 px, seed 12 px, dilate 0.55/0.15, snap 4/8/12/3, colinear 0.05, büyük blok 3 m, explode derinliği 3, segment 0.2 | | KALDI (sonraki tur, `room.*`, `polygon.*`, `block.*`) |
+
 ## Adaylar (uygulanmadı)
+
+- **[aday] 2026-09-04 — Adım 6 devamı:** (a) walls/windows/rooms/polygons/raster/blocks sabitleri thresholds'a (envanter yukarıda); (b) duvar sinyalleri `parallel_pair` (katman sınıfından bağımsız) + `layer_class` + `thickness_mode`, çelişki → düşük güvenli duvar + conflicting_signal (HITL #22); (c) oda/pencere güven tabloları (ir_compat) → scoring; (d) `swing.max_dist_units` metreye; (e) run_floor imza varsayılanları FileParams'a.
 
 - **[aday] 2026-09-04 — `classify_layers` 3. kademe (içerik istatistiği: entity tipi dağılımı, ortalama uzunluk, paralel çift oranı) ve 4. kademe (LLM, cache'li).** Adım 5'te yalnız profil + sözlük yapıldı.
 - **[aday] 2026-09-04 — WALL_EXCLUDE_CLASSES'a dim/grid/hatch/revision/ignore eklensin** (ölçü/aks çizgileri sahte duvar üretebilir); eval ile ölçülmeli.

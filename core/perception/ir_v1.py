@@ -28,6 +28,8 @@ class Door:
     room_name: Optional[str] = None    # açıldığı oda (yay yönü)
     strike_xy: Optional[tuple[float, float]] = None  # kilit sövesi (anahtar bu tarafa)
     source: Optional[str] = None       # hangi yol buldu: block+arc | arc | block | layer_raw | vlm
+    confidence: Optional[float] = None # scoring.score sonucu (Adım 6); None ise ir_compat tablosu
+    signals: dict = field(default_factory=dict)   # ağırlıklı sinyal katkıları (evidence)
 
 
 @dataclass

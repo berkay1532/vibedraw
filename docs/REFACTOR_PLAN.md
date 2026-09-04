@@ -94,14 +94,14 @@ taşınır, mantık değişmez. `reconstruct` yalnızca sıralayan bir orkestrat
 **Kabul:** eval aynı ya da daha iyi; `grep -r "ABM\|PislikMimar\|\"ince\"" core/` boş.
 
 ## Adım 6 — Sinyal motoru ve config
-- [ ] `config/thresholds.yaml`, `config/weights.yaml`; `scoring.py`.
-- [ ] Fonksiyon gövdelerindeki sabitleri iki gruba ayır: dosyadan türeyenler
+- [x] `config/thresholds.yaml`, `config/weights.yaml`; `scoring.py`.
+- [~] Fonksiyon gövdelerindeki sabitleri iki gruba ayır (kapı/kalibrasyon/plan seçimi/run_floor yapıldı; walls/windows/rooms/polygons/raster/blocks envanteri DECISIONS'ta, sonraki tur): dosyadan türeyenler
       `FileParams`'a, kalanlar `thresholds.yaml`'a adlandırılmış olarak. Sihirli sayı
       kalmayana kadar.
-- [ ] Mevcut heuristikleri `signals/` altında saf sinyal fonksiyonlarına dönüştür
-      (önce kapı: `block_class`, `arc_signature`, `wall_gap`, `layer_class`).
+- [~] Mevcut heuristikleri `signals/` altında saf sinyal fonksiyonlarına dönüştür
+      (kapı yapıldı; duvar/oda/pencere sonraki tur — önce kapı: `block_class`, `arc_signature`, `wall_gap`, `layer_class`).
       Skor = ağırlıklı toplam; `confidence` artık buradan gelir.
-- [ ] Kalibrasyon tablosu ile ağırlıkları elle ayarla.
+- [ ] Kalibrasyon tablosu ile ağırlıkları ayarla — kullanıcı kararı: elle DEĞİL, yeni kaynak + fam00 GT geldikten sonra holdout ile.
 
 **Kabul:** kalibrasyon tablosu monoton; kapı F1 düşmez.
 

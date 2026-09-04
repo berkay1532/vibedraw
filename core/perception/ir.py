@@ -76,10 +76,21 @@ class Unit:
 
 @dataclass
 class FileParams:
-    """Dosyadan türetilen parametreler (Adım 3'te calibration.py doldurur)."""
+    """Dosyadan türetilen parametreler (calibration.file_params doldurur, Adım 6).
+
+    upm'e bağlı koşu parametreleri çizim birimindedir; dosyadan türetilemeyen sabitler
+    config/thresholds.yaml'dadır (oraya bakan kod bu alanları kullanmaz)."""
     units_per_meter: float = 100.0
     units_source: str = "labels"                   # labels | doors | header | hitl
-    extra: dict = field(default_factory=dict)      # res/seal/margin vb. koşu parametreleri
+    res: Optional[float] = None                    # raster hücre boyu (birim)
+    seal: Optional[int] = None                     # morfolojik kapama (piksel)
+    margin: Optional[float] = None                 # kat bbox marjı (birim)
+    door_arc_radius: Optional[tuple] = None        # kapı yayı yarıçap aralığı (birim)
+    door_wall_dist: Optional[float] = None         # menteşe ↔ duvar (birim)
+    door_max_boundary_dist: Optional[float] = None # layer_raw adayı ↔ oda sınırı (birim)
+    wall_thickness: Optional[tuple] = None         # duvar kalınlık aralığı (birim)
+    wall_min_overlap: Optional[float] = None
+    extra: dict = field(default_factory=dict)      # big_blocks, family_id, layer_classes vb.
 
     def to_mm(self, p: Point) -> Point:
         """Çizim birimi → mm. Pipeline'da kullanılmaz (Adım 3'e kadar), yardımcı."""

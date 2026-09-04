@@ -7,14 +7,16 @@ from __future__ import annotations
 import math
 
 from core.perception.blocks import _explode, _is_big_block
+from core.perception.config import T
 from core.perception.names import DOOR_CLASSES, EMPTY, GATED_MIN_CONF
 
 
 
-def _door_like_arc(ent, sx, amin, amax, sweep=(55.0, 125.0)):
-    """Blok içi ARC bir kapı kanadı yayı mı? (yarıçap aralığı + süpürme açısı)"""
+def _door_like_arc(ent, sx, amin, amax, sweep=None):
+    """Blok içi ARC bir kapı kanadı yayı mı? (yarıçap aralığı + süpürme açısı; thresholds door.arc_sweep_deg)"""
     if ent.dxftype() != "ARC" or not (amin <= ent.dxf.radius * sx <= amax):
         return False
+    sweep = T("door", "arc_sweep_deg") if sweep is None else sweep
     a0, a1 = ent.dxf.start_angle, ent.dxf.end_angle
     sw = (a1 - a0) % 360.0
     return sweep[0] <= sw <= sweep[1]
@@ -99,7 +101,7 @@ def _swing_dirs(msp, bbox, amin, amax, big_blocks=False, names=EMPTY):
     """
     x0, y0, x1, y1 = bbox
     out = []
-    upm_est = amin / 0.55
+    upm_est = amin / T("door", "upm_from_arc_min_m")
 
     def _arc_swing(cx, cy, r, a0d, a1d):
         a0 = math.radians(a0d); a1 = math.radians(a1d)
