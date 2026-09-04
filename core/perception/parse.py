@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 import ezdxf
 
-from core.ir import Room, Floor, BuildingIR
+from core.perception.ir import Room, Floor, BuildingIR
 
 AREA_RE = re.compile(r"A\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*m\s*[²2]", re.IGNORECASE)
 

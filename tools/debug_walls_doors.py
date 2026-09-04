@@ -16,8 +16,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 
-from core.geometry import _floor_bbox, _Raster, _staircase_polygon, _dilate, DOOR_LAYERS
-from core.parse import parse_dxf
+from core.perception.geometry import _floor_bbox, _Raster, _staircase_polygon, _dilate, DOOR_LAYERS
+from core.perception.parse import parse_dxf
 from debug_devices import build, DXF
 
 AMIN, AMAX = 55.0, 130.0

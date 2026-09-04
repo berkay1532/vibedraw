@@ -1,6 +1,6 @@
 # tests/test_semantics.py
-from core.ir import Room, Floor, BuildingIR
-from core import semantics
+from core.perception.ir import Room, Floor, BuildingIR
+from core.perception import semantics
 
 
 def _building(*names):

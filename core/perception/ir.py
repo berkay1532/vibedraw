@@ -1,4 +1,5 @@
-# core/ir.py
+# core/perception/ir.py
+# Perception IR (v1). Elektrik alanları core/electrical/ir.py'de; Adım 2'de v2 şeması gelecek.
 from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional
@@ -28,28 +29,15 @@ class Door:
 
 
 @dataclass
-class Device:
-    """M2 cihazı: aydınlatma/anahtar/priz/buat/beyaz eşya."""
-    kind: str                          # "light"|"switch"|"socket"|"junction"|"appliance"
-    xy: tuple[float, float]
-    room_name: Optional[str] = None
-    circuit: Optional[str] = None      # "aydinlatma"|"priz"|"<beyaz-esya>"
-    covered: bool = False              # ıslak hacim: kapaklı priz
-    label: Optional[str] = None        # beyaz eşya adı vb.
-
-
-@dataclass
 class Floor:
     index: int
     rooms: list[Room] = field(default_factory=list)
     doors: list[Door] = field(default_factory=list)
-    devices: list[Device] = field(default_factory=list)   # M2 cihazları
+    devices: list = field(default_factory=list)   # elektrik motoru doldurur (v1 uyumluluk; bkz. docs/DECISIONS.md)
     # Gerçek duvar parçaları (M1'de doldurulur) — cihazları duvara snap için
     walls: list[tuple[tuple[float, float], tuple[float, float]]] = field(default_factory=list)
     # Pencere/cam parçaları — cihaz konmaz (yasak bölge)
     windows: list[tuple[tuple[float, float], tuple[float, float]]] = field(default_factory=list)
-    # Tespit edilen beyaz eşya konumları (ad -> xy), M1'de doldurulur (ör. ocak)
-    appliance_pts: dict = field(default_factory=dict)
     big_blocks: bool = False           # plan blok içindeydi, bloklar açılarak işlendi
 
 
@@ -59,30 +47,3 @@ class BuildingIR:
     source_path: str = ""
 
 
-@dataclass
-class Symbol:
-    kind: str                          # "light" | "socket"
-    xy: tuple[float, float]
-    circuit_id: str
-
-
-@dataclass
-class RoomDesign:
-    room: Room
-    fixtures: list[Symbol] = field(default_factory=list)   # aydınlatma
-    sockets: list[Symbol] = field(default_factory=list)    # priz
-    circuit_id: Optional[str] = None
-    rationale: Optional[str] = None
-
-
-@dataclass
-class Circuit:
-    id: str
-    kind: str                          # "lighting" | "socket"
-    room_names: list[str] = field(default_factory=list)
-
-
-@dataclass
-class DesignIR:
-    rooms: list[RoomDesign] = field(default_factory=list)
-    circuits: list[Circuit] = field(default_factory=list)

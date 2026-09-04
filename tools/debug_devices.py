@@ -17,9 +17,10 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 
-from core.parse import parse_dxf
-from core.geometry import reconstruct
-from core.devices import place_devices, place_m3_nodes
+from core.perception.parse import parse_dxf
+from core.perception.geometry import reconstruct
+from core.electrical.devices import place_devices, place_m3_nodes
+from core.electrical.appliances import detect_appliances
 
 DXF = "ornekler/input-2-clean.dxf"
 
@@ -37,7 +38,7 @@ STYLE = {
 def build():
     b = parse_dxf(DXF, target_floor=1, gap=600.0)
     b = reconstruct(b, DXF, res=3.0, seal=18, margin=250)
-    b = place_devices(b)
+    b = place_devices(b, detect_appliances(b, DXF))
     b = place_m3_nodes(b)
     return b
 

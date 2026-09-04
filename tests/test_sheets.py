@@ -1,7 +1,7 @@
 # tests/test_sheets.py
 import ezdxf
 
-from core.sheets import analyze_sheet, segment_views
+from core.perception.sheets import analyze_sheet, segment_views
 
 
 def _sheet(tmp_path):

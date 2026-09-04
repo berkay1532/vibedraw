@@ -1,5 +1,5 @@
 # tests/test_llm.py
-from core import llm
+from core.perception import llm
 
 
 def test_normalize_room_name_uses_client(monkeypatch):

@@ -1,7 +1,8 @@
 # core/validate.py
 from __future__ import annotations
 
-from core.ir import BuildingIR, DesignIR
+from core.perception.ir import BuildingIR
+from core.electrical.ir import DesignIR
 
 
 class PipelineError(Exception):

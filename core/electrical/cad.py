@@ -4,7 +4,7 @@ import os
 
 import ezdxf
 
-from core.ir import DesignIR
+from core.electrical.ir import DesignIR
 
 LAYER_LIGHT = "EL-AYDINLATMA"
 LAYER_SOCKET = "EL-PRIZ"

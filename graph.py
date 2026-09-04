@@ -4,11 +4,11 @@ from typing import TypedDict
 
 from langgraph.graph import StateGraph, START, END
 
-from core.parse import parse_dxf
-from core.semantics import classify
-from core.rules import load_rules, decide
-from core.layout import place
-from core.cad import write_dxf
+from core.perception.parse import parse_dxf
+from core.perception.semantics import classify
+from core.electrical.rules import load_rules, decide
+from core.electrical.layout import place
+from core.electrical.cad import write_dxf
 from core.validate import validate_building, validate_design
 
 

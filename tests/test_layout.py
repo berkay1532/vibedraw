@@ -1,6 +1,7 @@
 # tests/test_layout.py
-from core.ir import Room, RoomDesign, Symbol, DesignIR
-from core.layout import place
+from core.perception.ir import Room
+from core.electrical.ir import RoomDesign, Symbol, DesignIR
+from core.electrical.layout import place
 
 
 def _design():

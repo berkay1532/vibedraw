@@ -1,6 +1,7 @@
 # tests/test_validate.py
 import pytest
-from core.ir import Room, Floor, BuildingIR, RoomDesign, Symbol, DesignIR
+from core.perception.ir import Room, Floor, BuildingIR
+from core.electrical.ir import RoomDesign, Symbol, DesignIR
 from core.validate import validate_building, validate_design, PipelineError
 
 

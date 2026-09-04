@@ -17,7 +17,7 @@ import sys
 from dataclasses import asdict
 from pathlib import Path
 
-from core.triage import (
+from core.perception.triage import (
     scan_files, profile_dxf, group_families, render_report,
     find_converter, convert_dwg_dir, convert_dwg_files,
 )

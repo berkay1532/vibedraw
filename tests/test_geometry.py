@@ -1,8 +1,8 @@
 # tests/test_geometry.py
 from shapely.geometry import Polygon, Point
 
-from core.parse import parse_dxf
-from core.geometry import reconstruct, _cluster_doors
+from core.perception.parse import parse_dxf
+from core.perception.geometry import reconstruct, _cluster_doors
 
 
 def test_reconstruct_separates_two_rooms(synthetic_walled_dxf):
@@ -55,7 +55,7 @@ def test_cluster_doors_merges_near_points():
 def test_staircase_polygon_survives_large_coordinates():
     """UTM benzeri büyük koordinatlarda (4.4 milyon) maske→poligon boş dönmemeli."""
     import numpy as np
-    from core.geometry import _staircase_polygon
+    from core.perception.geometry import _staircase_polygon
 
     class R:  # asgari raster taklidi
         res = 2.74
@@ -70,7 +70,7 @@ def test_staircase_polygon_survives_large_coordinates():
 
 
 def test_door_barriers_pick_closed_leaf():
-    from core.geometry import _door_barriers
+    from core.perception.geometry import _door_barriers
     walls = [((0, 0), (300, 0))]                       # yatay duvar y=0
     # menteşe (100,0); uç1 (190,0) duvar üstünde (kapalı), uç2 (100,90) odaya açık
     sw = [((100.0, 0.0), (0.7, 0.7), (190.0, 0.0), (100.0, 90.0))]
@@ -82,7 +82,7 @@ def test_door_barriers_pick_closed_leaf():
 def test_window_detection_layer_independent(tmp_path):
     """(a) 'PENCERE' adlı blok, (b) duvar bandında 3 ince paralel cam çizgisi → 2 pencere."""
     import ezdxf
-    from core.geometry import _window_segments
+    from core.perception.geometry import _window_segments
     doc = ezdxf.new("R2010"); msp = doc.modelspace()
     blk = doc.blocks.new("90LIK PENCERE")
     blk.add_line((0, 0), (90, 0)); blk.add_line((0, 4), (90, 4)); blk.add_line((0, 0), (0, 4)); blk.add_line((90, 0), (90, 4))
@@ -102,7 +102,7 @@ def test_window_detection_layer_independent(tmp_path):
 
 
 def test_ladder_filter_removes_stair_steps_keeps_door_leaf():
-    from core.geometry import _ladder_filter
+    from core.perception.geometry import _ladder_filter
     steps = [((0, y), (100, y)) for y in range(0, 150, 28)]          # 6 basamak, 28 cm aralık
     leaf = [((500, 0), (590, 0))]                                     # tek kapı kanadı
     out = _ladder_filter(steps + leaf, dmin=15, dmax=100)
@@ -123,8 +123,8 @@ def _two_label_dxf(tmp_path, second_name):
 
 
 def test_alias_merge_two_labels_one_space(tmp_path):
-    from core.parse import parse_dxf
-    from core.geometry import reconstruct
+    from core.perception.parse import parse_dxf
+    from core.perception.geometry import reconstruct
     path = _two_label_dxf(tmp_path, "Mutfak")
     b = parse_dxf(path, target_floor=0, gap=2000)
     b = reconstruct(b, path, res=3.0, seal=18, margin=300, units_per_meter=100)
@@ -136,8 +136,8 @@ def test_alias_merge_two_labels_one_space(tmp_path):
 
 
 def test_stair_label_not_merged(tmp_path):
-    from core.parse import parse_dxf
-    from core.geometry import reconstruct
+    from core.perception.parse import parse_dxf
+    from core.perception.geometry import reconstruct
     path = _two_label_dxf(tmp_path, "Merdiven")
     b = parse_dxf(path, target_floor=0, gap=2000)
     b = reconstruct(b, path, res=3.0, seal=18, margin=300, units_per_meter=100)
@@ -148,7 +148,7 @@ def test_stair_label_not_merged(tmp_path):
 def test_walls_and_doors_inside_big_block(tmp_path):
     """Kat planı BLOK olarak yerleştirilmiş: duvar çifti ve kapı yayı blok içinde."""
     import ezdxf
-    from core.geometry import _wall_segments, _swing_dirs
+    from core.perception.geometry import _wall_segments, _swing_dirs
     doc = ezdxf.new("R2010")
     blk = doc.blocks.new("KAT_PLANI")
     blk.add_line((0, 0), (800, 0)); blk.add_line((0, 15), (800, 15))          # 8 m duvar çifti (15 cm)
@@ -166,7 +166,7 @@ def test_walls_and_doors_inside_big_block(tmp_path):
 def test_label_frame_not_a_wall(tmp_path):
     """Etiketi saran 120x40 cm kapalı çerçeve duvar çifti sayılmamalı."""
     import ezdxf
-    from core.geometry import _wall_segments
+    from core.perception.geometry import _wall_segments
     doc = ezdxf.new("R2010"); msp = doc.modelspace()
     msp.add_lwpolyline([(100, 100), (220, 100), (220, 140), (100, 140)], close=True, dxfattribs={"layer": "ZONE"})
     msp.add_line((0, 0), (800, 0)); msp.add_line((0, 15), (800, 15))          # gerçek duvar
@@ -180,8 +180,8 @@ def test_label_frame_not_a_wall(tmp_path):
 def test_outside_label_does_not_flood_background(tmp_path):
     """Bina dışındaki etiket (ör. korkuluk notu) raster kenarına akar → oda olmamalı."""
     import ezdxf
-    from core.parse import parse_dxf
-    from core.geometry import reconstruct
+    from core.perception.parse import parse_dxf
+    from core.perception.geometry import reconstruct
     doc = ezdxf.new("R2010"); msp = doc.modelspace()
     for lyr in ("YAZI", "duv"):
         doc.layers.add(lyr)

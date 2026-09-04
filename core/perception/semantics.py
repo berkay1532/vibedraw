@@ -1,8 +1,8 @@
 # core/semantics.py
 from __future__ import annotations
 
-from core.ir import BuildingIR
-from core import llm
+from core.perception.ir import BuildingIR
+from core.perception import llm
 
 # Ham isim (casefold edilmiş) → kanonik tip
 ROOM_DICTIONARY = {

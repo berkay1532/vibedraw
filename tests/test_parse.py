@@ -1,5 +1,5 @@
 # tests/test_parse.py
-from core.parse import (
+from core.perception.parse import (
     extract_yazi_texts,
     is_area_text,
     parse_area,
@@ -57,7 +57,7 @@ def test_parse_dxf_selects_target_floor(synthetic_dxf):
 def test_extract_room_labels_layer_independent_and_attribs(tmp_path):
     """Herhangi bir katmandaki TEXT/MTEXT + INSERT ATTRIB'lerinden oda etiketleri."""
     import ezdxf
-    from core.parse import extract_room_labels
+    from core.perception.parse import extract_room_labels
     doc = ezdxf.new("R2010")
     blk = doc.blocks.new("TAG")
     blk.add_attdef("MAHAL", (0, 0))
@@ -76,7 +76,7 @@ def test_extract_room_labels_layer_independent_and_attribs(tmp_path):
 
 
 def test_estimate_units_per_meter():
-    from core.parse import estimate_units_per_meter, YaziText
+    from core.perception.parse import estimate_units_per_meter, YaziText
     # cm ölçeğinde 3.5 m aralıklı odalar → ~100 birim/m
     cm = [YaziText("A", (0, 0)), YaziText("B", (350, 0)), YaziText("C", (0, 350)), YaziText("D", (350, 350))]
     assert 70 < estimate_units_per_meter(cm) < 140
@@ -87,7 +87,7 @@ def test_estimate_units_per_meter():
 
 
 def test_dedupe_labels_and_cluster_floors_2d():
-    from core.parse import dedupe_labels, cluster_floors_2d, YaziText, pair_names_with_areas
+    from core.perception.parse import dedupe_labels, cluster_floors_2d, YaziText, pair_names_with_areas
     labels = [YaziText("HALL", (-3000, -3000)), YaziText("HALL", (-2998, -2999)), YaziText("Hall", (-2999, -2998)),  # lejant tekrarı
               YaziText("Salon", (100, 100)), YaziText("Mutfak", (400, 100)), YaziText("Banyo", (100, 400)),
               YaziText("Salon", (100, 1500)), YaziText("Mutfak", (400, 1500))]  # üstteki kesit
@@ -99,7 +99,7 @@ def test_dedupe_labels_and_cluster_floors_2d():
 
 
 def test_non_room_sublabels_excluded():
-    from core.parse import looks_like_room_label
+    from core.perception.parse import looks_like_room_label
     assert looks_like_room_label("BANYO")
     assert not looks_like_room_label("ÇAMAŞIR MAK.YERİ")
     assert not looks_like_room_label("MUTFAK DOLABI")
@@ -107,7 +107,7 @@ def test_non_room_sublabels_excluded():
 
 
 def test_grid_likeness_and_plan_pick():
-    from core.parse import grid_likeness, pick_plan_floor, Room, Floor
+    from core.perception.parse import grid_likeness, pick_plan_floor, Room, Floor
     table = [Room(n, (x, y)) for y in (0, 300, 600, 900, 1200) for x, n in ((0, "ODA"), (500, "SALON"))]
     plan = [Room("Salon", (100, 120)), Room("Mutfak", (450, 90)), Room("Yatak", (130, 520)),
             Room("Banyo", (420, 470)), Room("Hol", (300, 300)), Room("WC", (600, 380))]
@@ -118,7 +118,7 @@ def test_grid_likeness_and_plan_pick():
 
 
 def test_room_label_rejects_cover_sheet_texts():
-    from core.parse import looks_like_room_label
+    from core.perception.parse import looks_like_room_label
     assert not looks_like_room_label("ODA SİCİL NO            :")
     assert not looks_like_room_label("SIĞINAK HESABI")          # 'sığınak' değil, hesap yazısı → 4 kelime altı ama...
     assert looks_like_room_label("ODA")
@@ -129,7 +129,7 @@ def test_room_label_rejects_cover_sheet_texts():
 
 def test_label_with_area_suffix_split(tmp_path):
     import ezdxf
-    from core.parse import extract_room_labels, pair_names_with_areas
+    from core.perception.parse import extract_room_labels, pair_names_with_areas
     doc = ezdxf.new("R2010"); msp = doc.modelspace()
     msp.add_mtext("SALON+ MUTFAK\nA:19.50 M²", dxfattribs={"insert": (10, 10)})
     msp.add_text("YATAK ODASI A: 11.30 M2", dxfattribs={"insert": (300, 10)})
@@ -140,7 +140,7 @@ def test_label_with_area_suffix_split(tmp_path):
 
 
 def test_decode_dxf_unicode_escapes():
-    from core.parse import decode_dxf_text, looks_like_room_label, AREA_RE
+    from core.perception.parse import decode_dxf_text, looks_like_room_label, AREA_RE
     assert decode_dxf_text("\\U+00C7OCUK ODASI") == "ÇOCUK ODASI"
     assert decode_dxf_text("A:13.20 M\\U+00B2") == "A:13.20 M²"
     assert looks_like_room_label(decode_dxf_text("\\U+00C7OCUK ODASI"))

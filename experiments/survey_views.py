@@ -16,7 +16,7 @@ import ezdxf
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from core.sheets import analyze_sheet
+from core.perception.sheets import analyze_sheet
 
 
 def main(argv=None):

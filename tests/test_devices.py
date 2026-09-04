@@ -1,7 +1,7 @@
 # tests/test_devices.py
 """M2 cihaz yerleşimi (core.devices) — poligonsuz: duvara snap + etiket temelli."""
-from core.ir import BuildingIR, Floor, Room, Door
-from core.devices import (
+from core.perception.ir import BuildingIR, Floor, Room, Door
+from core.electrical.devices import (
     place_devices, is_wet, switch_outside, _covered,
 )
 
@@ -77,7 +77,7 @@ def test_appliances_each_separate_circuit():
 
 def test_devices_snap_onto_walls():
     """Her cihaz bir duvar parçasına çok yakın olmalı (yüzmemeli)."""
-    from core.devices import _nearest_wall
+    from core.electrical.devices import _nearest_wall
     b = place_devices(_building())
     f = b.floors[0]
     for d in f.devices:

@@ -2,7 +2,7 @@
 from __future__ import annotations
 import math
 
-from core.ir import DesignIR, Symbol
+from core.electrical.ir import DesignIR, Symbol
 
 SOCKET_RADIUS = 30.0   # etiket çevresinde priz dağıtım yarıçapı (çizim birimi)
 LIGHT_GAP = 25.0       # birden fazla armatür arası yatay aralık

@@ -10,7 +10,8 @@ Saf fonksiyon (DXF okumaz); deterministiktir.
 from __future__ import annotations
 import math
 
-from core.ir import BuildingIR, Floor, Room, Door, Device
+from core.perception.ir import BuildingIR, Floor, Room, Door
+from core.electrical.ir import Device
 
 # Oda ismi -> kanonik tip
 _WET = {"banyo", "wc", "tuvalet", "mutfak"}           # kapaklı priz
@@ -323,9 +324,10 @@ def _distinct(pts, min_sep=45.0):
     return out
 
 
-def place_appliances(floor: Floor) -> None:
+def place_appliances(floor: Floor, appliance_pts: dict | None = None) -> None:
     """Beyaz eşyalar: her biri AYRI linye + KAPAKLI priz. Tespit edilen (ocak)
     gerçek yere; diğerleri ev sahibi odanın duvarına sezgisel."""
+    pts = appliance_pts or {}          # tespit edilmiş konumlar (core/electrical/appliances.py)
     by_room = {}
     for label, host in _APPLIANCES:
         by_room.setdefault(host, []).append(label)
@@ -339,8 +341,8 @@ def place_appliances(floor: Floor) -> None:
         feet = _distinct(wps)
         i = 0
         for label in items:
-            if label in floor.appliance_pts:        # tespit edilmiş (ör. ocak)
-                xy = _on_wall(floor.appliance_pts[label], floor.walls, ref)
+            if label in pts:                        # tespit edilmiş (ör. ocak)
+                xy = _on_wall(pts[label], floor.walls, ref)
             elif feet:
                 xy = _on_wall(feet[i % len(feet)], floor.walls, ref)
                 i += 1
@@ -392,14 +394,14 @@ def place_junctions(floor: Floor) -> None:
             room_name=room.raw_name, circuit="aydinlatma", label="buat"))
 
 
-def place_devices(building: BuildingIR) -> BuildingIR:
+def place_devices(building: BuildingIR, appliances: dict | None = None) -> BuildingIR:
     """M2 giriş noktası — aydınlatma + anahtar + priz + beyaz eşya."""
     for floor in building.floors:
         floor.devices = []
         place_lighting(floor)
         place_switches(floor)
         place_sockets(floor)
-        place_appliances(floor)
+        place_appliances(floor, (appliances or {}).get(floor.index))
     return building
 
 

@@ -1,7 +1,7 @@
 # tests/test_rules.py
-import core.rules as R
-from core.ir import Room, Floor, BuildingIR
-from core.rules import load_rules, decide
+import core.electrical.rules as R
+from core.perception.ir import Room, Floor, BuildingIR
+from core.electrical.rules import load_rules, decide
 
 
 def test_load_rules_has_expected_types():

@@ -15,7 +15,7 @@ from typing import Optional
 
 import numpy as np
 
-from core.parse import _plain, looks_like_room_label, room_label_name, _tr_fold
+from core.perception.parse import _plain, looks_like_room_label, room_label_name, _tr_fold
 
 # --- Başlık sözlüğü -----------------------------------------------------------
 _KIND_WORDS = {

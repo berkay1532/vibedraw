@@ -86,11 +86,11 @@ def _render(dxf_path, floor, out_png, margin):
 
 def run_one(dxf_path: str, out_dir: str, q):
     """Alt süreçte koşar; sonucu kuyruğa yazar."""
-    from core.parse import (parse_dxf, extract_room_labels, pair_names_with_areas,
+    from core.perception.parse import (parse_dxf, extract_room_labels, pair_names_with_areas,
                             cluster_floors_2d, dedupe_labels, estimate_units_per_meter,
                             pick_plan_floor, grid_likeness)
-    from core.geometry import reconstruct
-    from core.ir import BuildingIR
+    from core.perception.geometry import reconstruct
+    from core.perception.ir import BuildingIR
     name = Path(dxf_path).stem
     r = {"file": name, "path": dxf_path, "stages": {}, "error": None, "fail_stage": None}
     t0 = time.time()
@@ -118,7 +118,7 @@ def run_one(dxf_path: str, out_dir: str, q):
         r["stages"]["labels_generic"]["grid"] = [round(grid_likeness(f.rooms, 0.3 * upm), 2) for f in floors]
         # Kapı-yayı kanıtı: mahal listesi tabloları (döndürülmüş olsa bile) kapı yayı içermez.
         # Kapı yayı bulunan en kalabalık kümeyi tercih et.
-        from core.geometry import estimate_units_from_doors as _eud, _floor_bbox as _fb
+        from core.perception.geometry import estimate_units_from_doors as _eud, _floor_bbox as _fb
         with_doors = []
         for f in sorted(floors, key=lambda f: -len(f.rooms))[:8]:
             if len(f.rooms) < 3:
@@ -134,7 +134,7 @@ def run_one(dxf_path: str, out_dir: str, q):
     # 3) geometri
     try:
         # Ölçeği kapı yaylarından düzelt (etiket-mesafesi tahmini kaba)
-        from core.geometry import estimate_units_from_doors, _floor_bbox
+        from core.perception.geometry import estimate_units_from_doors, _floor_bbox
         xs = [rm.label_xy[0] for rm in floor.rooms]; ys = [rm.label_xy[1] for rm in floor.rooms]
         upm_doors = estimate_units_from_doors(dxf_path, _floor_bbox(floor, 2.5 * upm), upm)
         r["stages"]["labels_generic"]["upm_labels"] = round(upm, 1)

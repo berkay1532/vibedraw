@@ -1,5 +1,5 @@
 # tests/test_metrics.py
-from core.metrics import (
+from core.perception.metrics import (
     match_rooms, match_points, evaluate_floor, room_iou,
 )
 
@@ -44,6 +44,6 @@ def test_evaluate_floor_end_to_end():
 
 
 def test_name_fold_ignores_area_suffix():
-    from core.metrics import _tr_fold
+    from core.perception.metrics import _tr_fold
     assert _tr_fold("HOL\nA:6.60 M²") == _tr_fold("HOL") == "hol"
     assert _tr_fold("Yatak Odası  A: 11.30 m2") == "yatak odası"

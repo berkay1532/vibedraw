@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from core.metrics import evaluate_floor
+from core.perception.metrics import evaluate_floor
 
 
 def main(argv=None) -> int:

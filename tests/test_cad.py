@@ -1,7 +1,8 @@
 # tests/test_cad.py
 import ezdxf
-from core.ir import Room, RoomDesign, Symbol, Circuit, DesignIR
-from core.cad import write_dxf
+from core.perception.ir import Room
+from core.electrical.ir import RoomDesign, Symbol, Circuit, DesignIR
+from core.electrical.cad import write_dxf
 
 
 def _design():

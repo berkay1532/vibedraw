@@ -14,8 +14,8 @@ import os
 
 import ezdxf
 
-from core.parse import parse_dxf
-from core.geometry import reconstruct
+from core.perception.parse import parse_dxf
+from core.perception.geometry import reconstruct
 
 L_POLY = "DBG-ODA-SINIR"
 L_CENTER = "DBG-ODA-MERKEZ"

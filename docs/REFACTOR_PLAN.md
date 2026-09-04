@@ -22,11 +22,11 @@ Fark çıkarsa refactor'da hata var demektir, önce onu bul.
 **Kabul:** testler geçer, eval değişmez.
 
 ## Adım 1 — Perception / elektrik ayrımı
-- [ ] `core/electrical/` oluştur; `rules.py`, `layout.py`, `devices.py`, `cad.py`,
+- [x] `core/electrical/` oluştur; `rules.py`, `layout.py`, `devices.py`, `cad.py`,
       eski `ir.py` (v1) buraya taşınır. `graph.py` bunlara bağlanır. Test yolları güncellenir.
-- [ ] `core/perception/` oluştur; `parse.py`, `geometry.py`, `sheets.py`, `triage.py`,
+- [x] `core/perception/` oluştur; `parse.py`, `geometry.py`, `sheets.py`, `triage.py`,
       `metrics.py`, `vlm_doors.py`, `semantics.py`, `llm.py` buraya taşınır (içerik aynı).
-- [ ] `_detect_stove` ve `appliance_pts`'i perception'dan çıkar → `core/electrical/`
+- [x] `_detect_stove` ve `appliance_pts`'i perception'dan çıkar → `core/electrical/`
       içinde `BuildingIR` üzerinden çalışan ayrı fonksiyon.
 
 **Kabul:** testler geçer, eval değişmez.

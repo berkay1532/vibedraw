@@ -1,7 +1,7 @@
 # tests/test_triage.py
 import ezdxf
 
-from core.triage import (
+from core.perception.triage import (
     FileProfile,
     profile_dxf,
     layer_fingerprint,
@@ -103,7 +103,7 @@ def test_render_report_mentions_files_and_families(synthetic_dxf, synthetic_wall
 
 
 def test_find_converter_shape():
-    from core.triage import find_converter
+    from core.perception.triage import find_converter
     c = find_converter()
     assert c is None or (c[0] in ("oda", "libredwg") and c[1])
 
@@ -111,7 +111,7 @@ def test_find_converter_shape():
 def test_convert_dwg_files_reports_failures(tmp_path):
     """Bozuk DWG dönüştürülemez → failed listesinde; gerçek dönüştürücü yoksa test atlanır."""
     import pytest
-    from core.triage import find_converter, convert_dwg_files
+    from core.perception.triage import find_converter, convert_dwg_files
     c = find_converter()
     if not c or c[0] != "libredwg":
         pytest.skip("dwg2dxf yok")

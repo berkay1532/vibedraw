@@ -1,5 +1,6 @@
 # tests/test_ir.py
-from core.ir import Room, Floor, BuildingIR, Symbol, RoomDesign, Circuit, DesignIR
+from core.perception.ir import Room, Floor, BuildingIR
+from core.electrical.ir import Symbol, RoomDesign, Circuit, DesignIR
 
 
 def test_room_defaults():

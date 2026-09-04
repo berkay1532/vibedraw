@@ -16,7 +16,7 @@ import ezdxf
 from shapely.geometry import LineString
 from shapely.ops import polygonize, unary_union
 
-from core.ir import BuildingIR, Floor, Room, Door
+from core.perception.ir import BuildingIR, Floor, Room, Door
 
 # Bariyer sayılan katmanlar (oda sınırını oluşturanlar).
 # .ABM-SIVA = sıva = duvarın İÇ YÜZÜ (oda sınırı için en kritik katman),
@@ -376,47 +376,6 @@ def _hatch_segments(e):
 
 
 WINDOW_LAYERS = {"pencere", "cam", "KAPEN", "KAPI_PENCERE"}
-
-
-def _detect_stove(msp, bbox):
-    """Ocak: 'ince' katmanında eşit yarıçaplı 4 dairenin 2x2 ızgarası (4 göz).
-
-    Bulunursa ocak merkezini (4 göz centroidi) döner, yoksa None.
-    """
-    x0, y0, x1, y1 = bbox
-    circ = []
-    for e in msp:
-        if e.dxf.layer == "ince" and e.dxftype() == "CIRCLE":
-            cx, cy, r = e.dxf.center[0], e.dxf.center[1], e.dxf.radius
-            if x0 <= cx <= x1 and y0 <= cy <= y1 and 5 <= r <= 20:
-                circ.append((cx, cy, r))
-    # yarıçapa göre grupla, her grupta 2x2 ızgara ara
-    circ.sort(key=lambda c: c[2])
-    for i, (cx, cy, r) in enumerate(circ):
-        grp = [c for c in circ if abs(c[2] - r) < 2.0]
-        if len(grp) < 4:
-            continue
-        xs = sorted({round(c[0]) for c in grp})
-        ys = sorted({round(c[1]) for c in grp})
-        # 2 belirgin x ve 2 belirgin y kümesi (yakınları birleştir)
-        def _two_clusters(vals):
-            cl = []
-            for v in vals:
-                if cl and abs(cl[-1][-1] - v) < 15:
-                    cl[-1].append(v)
-                else:
-                    cl.append([v])
-            return cl
-        cx_cl, cy_cl = _two_clusters(xs), _two_clusters(ys)
-        if len(cx_cl) == 2 and len(cy_cl) == 2:
-            gx = [sum(c) / len(c) for c in cx_cl]
-            gy = [sum(c) / len(c) for c in cy_cl]
-            # 4 köşede de daire var mı
-            ok = all(any(abs(c[0] - mx) < 18 and abs(c[1] - my) < 18 for c in grp)
-                     for mx in gx for my in gy)
-            if ok:
-                return (sum(gx) / 2, sum(gy) / 2)
-    return None
 
 
 WINDOW_WORDS = ("pencere", "window", "glz", "glazing", "fenetre", "ventana", "cam ")
@@ -1303,9 +1262,6 @@ def reconstruct(building: BuildingIR, dxf_path: str, *,
         recovered = {i: (labels == i) for i in idx_room}
         wall_xs, wall_ys, angled_walls = _wall_lines(
             msp, bbox, angled_min_len=15.0 * res, cluster_tol=3.0 * res, extra_segs=floor.walls)
-        stove = _detect_stove(msp, bbox)
-        if stove is not None:
-            floor.appliance_pts["Ocak/Fırın"] = stove
 
         for room in floor.rooms:
             idx = next((i for i, r in idx_room.items() if r is room), None)
@@ -1339,7 +1295,7 @@ def reconstruct(building: BuildingIR, dxf_path: str, *,
             candidates = _cluster_doors(raster.door_raw)
 
         if vlm_door_points:
-            from core.vlm_doors import validate_doors
+            from core.perception.vlm_doors import validate_doors
             # tol=10: yalnızca çok yakın aday varsa ince-ayar snap; yoksa VLM noktası korunur
             door_pts = validate_doors(candidates, vlm_door_points, tol=10.0)
         elif used_primary:

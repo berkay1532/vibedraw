@@ -4,8 +4,9 @@ import math
 
 import yaml
 
-from core.ir import BuildingIR, DesignIR, RoomDesign, Symbol, Circuit
-from core import llm
+from core.perception.ir import BuildingIR
+from core.electrical.ir import DesignIR, RoomDesign, Symbol, Circuit
+from core.perception import llm
 
 
 def load_rules(path: str = "rules/residential.yaml") -> dict:

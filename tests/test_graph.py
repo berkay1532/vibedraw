@@ -7,8 +7,8 @@ from graph import build_graph, run_pipeline  # noqa: E402
 
 def test_run_pipeline_end_to_end(synthetic_dxf, tmp_path, monkeypatch):
     # LLM'i tamamen mock'la (gerekçe + bilinmeyen isim ihtimaline karşı)
-    import core.semantics as S
-    import core.rules as R
+    import core.perception.semantics as S
+    import core.electrical.rules as R
     monkeypatch.setattr(S.llm, "normalize_room_name", lambda raw: "other")
     monkeypatch.setattr(R, "_rationale", lambda *a, **k: "test gerekçe")
 

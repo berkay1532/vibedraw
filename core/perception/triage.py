@@ -89,7 +89,7 @@ class FileProfile:
 
 
 def _plain(e) -> str:
-    from core.parse import decode_dxf_text
+    from core.perception.parse import decode_dxf_text
     try:
         if e.dxftype() == "MTEXT":
             return decode_dxf_text(e.plain_text()).strip()
