@@ -257,7 +257,7 @@ def issue_coverage(gt: dict, pred: dict, issues: list, errors: dict) -> dict:
         r = _room_containing(c, pr_rooms, upm) if c else None
         add("room_fn", bool(r and tg.get(r.get("id"), set()) & ROOM_ISSUES))
     for j in errors["door_fp"]:
-        add("door_fp", "ambiguous_opening" in tg.get(pr_doors[j].get("id"), set()))
+        add("door_fp", bool(tg.get(pr_doors[j].get("id"), set()) & {"ambiguous_opening", "door_side_ambiguous"}))
     for i in errors["door_fn"]:
         r = _room_containing(gf["doors"][i]["hinge"], pr_rooms, upm)
         add("door_fn", bool(r and tg.get(r.get("id"), set()) & {"room_no_door", "open_room", "ambiguous_opening"}))
@@ -267,9 +267,9 @@ def issue_coverage(gt: dict, pred: dict, issues: list, errors: dict) -> dict:
     for i in errors["window_fn"]:
         w = gf["windows"][i]; m = _mid((w["a"], w["b"]))
         r = _room_containing(m, pr_rooms, upm)
-        add("window_fn", bool(r and tg.get(r.get("id"), set()) & {"ambiguous_opening", "open_room"}))
+        add("window_fn", bool(r and tg.get(r.get("id"), set()) & {"ambiguous_opening", "open_room", "window_missing"}))
     for j in errors["room_name"]:
         add("room_name", False)
     for j in errors["door_connect"]:
-        add("door_connect", False)
+        add("door_connect", "door_side_ambiguous" in tg.get(pr_doors[j].get("id"), set()))
     return cov

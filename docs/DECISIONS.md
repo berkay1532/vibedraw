@@ -254,6 +254,20 @@ uygulanmayan iyileştirme fikri; uygulanınca "karar" olur ve commit'i yazılır
   kanıtı aramak; GT (541_3, 536_1, 386_8) bu düzeltmeden SONRA çıkarılmalı, aksi halde ölçek ve kat seçimi
   tartışmalı olur.
 
+- **[karar] 2026-09-05 — yeni issue tipleri (kullanıcı kararı 2).** `window_missing`: yalnız bedroom/living/
+  kitchen/study (vocab.WINDOW_EXPECTED_ROOM_WORDS, "ODA" tam kelime → bedroom), oda kenarı kat dış sınırına
+  (oda poligonları birleşiminin sınırı) ≤ 0,3 m ve hiçbir pencere adayı (her güvende) ≤ 0,3 m değmiyor.
+  `door_side_ambiguous`: açılış yayı eşleşmeyen kapı (width yok, merkez-mesafesi fallback) ya da yön skoru
+  marjı (`_room_by_swing` en iyi − ikinci, Door.signals.swing_margin, ağırlıksız) < 0,15. area_mismatch'e
+  mutlak kural: oran < 0,5 ya da > 2 her zaman issue. `ir.floor_from_dict/building_from_dict` (JSON → IR)
+  ile validator çevrimdışı koşturulup kapsama tip tip ölçüldü (GT-7, politika sonrası çıktı): 15/57 →
+  + area mutlak 15/57 → + window_missing 22/57 (window_fn 0→7/14) → + door_side_ambiguous çevrimdışı
+  ölçülemedi (eski JSON'da swing_margin yok; tam kapı sonrası EVAL_HISTORY'de). Hedef ≥ 0,6.
+- **[doğrulanmış örnek] 2026-09-05 — HITL #22 conflicting_signal.** detayli-villa: `STAIR` katmanında 34/34
+  segment duvar çifti geometrisi taşıyor (katman sınıfı stair) — merdiven basamak çizgileri; `arkipedia.net`
+  katmanında 45/45 (sınıf ignore, stats kademesi) — filigran/çerçeve çizgileri. İkisi de conflicting_layer
+  issue'su olarak çıktı; #22 tanımının (geometri duvar der, katman başka sınıf der) sahada doğrulanması.
+
 ## Adaylar (uygulanmadı)
 
 - **[aday] 2026-09-05 — kat seçimi: kapı kanıtı yoksa standart upm öncülleriyle yeniden kümeleme** (fam00 raporu). Ayrı commit, dosya bazında fark ölçülür.

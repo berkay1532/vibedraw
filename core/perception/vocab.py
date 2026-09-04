@@ -123,3 +123,13 @@ EXEMPT_ROOM_WORDS = {
     "elevator": ("asansör", "asansor", "elevator", "lift"),
     "light_well": ("aydınlık", "aydinlik", "ışıklık", "isiklik", "light well", "lightwell"),
 }
+
+
+# --- window_missing (validate): penceresi beklenen oda tipleri ------------------------------
+WINDOW_EXPECTED_ROOM_WORDS = {
+    "bedroom": ("yatak", "bedroom", "ebeveyn", "çocuk"),
+    "living": ("salon", "oturma", "living"),
+    "kitchen": ("mutfak", "kitchen"),
+    "study": ("çalışma", "study", "ofis", "office"),
+}
+WINDOW_EXPECTED_SHORT = ("oda",)      # tam kelime: "ODA" (tip projelerde yatak odası)

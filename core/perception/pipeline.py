@@ -213,8 +213,10 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
                      default=None)
             room, strike = None, None
             if sd is not None and math.hypot(sd[0][0] - dx, sd[0][1] - dy) <= door_wall_dist * TD["swing_match_factor"]:
-                room = _room_by_swing((dx, dy), sd[1], floor.rooms,
-                                      max_dist=(T("swing", "max_dist_m") * units_per_meter) if units_per_meter else None)
+                room, margin = _room_by_swing((dx, dy), sd[1], floor.rooms, with_margin=True,
+                                              max_dist=(T("swing", "max_dist_m") * units_per_meter) if units_per_meter else None)
+                if margin is not None:
+                    sig["swing_margin"] = round(margin, 3)      # ağırlıksız bilgi sinyali (door_side_ambiguous)
                 # kilit sövesi = KAPALI kanat ucu = kanat ortası bir duvara YASLI olan
                 # uç (açık kanat oda boşluğuna gider, duvara uzak). Köşe menteşelerde
                 # 'en yakın duvara paralel' testi yanılıyordu; bu test kapının asıl
@@ -227,8 +229,11 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
                            key=lambda r: math.hypot((r.center or r.label_xy)[0] - dx,
                                                     (r.center or r.label_xy)[1] - dy),
                            default=None)
+            sigs = dict(ev.signals)
+            if "swing_margin" in sig:
+                sigs["swing_margin"] = sig["swing_margin"]
             floor.doors.append(Door(xy=(dx, dy), source=src, room_name=room.raw_name if room else None,
-                                    strike_xy=strike, confidence=conf, signals=ev.signals))
+                                    strike_xy=strike, confidence=conf, signals=sigs))
 
     return building
 

@@ -133,3 +133,49 @@ class BuildingIR:
     floors: list = field(default_factory=list)     # Floor
     validation: ValidationReport = field(default_factory=ValidationReport)
     version: str = "2"
+
+
+# --- JSON → IR (validator'ı çevrimdışı yeniden koşturmak, HITL araçları) ----------------------
+def _tup(p):
+    return tuple(p) if p is not None else None
+
+
+def evidence_from_dict(d: dict) -> Evidence:
+    d = d or {}
+    return Evidence(signals=dict(d.get("signals") or {}), source=d.get("source", ""), note=d.get("note", ""))
+
+
+def floor_from_dict(d: dict) -> Floor:
+    pr = d.get("params") or {}
+    params = FileParams(units_per_meter=pr.get("units_per_meter", 100.0), units_source=pr.get("units_source", "labels"),
+                        res=pr.get("res"), seal=pr.get("seal"), margin=pr.get("margin"),
+                        door_arc_radius=_tup(pr.get("door_arc_radius")), door_wall_dist=pr.get("door_wall_dist"),
+                        door_max_boundary_dist=pr.get("door_max_boundary_dist"), wall_thickness=_tup(pr.get("wall_thickness")),
+                        wall_min_overlap=pr.get("wall_min_overlap"), wall_thickness_modes=list(pr.get("wall_thickness_modes") or []),
+                        area_convention=pr.get("area_convention"), extra=dict(pr.get("extra") or {}))
+    fl = Floor(index=d.get("index", 0), name=d.get("name"), params=params)
+    for r in d.get("rooms", []):
+        fl.rooms.append(Room(id=r["id"], confidence=r.get("confidence", 0.0), evidence=evidence_from_dict(r.get("evidence")),
+                             status=r.get("status", "auto"), polygon=[tuple(p) for p in (r.get("polygon") or [])],
+                             raw_name=r.get("raw_name"), room_type=r.get("room_type"), area_m2_text=r.get("area_m2_text"),
+                             area_m2_geom=r.get("area_m2_geom"), aliases=list(r.get("aliases") or []),
+                             alias_xy=[tuple(p) for p in (r.get("alias_xy") or [])], label_xy=_tup(r.get("label_xy")), unit_id=r.get("unit_id")))
+    for o in d.get("openings", []):
+        fl.openings.append(Opening(id=o["id"], confidence=o.get("confidence", 0.0), evidence=evidence_from_dict(o.get("evidence")),
+                                   status=o.get("status", "auto"), kind=o.get("kind", "door"), wall_id=o.get("wall_id"),
+                                   center=_tup(o.get("center")) or (0.0, 0.0), width=o.get("width"), hinge=_tup(o.get("hinge")),
+                                   swing_dir=_tup(o.get("swing_dir")), rooms=tuple(o.get("rooms") or (None, None))))
+    for w in d.get("walls", []):
+        fl.walls.append(Wall(id=w["id"], confidence=w.get("confidence", 0.0), evidence=evidence_from_dict(w.get("evidence")),
+                             status=w.get("status", "auto"), a=tuple(w["a"]), b=tuple(w["b"]), thickness=w.get("thickness"),
+                             kind=w.get("kind", "unknown"), layer=w.get("layer")))
+    return fl
+
+
+def building_from_dict(d: dict) -> "BuildingIR":
+    b = BuildingIR(source_path=d.get("source_path", ""), source_fingerprint=d.get("source_fingerprint", ""),
+                   floors=[floor_from_dict(f) for f in d.get("floors", [])], version=str(d.get("version", "2")))
+    b.validation = ValidationReport(issues=[Issue(kind=i["kind"], target_id=i.get("target_id"), message=i.get("message", ""),
+                                                  options=list(i.get("options") or []), data=dict(i.get("data") or {}))
+                                            for i in (d.get("validation") or {}).get("issues") or []])
+    return b

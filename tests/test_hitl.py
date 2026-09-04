@@ -33,7 +33,8 @@ def test_issues_types_and_priority():
     assert "area_mismatch" not in kinds                             # tek oda: medyan kendisi → sapma 0
     assert not any(i.kind == "room_no_door" and i.target_id == "r3" for i in iss)   # merdiven muaf
     assert not any(i.kind == "room_no_door" and i.target_id == "r1" for i in iss)   # kapısı var
-    assert kinds == sorted(kinds, key=lambda k: ["unknown_layer", "conflicting_layer", "unit_suspect", "open_room", "room_no_door", "ambiguous_opening", "area_mismatch"].index(k))
+    from core.perception.validate import PRIORITY
+    assert kinds == sorted(kinds, key=PRIORITY.index)
     rep = validate_building_v2(BuildingIR(floors=[_floor()]), nm, {"GIZEMLI": 120})
     assert issue_counts(rep.issues)["unknown_layer"] == 1
 
@@ -89,3 +90,28 @@ def test_unknown_layer_ranked_and_capped():
     assert stats_class({"n": 40, "line": 0, "long": 0, "short": 0, "arc": 0, "small_arc": 0, "text": 36, "dim": 2, "hatch": 0, "insert": 0})[0].value == "text"
     assert stats_class({"n": 40, "line": 10, "long": 0, "short": 2, "arc": 5, "small_arc": 1, "text": 0, "dim": 0, "hatch": 0, "insert": 20})[0].value == "ignore"
     assert stats_class({"n": 40, "line": 40, "long": 20, "short": 0, "arc": 0, "small_arc": 0, "text": 0, "dim": 0, "hatch": 0, "insert": 0})[0].value == "unknown"
+
+
+def test_window_missing_door_side_and_absolute_area():
+    from core.perception.validate import window_expected_type
+    assert window_expected_type("YATAK ODASI") == "bedroom" and window_expected_type("ODA") == "bedroom"
+    assert window_expected_type("SALON+MUTFAK") in ("living", "kitchen") and window_expected_type("BANYO") is None
+    fl = _floor()
+    sq = [(0.0, 0.0), (400.0, 0.0), (400.0, 500.0), (0.0, 500.0)]
+    inner = [(100.0, 100.0), (300.0, 100.0), (300.0, 400.0), (100.0, 400.0)]
+    fl.rooms = [Room("r1", 0.85, Evidence(source="flood:exclusive"), polygon=sq, raw_name="YATAK ODASI", label_xy=(50, 50), area_m2_text=8.0, area_m2_geom=20.0),
+                Room("r2", 0.85, Evidence(source="flood:exclusive"), polygon=inner, raw_name="YATAK ODASI", label_xy=(200, 250), area_m2_text=30.0, area_m2_geom=20.0),
+                Room("r3", 0.85, Evidence(source="flood:exclusive"), polygon=sq, raw_name="BANYO", label_xy=(60, 60), area_m2_text=30.0, area_m2_geom=20.0)]
+    fl.openings = [Opening("op1", 0.95, Evidence(source="block+arc", signals={"swing_margin": 0.05}), kind="door", center=(400, 100), hinge=(400, 100), width=90.0, rooms=("r1", None)),
+                   Opening("op2", 0.7, Evidence(source="block"), kind="door", center=(0, 100), hinge=(0, 100), width=None, rooms=("r3", None))]
+    fl.walls = []
+    iss = issues_for_floor(fl, NameMap(), {})
+    kinds = {(i.kind, i.target_id) for i in iss}
+    assert ("window_missing", "r1") in kinds                     # yatak odası, dış sınıra değiyor, pencere yok
+    assert ("window_missing", "r2") not in kinds                 # iç oda (dış sınıra değmiyor)
+    assert ("window_missing", "r3") not in kinds                 # banyo: pencere beklenmez
+    assert ("door_side_ambiguous", "op1") in kinds and ("door_side_ambiguous", "op2") in kinds
+    am = {i.target_id for i in iss if i.kind == "area_mismatch"}
+    assert "r1" in am                                            # oran 0.4 < 0.5: mutlak kural (medyan 1.5'ten sapma da var)
+    sub = issues_for_floor(fl, NameMap(), {}, enabled={"open_room"})
+    assert all(i.kind == "open_room" for i in sub)

@@ -78,6 +78,11 @@ validate:                        # Adım 7 issue üretimi (perception/validate.p
   budget_hard: 10                      # hard (heavy) dosyada etki sırasıyla ilk N issue
   budget_typical_target: 10            # raporlama hedefi: typical ≤ 10, medyan ≤ 8
   budget_median_target: 8
+  # --- yeni tipler (kullanıcı kararı 2026-09-05)
+  area_abs_low: 0.5                    # yazı/geometri oranı bu altında ya da area_abs_high üstünde → her zaman issue
+  area_abs_high: 2.0
+  exterior_touch_m: 0.3                # oda kenarı kat dış sınırına bu kadar yakınsa dış duvara değiyor
+  swing_margin_min: 0.15               # açılış yönü skoru: en iyi − ikinci < bu → door_side_ambiguous
 stats:                                 # içerik-istatistiği katman sınıflandırması (names.stats_class)
   min_entities: 10
   long_line_m: 1.0                     # bu uzunluktan uzun düz çizgi yoksa → yapısal değil

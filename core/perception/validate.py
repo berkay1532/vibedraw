@@ -13,10 +13,10 @@ from core.perception.config import T
 from core.perception.ir import BuildingIR, Floor, Issue, ValidationReport
 from core.perception.ir_v1 import BuildingIR as BuildingIRv1
 from core.perception.names import EMPTY, LayerClass, NameMap
-from core.perception.vocab import EXEMPT_ROOM_WORDS, fold, has_word
+from core.perception.vocab import EXEMPT_ROOM_WORDS, WINDOW_EXPECTED_ROOM_WORDS, WINDOW_EXPECTED_SHORT, fold, has_word
 
-PRIORITY = ("unknown_layer", "conflicting_layer", "unit_suspect", "open_room", "room_no_door",
-            "ambiguous_opening", "area_mismatch")
+PRIORITY = ("unknown_layer", "conflicting_layer", "unit_suspect", "open_room", "room_no_door", "window_missing",
+            "door_side_ambiguous", "ambiguous_opening", "area_mismatch")
 LAYER_OPTIONS = ["duvar", "kapı", "pencere", "mobilya", "yazı", "yoksay"]
 
 
@@ -46,14 +46,31 @@ def _is_stair_name(name: Optional[str]) -> bool:
     return exempt_room_type(name) == "stair"
 
 
-def issues_for_floor(fl: Floor, names: NameMap = EMPTY, layer_counts: Optional[dict] = None) -> list[Issue]:
+def window_expected_type(name: Optional[str]) -> Optional[str]:
+    """window_missing: yalnız bedroom/living/kitchen/study (vocab.WINDOW_EXPECTED_ROOM_WORDS; 'ODA' tam kelime → bedroom)."""
+    if not name:
+        return None
+    for t, words in WINDOW_EXPECTED_ROOM_WORDS.items():
+        if has_word(name, words):
+            return t
+    import re as _re
+    toks = set(_re.findall(r"[a-zçğıöşü]+", fold(name)))
+    if any(w in toks for w in WINDOW_EXPECTED_SHORT):
+        return "bedroom"
+    return None
+
+
+def issues_for_floor(fl: Floor, names: NameMap = EMPTY, layer_counts: Optional[dict] = None,
+                     enabled: Optional[set] = None) -> list[Issue]:
+    """enabled: yalnız bu tipler üretilir (None = hepsi); kapsama ölçümü için."""
     V = T("validate")
     out: list[Issue] = []
+    on = (lambda k: enabled is None or k in enabled)
     # --- unknown_layer: sınıfı bilinmeyen kalabalık katmanlar; entity × duvar-benzeri geometri oranına göre ilk N
     from core.perception.names import wall_like_ratio
     cands = []
     for layer, n in (layer_counts or {}).items():
-        if n >= V["unknown_layer_min_entities"] and names.cls(layer) is LayerClass.unknown:
+        if on("unknown_layer") and n >= V["unknown_layer_min_entities"] and names.cls(layer) is LayerClass.unknown:
             st = (names.stats or {}).get(layer, {})
             ratio = wall_like_ratio(st) if st else 0.0
             cands.append((n * ratio, n, ratio, layer))
@@ -69,7 +86,7 @@ def issues_for_floor(fl: Floor, names: NameMap = EMPTY, layer_counts: Optional[d
         by_layer[lay] = (tot + 1, con + (1 if w.evidence.note == "conflicting_signal" else 0))
     for lay, (tot, con) in sorted(by_layer.items(), key=lambda kv: -kv[1][1]):
         ratio = con / tot if tot else 0.0
-        if con >= V["conflicting_layer_min_count"] and ratio >= V["conflicting_layer_min_ratio"]:
+        if on("conflicting_layer") and con >= V["conflicting_layer_min_count"] and ratio >= V["conflicting_layer_min_ratio"]:
             vote = names.cls(lay).value if lay != "?" else "unknown"
             out.append(Issue("conflicting_layer", f"layer:{lay}",
                              f"'{lay}' katmanı: geometri {con}/{tot} segmentte duvar çifti diyor, katman sınıfı '{vote}' diyor. Bu çizgiler ne?",
@@ -78,7 +95,7 @@ def issues_for_floor(fl: Floor, names: NameMap = EMPTY, layer_counts: Optional[d
     # --- unit_suspect: upm standart değerlerden uzak
     upm = fl.params.units_per_meter
     std = V["unit_standard_upm"]; tol = V["unit_tol_frac"]
-    if upm and not any(abs(upm - s) <= tol * s for s in std):
+    if on("unit_suspect") and upm and not any(abs(upm - s) <= tol * s for s in std):
         out.append(Issue("unit_suspect", "file",
                          f"Birim kestirimi {upm:.1f} birim/m ({fl.params.units_source}); standart değerlere (m/dm/cm/mm) uzak. Çizim birimi ne?",
                          ["m", "dm", "cm", "mm", "inç"], {"upm": round(upm, 2), "source": fl.params.units_source}))
@@ -89,22 +106,26 @@ def issues_for_floor(fl: Floor, names: NameMap = EMPTY, layer_counts: Optional[d
     door_rooms = {op.rooms[0] for op in fl.openings if op.kind == "door" and op.rooms and op.rooms[0]}
     for r in fl.rooms:
         if not r.polygon:
-            out.append(Issue("open_room", r.id, f"'{r.raw_name}' odasının poligonu kapanmıyor (sızma/boşluk). Boşluk ne?",
+            if on("open_room"):
+                out.append(Issue("open_room", r.id, f"'{r.raw_name}' odasının poligonu kapanmıyor (sızma/boşluk). Boşluk ne?",
                              ["kapı", "geçiş", "pencere", "duvar eksik", "yoksay"], {"name": r.raw_name}))
             continue
         ex = exempt_room_type(r.raw_name)
-        if r.id not in door_rooms and not ex:
+        if on("room_no_door") and r.id not in door_rooms and not ex:
             out.append(Issue("room_no_door", r.id, f"'{r.raw_name}' odasına açılan kapı yok. Giriş nerede?",
                              ["kapı eksik", "açık geçiş", "sürgülü kapı", "yoksay"], {"name": r.raw_name}))
-        if r.area_m2_text and r.area_m2_geom and conv:
-            dev = abs(r.area_m2_text / r.area_m2_geom / conv - 1.0)
-            if dev > V["area_convention_dev"]:
+        if r.area_m2_text and r.area_m2_geom and conv and on("area_mismatch"):
+            ratio = r.area_m2_text / r.area_m2_geom
+            dev = abs(ratio / conv - 1.0)
+            absolute = ratio < V["area_abs_low"] or ratio > V["area_abs_high"]     # mutlak aykırılık her zaman issue
+            if dev > V["area_convention_dev"] or absolute:
                 out.append(Issue("area_mismatch", r.id,
                                  f"'{r.raw_name}': yazı {r.area_m2_text} m², geometri {r.area_m2_geom} m²; oran dosya medyanından %{dev * 100:.0f} sapıyor. Hangisi doğru?",
                                  ["yazı", "geometri", "ikisi de yanlış"],
                                  {"text": r.area_m2_text, "geom": r.area_m2_geom, "dev": round(dev, 3), "convention": fl.params.area_convention}))
     # --- açıklıklar: düşük güvenli adaylar; yalnız PENCERESİZ odaya değenler, dosya başına TEK toplu soru
     from shapely.geometry import Point, Polygon
+    from shapely.ops import unary_union
     upm = fl.params.units_per_meter or 100.0
     polys = []
     for r in fl.rooms:
@@ -113,6 +134,40 @@ def issues_for_floor(fl: Floor, names: NameMap = EMPTY, layer_counts: Optional[d
                 polys.append((r, Polygon(r.polygon).buffer(0)))
             except Exception:
                 pass
+    # --- window_missing: penceresi beklenen tip, dış duvara değiyor, pencere adayı (her güvende) sıfır
+    if on("window_missing") and polys:
+        try:
+            outer = unary_union([P for _, P in polys]).buffer(0)
+            ext = outer.boundary
+        except Exception:
+            ext = None
+        win_pts = [Point(op.center[0], op.center[1]) for op in fl.openings if op.kind == "window"]
+        for r, P in polys:
+            wt = window_expected_type(r.raw_name)
+            if not wt or ext is None:
+                continue
+            if P.boundary.distance(ext) > V["exterior_touch_m"] * upm:
+                continue                                       # iç oda: dış duvara değmiyor
+            Pb = P.buffer(V["ambiguous_touch_m"] * upm)
+            if any(Pb.contains(pt) for pt in win_pts):
+                continue
+            out.append(Issue("window_missing", r.id,
+                             f"'{r.raw_name}' ({wt}) dış duvara değiyor ama hiç pencere adayı yok. Pencere nerede?",
+                             ["pencere var (çizilmemiş)", "pencere yok", "yoksay"], {"name": r.raw_name, "type": wt}))
+    # --- door_side_ambiguous: açılış yayı eşleşmedi (width yok) ya da yön skoru marjı küçük
+    if on("door_side_ambiguous"):
+        id2name = {r.id: r.raw_name for r in fl.rooms}
+        for op in fl.openings:
+            if op.kind != "door":
+                continue
+            margin = (op.evidence.signals or {}).get("swing_margin")
+            no_swing = op.width is None
+            if no_swing or (margin is not None and margin < V["swing_margin_min"]):
+                why = "açılış yayı eşleşmedi (merkez-mesafesi fallback)" if no_swing else f"yön skoru marjı {margin:.2f}"
+                out.append(Issue("door_side_ambiguous", op.id,
+                                 f"Kapı {op.id}: '{id2name.get(op.rooms[0]) if op.rooms else None}' odasına atandı; {why}. Hangi odaya açılıyor?",
+                                 ["atanan oda doğru", "diğer oda", "bilinmiyor"],
+                                 {"room": op.rooms[0] if op.rooms else None, "margin": margin, "no_swing": no_swing}))
     conf_win_rooms = set()
     for op in fl.openings:
         if op.kind == "window" and op.confidence >= V["ambiguous_opening_conf"]:
@@ -128,7 +183,7 @@ def issues_for_floor(fl: Floor, names: NameMap = EMPTY, layer_counts: Optional[d
         touch = [r for r, P in polys if P.buffer(V["ambiguous_touch_m"] * upm).contains(pt)]
         if touch and all(r.id not in conf_win_rooms for r in touch):
             grouped.append(op.id); rooms_hit |= {r.id for r in touch}
-    if grouped:
+    if grouped and on("ambiguous_opening"):
         out.append(Issue("ambiguous_opening", "openings",
                          f"{len(grouped)} düşük güvenli açıklık adayı penceresiz {len(rooms_hit)} odaya değiyor. Bunlar pencere mi?",
                          ["pencere", "kapı", "geçiş", "hiçbiri"],
