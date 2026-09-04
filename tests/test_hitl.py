@@ -27,7 +27,10 @@ def test_issues_types_and_priority():
     assert kinds[0] == "unknown_layer" and iss[0].target_id == "layer:GIZEMLI"
     assert "conflicting_layer" in kinds and next(i for i in iss if i.kind == "conflicting_layer").data["count"] == 25
     assert "unit_suspect" in kinds                                  # 42 birim/m standart değil
-    assert "open_room" in kinds and "area_mismatch" in kinds and "ambiguous_opening" in kinds
+    assert "open_room" in kinds and "ambiguous_opening" in kinds
+    amb = next(i for i in iss if i.kind == "ambiguous_opening")
+    assert amb.target_id == "openings" and amb.data["targets"] == ["op2"]   # toplu; penceresiz odaya değiyor
+    assert "area_mismatch" not in kinds                             # tek oda: medyan kendisi → sapma 0
     assert not any(i.kind == "room_no_door" and i.target_id == "r3" for i in iss)   # merdiven muaf
     assert not any(i.kind == "room_no_door" and i.target_id == "r1" for i in iss)   # kapısı var
     assert kinds == sorted(kinds, key=lambda k: ["unknown_layer", "conflicting_layer", "unit_suspect", "open_room", "room_no_door", "ambiguous_opening", "area_mismatch"].index(k))
@@ -56,3 +59,33 @@ def test_cli_list_answer_and_log(tmp_path, monkeypatch):
     uidx = next(i for i, it in enumerate(cli.issues(pred)) if it["kind"] == "unit_suspect")
     assert cli.main([str(pj), "--issue", str(uidx), "--answer", "cm"]) == 0
     assert cli.load(pj)["floors"][0]["params"]["extra"]["hitl_units"]["upm"] == 100.0
+
+
+
+def test_policy_exemptions_area_convention_and_budget():
+    from core.perception.validate import exempt_room_type
+    assert exempt_room_type("BALKON") == "balcony" and exempt_room_type("TERAS") == "terrace" and exempt_room_type("ŞAFT") == "shaft"
+    assert exempt_room_type("ASANSÖR") == "elevator" and exempt_room_type("AYDINLIK") == "light_well" and exempt_room_type("SALON") is None
+    fl = _floor()
+    sq = [(0.0, 0.0), (400.0, 0.0), (400.0, 500.0), (0.0, 500.0)]
+    # üç oda oran 1.5 (konvansiyon), biri 3.0 → yalnız o issue
+    fl.rooms = [Room(f"r{i}", 0.85, Evidence(source="flood:exclusive"), polygon=sq, raw_name="ODA", area_m2_text=t, area_m2_geom=20.0, label_xy=(1, 1))
+                for i, t in enumerate((30.0, 30.0, 30.0, 60.0))]
+    iss = issues_for_floor(fl, NameMap(), {})
+    am = [i for i in iss if i.kind == "area_mismatch"]
+    assert len(am) == 1 and am[0].target_id == "r3" and fl.params.area_convention == 1.5
+    fl.params.extra["heavy"] = True
+    iss2 = issues_for_floor(fl, NameMap(), {f"L{k}": 100 for k in range(5)})
+    assert len(iss2) <= 10
+
+
+def test_unknown_layer_ranked_and_capped():
+    from core.perception.names import stats_class
+    nm = NameMap(); nm.stats = {f"L{k}": {"n": 100, "line": 50, "long": k * 10, "short": 0, "arc": 0, "small_arc": 0, "text": 0, "dim": 0, "hatch": 0, "insert": 0} for k in range(6)}
+    iss = issues_for_floor(_floor(), nm, {f"L{k}": 100 for k in range(6)})
+    ul = [i for i in iss if i.kind == "unknown_layer"]
+    assert len(ul) == 3 and ul[0].target_id == "layer:L5" and ul[0].data["wall_like_ratio"] == 1.0
+    assert stats_class({"n": 40, "line": 40, "long": 0, "short": 35, "arc": 0, "small_arc": 0, "text": 0, "dim": 0, "hatch": 0, "insert": 0})[0].value == "furniture"
+    assert stats_class({"n": 40, "line": 0, "long": 0, "short": 0, "arc": 0, "small_arc": 0, "text": 36, "dim": 2, "hatch": 0, "insert": 0})[0].value == "text"
+    assert stats_class({"n": 40, "line": 10, "long": 0, "short": 2, "arc": 5, "small_arc": 1, "text": 0, "dim": 0, "hatch": 0, "insert": 20})[0].value == "ignore"
+    assert stats_class({"n": 40, "line": 40, "long": 20, "short": 0, "arc": 0, "small_arc": 0, "text": 0, "dim": 0, "hatch": 0, "insert": 0})[0].value == "unknown"

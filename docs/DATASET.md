@@ -89,6 +89,12 @@ kalibrasyonu tutmadı). Validator bunlara `unit_suspect` issue üretir (HITL sor
 | 132_SÜMBÜLTEPE_20.01.2026 | 181.5 | doors |
 | detayli-villa-uygulama-projesi-dwg | 4528.2 | doors |
 
+## fam00 (aile 0) GT öncesi kapı/ölçek notu (2026-09-05)
+
+Kapı-adlı blok yok, kapılar standalone yay; geometri cm. Etiket-mesafesi upm'i (21–44) yanlış → kat kümeleri
+parçalanıyor, seçilen "plan" etiket tablosu, kapı kalibrasyonu 0 yay buluyor (DECISIONS (h) gözlemi). GT (541_3,
+536_1, 386_8) kat seçimi düzeltmesinden sonra çıkarılmalı.
+
 ## Aileler ve kaynak profilleri
 
 Profil anahtarı triage ailesi (`source_profiles/fam<NN>.yaml`, NN = ilk numaralandırmadaki aile indeksi; aile 4+5 → fam04).

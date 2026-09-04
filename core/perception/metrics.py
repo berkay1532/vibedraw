@@ -20,7 +20,7 @@ import math
 import re
 from dataclasses import dataclass, field
 
-from shapely.geometry import Polygon
+from shapely.geometry import Point, Polygon
 
 from core.perception.vocab import fold
 
@@ -183,7 +183,19 @@ def evaluate_floor(gt: dict, pred: dict, iou_thr=0.5, door_tol_m=0.5, window_tol
         d.update(extra)
         return d
 
+    errors = {
+        "room_fp": [j for j in range(len(pr_rooms)) if j not in {pj for _, pj, _ in rm.pairs}],
+        "room_fn": [i for i in range(len(gt_rooms)) if i not in {gi for gi, _, _ in rm.pairs}],
+        "room_name": [pj for gi, pj, _ in rm.pairs if _tr_fold(gt_rooms[gi].get("name")) != _tr_fold(pr_rooms[pj].get("raw_name"))],
+        "door_fp": [j for j in range(len(pr_doors)) if j not in {pj for _, pj, _ in dm.pairs}],
+        "door_fn": [i for i in range(len(gt_doors)) if i not in {gi for gi, _, _ in dm.pairs}],
+        "door_connect": [pj for gi, pj, _ in dm.pairs
+                         if _tr_fold(pr_doors[pj].get("room_name")) not in {_tr_fold(id2name.get(c, c)) for c in gt_doors[gi].get("connects", [])}],
+        "window_fp": [j for j in range(len(pr_win)) if j not in {pj for _, pj, _ in wm.pairs}],
+        "window_fn": [i for i in range(len(gt_win)) if i not in {gi for gi, _, _ in wm.pairs}],
+    }
     return {
+        "errors": errors,
         "rooms": block(rm, mean_iou=(round(rm.mean_iou, 3) if rm.mean_iou is not None else None),
                        name_acc=(round(rm.name_acc, 3) if rm.name_acc is not None else None)),
         "doors": block(dm, mean_err_m=(round(dm.mean_err / upm, 3) if dm.mean_err is not None else None),
@@ -192,3 +204,72 @@ def evaluate_floor(gt: dict, pred: dict, iou_thr=0.5, door_tol_m=0.5, window_tol
         "windows": block(wm, mean_err_m=(round(wm.mean_err / upm, 3) if wm.mean_err is not None else None)),
         "calibration": calibration,
     }
+
+
+# --- Issue kapsama (Adım 7 politika ölçütü) ---------------------------------------------------
+ROOM_ISSUES = {"open_room", "room_no_door", "area_mismatch"}
+
+
+def _issue_targets(issues) -> dict:
+    """target_id → issue tipleri; toplu issue'larda data.targets de açılır."""
+    out: dict = {}
+    for i in issues:
+        kinds = out.setdefault(i.get("target_id"), set()); kinds.add(i.get("kind"))
+        for t in (i.get("data") or {}).get("targets") or []:
+            out.setdefault(t, set()).add(i.get("kind"))
+    return out
+
+
+def _room_containing(pt, rooms, upm):
+    best = None
+    for r in rooms:
+        if not r.get("polygon"):
+            continue
+        try:
+            P = Polygon([(float(x), float(y)) for x, y in r["polygon"]]).buffer(0)
+        except Exception:
+            continue
+        if P.buffer(0.5 * upm).contains(Point(pt[0], pt[1])):
+            return r
+    return best
+
+
+def issue_coverage(gt: dict, pred: dict, issues: list, errors: dict) -> dict:
+    """GT-7 hata varlıkları için "onu işaret eden issue var mı": tip → (kapsanan, toplam).
+
+    Kurallar: FP oda/kapı/pencere → o tahmine hedefli issue (toplu issue'larda data.targets); FN oda → GT
+    odayı içeren tahmin odasına hedefli oda issue'su; FN kapı/pencere → GT konumunu içeren tahmin odasına
+    issue (room_no_door / toplu ambiguous_opening); yanlış ad ve yanlış bağlantı → kapsanmaz (issue tipi yok)."""
+    from shapely.geometry import Point  # noqa: F401 (yerel kullanım)
+    upm = float(gt.get("units_per_meter") or 100.0)
+    gf = gt["floor"]; pr_rooms = pred.get("rooms", []); pr_doors = pred.get("doors", []); win_meta = pred.get("window_meta") or []
+    tg = _issue_targets(issues)
+    cov: dict = {}
+
+    def add(kind, ok):
+        c, t = cov.get(kind, (0, 0)); cov[kind] = (c + (1 if ok else 0), t + 1)
+
+    for j in errors["room_fp"]:
+        add("room_fp", bool(tg.get(pr_rooms[j].get("id"), set()) & ROOM_ISSUES))
+    for i in errors["room_fn"]:
+        g = gf["rooms"][i]; poly = g.get("polygon") or []
+        c = ([sum(p[0] for p in poly) / len(poly), sum(p[1] for p in poly) / len(poly)] if poly else None)
+        r = _room_containing(c, pr_rooms, upm) if c else None
+        add("room_fn", bool(r and tg.get(r.get("id"), set()) & ROOM_ISSUES))
+    for j in errors["door_fp"]:
+        add("door_fp", "ambiguous_opening" in tg.get(pr_doors[j].get("id"), set()))
+    for i in errors["door_fn"]:
+        r = _room_containing(gf["doors"][i]["hinge"], pr_rooms, upm)
+        add("door_fn", bool(r and tg.get(r.get("id"), set()) & {"room_no_door", "open_room", "ambiguous_opening"}))
+    for j in errors["window_fp"]:
+        wid = win_meta[j].get("id") if j < len(win_meta) else None
+        add("window_fp", "ambiguous_opening" in tg.get(wid, set()))
+    for i in errors["window_fn"]:
+        w = gf["windows"][i]; m = _mid((w["a"], w["b"]))
+        r = _room_containing(m, pr_rooms, upm)
+        add("window_fn", bool(r and tg.get(r.get("id"), set()) & {"ambiguous_opening", "open_room"}))
+    for j in errors["room_name"]:
+        add("room_name", False)
+    for j in errors["door_connect"]:
+        add("door_connect", False)
+    return cov

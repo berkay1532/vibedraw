@@ -225,7 +225,38 @@ uygulanmayan iyileştirme fikri; uygulanınca "karar" olur ve commit'i yazılır
   triage.room_hits/electrical_hits, windows._window_word, sheets başlık kelimeleri. Davranış değişir (İngilizce
   altlıklar): triage ADAY seti ve eval farkı EVAL_HISTORY'de dosya bazında.
 
+- **[karar] 2026-09-05 — Adım 7 issue politikası (kullanıcı kararları a–g).** (a) `metrics.issue_coverage`:
+  GT-7'deki her hatalı varlık (FP/FN oda-kapı-pencere, yanlış ad, yanlış bağlantı) için onu işaret eden issue
+  var mı; evaluate "Issue kapsama" tablosu; her politika değişikliği issue/dosya + kapsama ile raporlanır.
+  (b) `names.layer_stats/stats_class/refine_with_stats`: 3. kademe içerik istatistiği (upm bilinince): uzun düz
+  çizgisi (≥1 m) olmayan katman → yazı/ölçü payı ≥ %80 text/dim, tarama ≥ %80 hatch, küçük yay + kısa çizgi
+  ≥ %60 furniture, aksi ignore (güven 0,4, kaynak stats); uzun çizgisi olan katmana karar verilmez. Kalan
+  unknown katmanlar entity × uzun-çizgi-oranı ile sıralanır, dosya başına en fazla 3 unknown_layer.
+  (c) ambiguous_opening: yalnız penceresiz odaya (≤0,3 m) değen düşük güvenli adaylar, dosya başına tek toplu
+  issue (data.targets; CLI cevabı her hedefe uygulanır). (d) `FileParams.area_convention` = dosya medyanı
+  (yazı/geometri); yalnız medyandan ±%20 sapan odalar area_mismatch. (e) room_no_door muafiyeti
+  `vocab.EXEMPT_ROOM_WORDS` {balcony, terrace, shaft, stair, elevator, light_well}. (f) bütçe: heavy dosyada
+  etki sırasıyla ilk 10 (`budget_dropped` son issue'da); hedef typical ≤ 10, medyan ≤ 8. (g) run_baseline
+  önceki pred JSON'daki `hitl_layer_overrides` (sınıf güven 1,0, kaynak hitl) ve `hitl_units` (upm, kestirim
+  atlanır) ile yeniden koşar; cevaplar yeni IR'a taşınır. Eşikler `thresholds.validate.* / stats.*`.
+  Davranış etkisi: stats kademesi text/dim/ignore sınıfları ince-çizgi pencere adayı dışlamasına girer
+  (pencere F1 değişebilir); eval farkı EVAL_HISTORY'de.
+- **[gözlem] 2026-09-05 — (h) fam00 kapı/ölçek raporu (GT öncesi).** Aile 0 dosyalarında (541_3, 541_5,
+  553_3, 554_1, 560_8, 386_8, 6249, 536_1) kapı-adlı blok yok; kapılar modelspace'te standalone ARC (541_3: 63
+  yay 55–130 cm bandında; 553_3: 131; 560_8: 48). $INSUNITS 5 (cm) ya da 6 (m) ama geometri cm. upm 21–44'ün
+  nedeni: etiket-mesafesi kestirimi (tipik oda 3,5 m varsayımı) bu dosyalarda yoğun etiket gruplarından
+  (mahal listesi/lejant, tekrar eden "SALON+MUTFAK") 37–67 birim medyan üretiyor → upm 21–41; yanlış upm ile
+  7 m kümeleme aralığı 1,5–3 m'ye düşüyor, kat kümeleri parçalanıyor ve seçilen "plan" bir etiket tablosu
+  oluyor (541_3: 32 etiket, 4×6 m bbox, 0 kapı yayı). Kapı-yayı kalibrasyonu yalnız bu yanlış kümelerin
+  bbox'ında bakıyor → 0 yay → düzeltme yok. Doğru öncülle (upm 100) kümeleme 29 ve 25 odalı gerçek katları
+  buluyor (20×12 m, 25/23 kapı yayı). 536_1 tek istisna (kapı yayı bulundu, upm 76). Öneri (GT öncesi, ayrı
+  ölçüm): kapı kanıtı hiçbir kümede yoksa standart öncüllerle (100, 1000, 1) yeniden kümeleyip kapı
+  kanıtı aramak; GT (541_3, 536_1, 386_8) bu düzeltmeden SONRA çıkarılmalı, aksi halde ölçek ve kat seçimi
+  tartışmalı olur.
+
 ## Adaylar (uygulanmadı)
+
+- **[aday] 2026-09-05 — kat seçimi: kapı kanıtı yoksa standart upm öncülleriyle yeniden kümeleme** (fam00 raporu). Ayrı commit, dosya bazında fark ölçülür.
 
 - **[aday] 2026-09-04 — Adım 6 devamı:** (a) walls/windows/rooms/polygons/raster/blocks sabitleri thresholds'a (envanter yukarıda); (b) duvar sinyalleri `parallel_pair` (katman sınıfından bağımsız) + `layer_class` + `thickness_mode`, çelişki → düşük güvenli duvar + conflicting_signal (HITL #22); (c) oda/pencere güven tabloları (ir_compat) → scoring; (d) `swing.max_dist_units` metreye; (e) run_floor imza varsayılanları FileParams'a.
 

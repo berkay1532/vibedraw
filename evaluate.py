@@ -65,6 +65,7 @@ def main(argv=None) -> int:
     cal = {"rooms": [], "doors": [], "windows": []}
     cal_src = {"rooms": [], "doors": [], "windows": []}
     pair_acc = []
+    cov_tot: dict = {}                          # issue kapsama: tip → (kapsanan, toplam)
     tiers = {}                                  # GT meta.tier: easy | normal | hard (dosya zorluğu, raporda)
     fam_of = {}                                 # GT dosyası → pred params.extra.family_id
     issue_of = {}                               # GT dosyası → {issue tipi: sayı}
@@ -80,6 +81,11 @@ def main(argv=None) -> int:
         issue_of[gp.stem] = _ic((pj.get("validation") or {}).get("issues") or [])
         pred = load_floor_for_eval(pj)   # v1 veya v2 JSON
         r = evaluate_floor(gt, pred)
+        from core.perception.metrics import issue_coverage
+        cv = issue_coverage(gt, pred, (pj.get("validation") or {}).get("issues") or [], r["errors"])
+        r["coverage"] = cv
+        for k, (c, t) in cv.items():
+            c0, t0 = cov_tot.get(k, (0, 0)); cov_tot[k] = (c0 + c, t0 + t)
         rows.append((gp.stem, r))
         for k in ("rooms", "doors", "windows"):
             cal[k] += r["calibration"][k]
@@ -194,6 +200,15 @@ def main(argv=None) -> int:
         L.append(f"| {name} | {sum(cnt.values())}{' ⚠' if sum(cnt.values()) > tgt else ''} | " + ", ".join(f"{k}:{v}" for k, v in sorted(cnt.items(), key=lambda kv: -kv[1])) + " |")
     if issue_of:
         L.append(f"| **toplam** | {sum(agg_issue.values())} | " + ", ".join(f"{k}:{v}" for k, v in sorted(agg_issue.items(), key=lambda kv: -kv[1])) + " |")
+    # Issue kapsama: GT'deki her hatalı varlık için onu işaret eden issue var mı (politika ölçütü)
+    L.append("\n## Issue kapsama (hatalı varlık → onu işaret eden issue)\n")
+    L.append("| Hata tipi | Kapsanan / toplam | Oran |")
+    L.append("|---|---:|---:|")
+    for k in ("room_fp", "room_fn", "door_fp", "door_fn", "window_fp", "window_fn", "room_name", "door_connect"):
+        c, t = cov_tot.get(k, (0, 0))
+        L.append(f"| {k} | {c} / {t} | {(c / t if t else 0):.2f} |")
+    ca, ta = sum(c for c, _ in cov_tot.values()), sum(t for _, t in cov_tot.values())
+    L.append(f"| **toplam** | {ca} / {ta} | {(ca / ta if ta else 0):.2f} |")
     L.append("\n## Dosya bazında\n")
     L.append("| Dosya | Aile | Tier | Küme | Oda F1 | Oda IoU | Ad | Kapı F1 | Kapı hata (m) | Bağlantı | Pencere F1 |")
     L.append("|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|")

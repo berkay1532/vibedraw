@@ -79,6 +79,7 @@ class NameMap:
     family_id: str = "unknown"
     match: str = "none"            # fingerprint | structural | jaccard | none
     match_score: float = 0.0
+    stats: dict = field(default_factory=dict)   # layer_stats (unknown_layer sıralaması için)
 
     def cls(self, layer: str) -> LayerClass:
         return self.classes.get(layer, (LayerClass.unknown, 0.0, "none"))[0]
@@ -171,3 +172,87 @@ def names_for(doc, profiles: Optional[list] = None, fingerprint: Optional[str] =
     profs = load_profiles() if profiles is None else profiles
     prof, how, score = match_profile(layer_names, profs, fingerprint)
     return classify_layers(layer_names, prof, how, score)
+
+
+# --- 3. kademe: içerik istatistiği (kullanıcı kararı 2026-09-05) -----------------------------
+def layer_stats(doc, upm: float) -> dict:
+    """Katman → entity istatistiği (modelspace): n, line, long (≥ long_line_m), short (≤ short_line_m),
+    arc, small_arc (≤ small_arc_m), text, dim, hatch, insert."""
+    import math
+    from core.perception.config import T
+    S = T("stats"); long_u, short_u, small_u = S["long_line_m"] * upm, S["short_line_m"] * upm, S["small_arc_m"] * upm
+    st: dict = {}
+    for e in doc.modelspace():
+        try:
+            lay = e.dxf.layer
+        except Exception:
+            continue
+        d = st.setdefault(lay, {"n": 0, "line": 0, "long": 0, "short": 0, "arc": 0, "small_arc": 0, "text": 0, "dim": 0, "hatch": 0, "insert": 0})
+        d["n"] += 1; t = e.dxftype()
+        try:
+            if t == "LINE":
+                L = math.hypot(e.dxf.end[0] - e.dxf.start[0], e.dxf.end[1] - e.dxf.start[1])
+                d["line"] += 1; d["long"] += L >= long_u; d["short"] += L <= short_u
+            elif t in ("LWPOLYLINE", "POLYLINE"):
+                pts = [(p[0], p[1]) for p in e.get_points("xy")] if t == "LWPOLYLINE" else [(v.dxf.location[0], v.dxf.location[1]) for v in e.vertices]
+                for a, b in zip(pts, pts[1:]):
+                    L = math.hypot(b[0] - a[0], b[1] - a[1]); d["line"] += 1; d["long"] += L >= long_u; d["short"] += L <= short_u
+            elif t in ("ARC", "CIRCLE"):
+                d["arc"] += 1; d["small_arc"] += e.dxf.radius <= small_u
+            elif t in ("TEXT", "MTEXT", "ATTRIB"):
+                d["text"] += 1
+            elif t == "DIMENSION":
+                d["dim"] += 1
+            elif t == "HATCH":
+                d["hatch"] += 1
+            elif t == "INSERT":
+                d["insert"] += 1
+        except Exception:
+            pass
+    return st
+
+
+def stats_class(d: dict):
+    """İstatistikten sınıf: (sınıf, güven) ya da (unknown, 0). Uzun düz çizgisi olmayan katman yapısal
+    değildir: yazı/ölçü payı yüksekse text/dim, tarama payı yüksekse hatch, küçük yay + kısa çizgi
+    yoğunsa furniture, aksi halde ignore. Uzun çizgisi varsa karar verilmez (unknown)."""
+    from core.perception.config import T
+    S = T("stats"); n = d.get("n", 0)
+    if n < S["min_entities"]:
+        return LayerClass.unknown, 0.0
+    if (d["text"] + d["dim"]) / n >= S["text_share"]:
+        return (LayerClass.dim if d["dim"] > d["text"] else LayerClass.text), S["conf"]
+    if d["hatch"] / n >= S["hatch_share"]:
+        return LayerClass.hatch, S["conf"]
+    if d["long"] == 0:
+        if (d["small_arc"] + d["short"]) / n >= S["furniture_share"]:
+            return LayerClass.furniture, S["conf"]
+        return LayerClass.ignore, S["conf"]
+    return LayerClass.unknown, 0.0
+
+
+def wall_like_ratio(d: dict) -> float:
+    """Katmanın duvar-benzeri geometri oranı: uzun düz çizgi / tüm çizgi (unknown_layer sıralaması)."""
+    return d["long"] / d["line"] if d.get("line") else 0.0
+
+
+def refine_with_stats(nm: NameMap, stats: dict) -> NameMap:
+    """Bilinmeyen katmanları içerik istatistiğiyle sınıflar (kaynak 'stats', güven thresholds stats.conf)."""
+    for lay, d in stats.items():
+        c, conf, src = nm.classes.get(lay, (LayerClass.unknown, 0.0, "none"))
+        if c is LayerClass.unknown:
+            c2, conf2 = stats_class(d)
+            if c2 is not LayerClass.unknown:
+                nm.classes[lay] = (c2, conf2, "stats")
+    nm.stats = stats
+    return nm
+
+
+def apply_overrides(nm: NameMap, overrides: Optional[dict]) -> NameMap:
+    """HITL katman cevapları (params.extra.hitl_layer_overrides): sınıf güven 1.0, kaynak 'hitl'."""
+    for lay, cls in (overrides or {}).items():
+        try:
+            nm.classes[lay] = (LayerClass(cls), 1.0, "hitl")
+        except ValueError:
+            pass
+    return nm

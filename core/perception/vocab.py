@@ -112,3 +112,14 @@ LAYER_WORDS = {
 ELECTRICAL_LAYER_WORDS = ("elk", "elektrik", "priz", "aydinlatma", "aydınlatma", "linye", "armatür", "armatur",
                           "sigorta", "pano", "anahtar", "buat", "sorti", "kolon hatti", "kolon hattı")
 ELECTRICAL_BLOCK_WORDS = ("anahtar", "buat", "priz", "armatür", "armatur", "etanj", "ayd", "sigorta", "pano", "lamba", "aplik")
+
+
+# --- room_no_door muafiyeti (validate; kullanıcı kararı 2026-09-05) ------------------------
+EXEMPT_ROOM_WORDS = {
+    "balcony": ("balkon", "balcony"),
+    "terrace": ("teras", "terrace"),
+    "shaft": ("şaft", "saft", "shaft"),
+    "stair": ("merdiven", "stair"),
+    "elevator": ("asansör", "asansor", "elevator", "lift"),
+    "light_well": ("aydınlık", "aydinlik", "ışıklık", "isiklik", "light well", "lightwell"),
+}

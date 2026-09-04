@@ -19,12 +19,13 @@ ROOT = Path(__file__).resolve().parents[2]
 # etkiler, hash'e girmez.
 CODE_GLOBS = ("core/perception/*.py", "core/perception/signals/*.py", "config/thresholds.yaml", "config/weights.yaml",
               "source_profiles/*.yaml", "source_profiles/unions/*.json", "experiments/run_baseline.py")
+EXCLUDE = {"core/perception/metrics.py"}          # yalnız ölçüm; tahmini etkilemez
 
 
 def code_files(root: Path = ROOT, globs=CODE_GLOBS) -> list[Path]:
     out: list[Path] = []
     for g in globs:
-        out += sorted(root.glob(g))
+        out += sorted(p for p in root.glob(g) if str(p.relative_to(root)) not in EXCLUDE)
     return out
 
 

@@ -92,6 +92,7 @@ class FileParams:
     wall_thickness: Optional[tuple] = None         # duvar kalınlık aralığı (birim)
     wall_min_overlap: Optional[float] = None
     wall_thickness_modes: list = field(default_factory=list)   # kalınlık histogram modları (m); thickness_mode sinyali
+    area_convention: Optional[float] = None       # dosya medyanı: yazı alanı / geometri alanı (area_mismatch referansı)
     extra: dict = field(default_factory=dict)      # big_blocks, family_id, layer_classes vb.
 
     def to_mm(self, p: Point) -> Point:

@@ -108,8 +108,8 @@ taşınır, mantık değişmez. `reconstruct` yalnızca sıralayan bir orkestrat
 ## Adım 7 — Validator + issue üretimi
 - [x] `validate.py`: ARCHITECTURE §7 tablosundaki issue tipleri (+ conflicting_layer, unit_suspect; unlabeled_region/unit_split planlı); `ValidationReport` IR'da.
 - [x] `evaluate.py`'ye "issue/dosya" ve "issue tipine göre dağılım" ekle.
-- [~] `hitl/cli.py`: issue'ları sırayla göster (crop PNG + seçenekler), cevabı
-      `learning/log.py`'ye yaz, cevabı IR'a uygula (yapıldı); ilgili aşamadan yeniden koş (yok — aday).
+- [x] `hitl/cli.py`: issue'ları sırayla göster (crop PNG + seçenekler), cevabı
+      `learning/log.py`'ye yaz, cevabı IR'a uygula, ilgili aşamadan yeniden koş (run_baseline hitl override'ları okur) — yapıldı.
 
 **Kabul:** 7 GT dosyasında issue listesi elle bakıldığında anlamlı (sahte issue < %30).
 

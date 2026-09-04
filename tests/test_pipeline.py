@@ -66,3 +66,11 @@ def test_run_file_reads_dxf_once(synthetic_dxf, monkeypatch):
     monkeypatch.setattr(C.ezdxf, "readfile", counting)
     P.run_file(synthetic_dxf)
     assert len(calls) == 1
+
+
+
+def test_hitl_overrides_apply(synthetic_dxf):
+    from core.perception.names import LayerClass
+    sel = select_plan(synthetic_dxf, overrides={"layers": {"YAZI": "ignore"}, "upm": 250.0})
+    assert sel.upm == 250.0 and sel.stats["upm_source"] == "hitl"
+    assert sel.names.classes["YAZI"] == (LayerClass.ignore, 1.0, "hitl")

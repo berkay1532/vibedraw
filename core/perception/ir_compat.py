@@ -132,7 +132,7 @@ def to_v2(b1, units_per_meter: float = 100.0, units_source: str = "labels",
 def floor_v2_to_eval(fl: dict) -> dict:
     """v2 kat sözlüğü → v1 benzeri {rooms, doors, windows} (+ confidence alanları)."""
     id2name = {r["id"]: r.get("raw_name") for r in fl.get("rooms", [])}
-    rooms = [{"raw_name": r.get("raw_name"), "polygon": r.get("polygon") or None,
+    rooms = [{"id": r.get("id"), "raw_name": r.get("raw_name"), "polygon": r.get("polygon") or None,
               "label_xy": r.get("label_xy"), "geometry_ok": bool(r.get("polygon")),
               "confidence": r.get("confidence"), "source": (r.get("evidence") or {}).get("source"),
               "aliases": r.get("aliases", []), "room_type": r.get("room_type")} for r in fl.get("rooms", [])]
@@ -140,7 +140,7 @@ def floor_v2_to_eval(fl: dict) -> dict:
     for op in fl.get("openings", []):
         if op.get("kind") == "door":
             a, b = (op.get("rooms") or (None, None))[:2]
-            doors.append({"xy": op.get("hinge") or op.get("center"), "room_name": id2name.get(a),
+            doors.append({"id": op.get("id"), "xy": op.get("hinge") or op.get("center"), "room_name": id2name.get(a),
                           "room_name_2": id2name.get(b), "rooms": (a, b),
                           "confidence": op.get("confidence"), "source": (op.get("evidence") or {}).get("source"),
                           "strike_xy": None})
@@ -148,7 +148,7 @@ def floor_v2_to_eval(fl: dict) -> dict:
             c, w = op.get("center"), op.get("width") or 0.0
             # yön bilgisi yok: orta noktadan simetrik yatay parça (ölçüm orta noktayı kullanır)
             windows.append([[c[0] - w / 2, c[1]], [c[0] + w / 2, c[1]]])
-            win_conf.append({"confidence": op.get("confidence"), "source": (op.get("evidence") or {}).get("source")})
+            win_conf.append({"id": op.get("id"), "confidence": op.get("confidence"), "source": (op.get("evidence") or {}).get("source")})
     walls = [[w["a"], w["b"]] for w in fl.get("walls", [])]
     return {"rooms": rooms, "doors": doors, "windows": windows, "window_meta": win_conf, "walls": walls,
             "big_blocks": (fl.get("params") or {}).get("extra", {}).get("big_blocks")}

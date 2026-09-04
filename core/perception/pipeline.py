@@ -21,7 +21,8 @@ from core.perception.calibration import (estimate_units_from_doors, estimate_uni
                                          scaled_params)
 from core.perception.config import T
 from core.perception.ir_compat import to_v2
-from core.perception.names import NameMap, names_for
+from core.perception.names import NameMap, apply_overrides, layer_stats, names_for, refine_with_stats
+from core.perception.triage import HEAVY_BLOCK_ENTITIES, HEAVY_ENTITIES
 from core.perception.scoring import score
 from core.perception.signals.block import block_class, window_source
 from core.perception.calibration import thickness_modes
@@ -257,7 +258,7 @@ def label_floors(dxf_path: str, gap: float) -> list[Floor]:
     return cluster_floors_2d(pair_names_with_areas(extract_room_labels(dxf_path)), gap=gap)
 
 
-def select_plan(dxf_path: str, doc=None) -> PlanSelection:
+def select_plan(dxf_path: str, doc=None, overrides: dict | None = None) -> PlanSelection:
     """Genel etiket çıkarımı + ölçek + kat seçimi (tek yol). DXF bir kez okunur; belge
     PlanSelection.doc ile run_selected/run_floor'a taşınır (AVİDA: 12 okuma → 1, DECISIONS)."""
     if doc is None:
@@ -268,6 +269,8 @@ def select_plan(dxf_path: str, doc=None) -> PlanSelection:
     except Exception:
         fingerprint = ""
     names = names_for(doc, fingerprint=fingerprint)      # kaynak profili + sözlük → katman sınıfları
+    overrides = overrides or {}
+    apply_overrides(names, overrides.get("layers"))      # HITL katman cevapları (run_baseline yeniden koşu)
     layer_counts: dict = {}
     for e in msp:
         try:
@@ -279,12 +282,16 @@ def select_plan(dxf_path: str, doc=None) -> PlanSelection:
     upm0 = estimate_units_per_meter(labels)
     labels = dedupe_labels(labels, tol=TL["dedupe_m"] * upm0)      # 50 cm içindeki tekrarlar
     upm = estimate_units_per_meter(labels)
+    if overrides.get("upm"):                                        # HITL birim cevabı: kestirim atlanır
+        upm0 = upm = float(overrides["upm"])
     rooms = pair_names_with_areas(labels)
     floors = cluster_floors_2d(rooms, gap=TL["cluster_gap_m"] * upm)    # 7 m'den yakın etiketler aynı çizim
     floors = [f for f in floors if len(f.rooms) >= TL["min_rooms"]]
     stats = {"labels": len(labels), "rooms": len(rooms), "upm": round(upm, 1),
              "floors": [len(f.rooms) for f in floors],
              "family": names.family_id, "family_match": f"{names.match}:{names.match_score:.2f}"}
+    if overrides.get("upm"):
+        stats["upm_source"] = "hitl"
     sel = PlanSelection(labels=labels, rooms=rooms, floors=floors, upm=upm, stats=stats, doc=doc,
                         names=names, fingerprint=fingerprint, layer_counts=layer_counts)
     if not floors:
@@ -303,7 +310,7 @@ def select_plan(dxf_path: str, doc=None) -> PlanSelection:
         floor = with_doors[0]; floor.index = 0
         stats["pick"] = "doors"
     # Ölçeği kapı yaylarından düzelt (etiket-mesafesi tahmini kaba)
-    upm_doors = estimate_units_from_doors(dxf_path, _floor_bbox(floor, TL["bbox_margin_m"] * upm), upm, msp=msp, names=names)
+    upm_doors = None if overrides.get("upm") else estimate_units_from_doors(dxf_path, _floor_bbox(floor, TL["bbox_margin_m"] * upm), upm, msp=msp, names=names)
     stats["upm_labels"] = round(upm, 1)
     acc = TD["upm_ratio_accept"]
     if upm_doors and acc[0] * upm <= upm_doors <= acc[1] * upm:   # etiket öncülü kaba; kapı kümesi güçlü kanıt
@@ -322,6 +329,14 @@ def select_plan(dxf_path: str, doc=None) -> PlanSelection:
             stats["floors"] = [len(f.rooms) for f in floors2]
             sel.floors = floors2
     sel.floor, sel.upm = floor, upm
+    # 3. kademe: içerik istatistiği (upm bilinince); bilinmeyen katmanlar text/dim/hatch/furniture/ignore olabilir
+    refine_with_stats(names, layer_stats(doc, upm))
+    n_ent = sum(layer_counts.values())
+    try:
+        n_blk = sum(len(b) for b in doc.blocks if not b.name.lower().startswith(("*model_space", "*paper_space")))
+    except Exception:
+        n_blk = 0
+    stats["heavy"] = bool(n_ent >= HEAVY_ENTITIES or n_blk >= HEAVY_BLOCK_ENTITIES)
     return sel
 
 
@@ -345,6 +360,7 @@ def run_selected(dxf_path: str, sel: PlanSelection, *, max_cells: int = MAX_CELL
     extra["family_id"] = sel.names.family_id
     extra["family_match"] = sel.names.match
     extra["layer_classes"] = sel.names.summary()
+    extra["heavy"] = bool(sel.stats.get("heavy"))
     fparams = file_params(upm, sel.stats.get("upm_source", "labels"), extra)   # dosyadan türeyenler tek nesnede
     fparams.res = p["res"]                                                    # hücre sınırı düzeltmesi dahil
     fparams.wall_thickness_modes = list(getattr(f, "wall_thickness_modes", []) or [])
@@ -354,9 +370,9 @@ def run_selected(dxf_path: str, sel: PlanSelection, *, max_cells: int = MAX_CELL
     return p, f, b2
 
 
-def run_file(dxf_path: str, *, max_cells: int = MAX_CELLS):
+def run_file(dxf_path: str, *, max_cells: int = MAX_CELLS, overrides: dict | None = None):
     """Tek dosya, tek yol: select_plan + run_selected. ≥3 odalı kat kümesi yoksa ValueError."""
-    sel = select_plan(dxf_path)
+    sel = select_plan(dxf_path, overrides=overrides)
     if sel.floor is None:
         raise ValueError("≥3 odalı kat kümesi yok")
     return run_selected(dxf_path, sel, max_cells=max_cells)

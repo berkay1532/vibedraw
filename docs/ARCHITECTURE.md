@@ -317,7 +317,11 @@ Validator issue tipleri (`perception/validate.py`, Adım 7; eşikler `config/thr
 | `unit_split` | daire kümesi belirsiz | "Tek daire mi?" | planlı (Adım 5d) |
 
 Sıralama: unknown_layer → conflicting_layer → unit_suspect → open_room → room_no_door → ambiguous_opening →
-area_mismatch. Dosya başına issue hedefi ≤ 5 (`validate.issues_per_file_target`; evaluate "Issue yükü" tablosu).
+area_mismatch. Politika (2026-09-05): unknown_layer dosya başına ≤ 3 (entity × uzun-çizgi oranı; içerik-istatistiği
+kademesi text/dim/hatch/furniture/ignore'u önce eler), ambiguous_opening dosya başına tek toplu soru (penceresiz
+odaya değen adaylar), area_mismatch dosya medyanından (`FileParams.area_convention`) ±%20 sapanlar, room_no_door
+muafiyeti {balcony, terrace, shaft, stair, elevator, light_well}, bütçe hard dosyada ilk 10; hedef typical ≤ 10,
+medyan ≤ 8. Ölçüt: evaluate "Issue yükü" + "Issue kapsama" (GT'deki hatalı varlığı işaret eden issue oranı).
 Her cevap `learning/log.py`'ye yazılır ve IR'a uygulanır (`hitl/cli.py`); "ilgili aşamadan yeniden koş" henüz
 yok. Yüksek güvenli tespitlerin %5'i rastgele denetime düşer (planlı).
 

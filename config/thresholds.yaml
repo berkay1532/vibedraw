@@ -70,3 +70,20 @@ validate:                        # Adım 7 issue üretimi (perception/validate.p
   unit_standard_upm: [1.0, 10.0, 100.0, 1000.0]   # m, dm, cm, mm
   unit_tol_frac: 0.25                  # upm standart değerlerden bu oranda uzaksa → unit_suspect
   issues_per_file_target: 5            # raporlama hedefi (HITL yükü)
+  # --- politika (kullanıcı kararı 2026-09-05)
+  unknown_layer_max_per_file: 3        # entity × duvar-benzeri geometri oranına göre ilk N
+  ambiguous_opening_conf: 0.5          # (yukarıdaki tekrar) toplu soru: yalnız penceresiz odaya değen adaylar
+  ambiguous_touch_m: 0.3               # aday merkezi odaya bu kadar yakınsa "değiyor"
+  area_convention_dev: 0.20            # oda oranı dosya medyanından bu kadar sapınca area_mismatch
+  budget_hard: 10                      # hard (heavy) dosyada etki sırasıyla ilk N issue
+  budget_typical_target: 10            # raporlama hedefi: typical ≤ 10, medyan ≤ 8
+  budget_median_target: 8
+stats:                                 # içerik-istatistiği katman sınıflandırması (names.stats_class)
+  min_entities: 10
+  long_line_m: 1.0                     # bu uzunluktan uzun düz çizgi yoksa → yapısal değil
+  small_arc_m: 0.3
+  short_line_m: 0.5
+  text_share: 0.8                      # TEXT/MTEXT/DIMENSION payı ≥ → text/dim
+  hatch_share: 0.8
+  furniture_share: 0.6                 # küçük yay + kısa çizgi payı ≥ (uzun çizgi yokken) → furniture
+  conf: 0.4

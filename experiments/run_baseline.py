@@ -82,9 +82,22 @@ def run_one(dxf_path: str, out_dir: str, q):
     r = {"file": name, "path": dxf_path, "stages": {}, "error": None, "fail_stage": None}
     t0 = time.time()
     # 1) genel etiket çıkarımı + ölçek + kat seçimi
+    overrides = {}
+    prev = Path(out_dir, f"{name}.json")
+    if prev.exists():                                   # HITL cevapları (hitl/cli.py): ilgili aşamadan yeniden koş
+        try:
+            ex = (json.loads(prev.read_text(encoding="utf-8")).get("floors") or [{}])[0].get("params", {}).get("extra", {})
+            if ex.get("hitl_layer_overrides"):
+                overrides["layers"] = ex["hitl_layer_overrides"]
+            if (ex.get("hitl_units") or {}).get("upm"):
+                overrides["upm"] = ex["hitl_units"]["upm"]
+        except Exception:
+            pass
     try:
-        sel = select_plan(dxf_path)
+        sel = select_plan(dxf_path, overrides=overrides)
         r["stages"]["labels_generic"] = sel.stats
+        if overrides:
+            r["stages"]["labels_generic"]["hitl_overrides"] = {k: (v if k == "upm" else len(v)) for k, v in overrides.items()}
         if sel.floor is None:
             r["fail_stage"] = "labels_generic"; r["error"] = "≥3 odalı kat kümesi yok"
             r["elapsed"] = round(time.time() - t0, 1); q.put(r); return
@@ -100,6 +113,10 @@ def run_one(dxf_path: str, out_dir: str, q):
             "walls": len(f.walls), "windows": len(f.windows), "doors": len(f.doors),
             "doors_with_room": sum(1 for d in f.doors if d.room_name),
         }
+        if overrides:                                   # cevaplar yeni IR'a taşınır (tekrar koşuda korunur)
+            ex2 = b2.floors[0].params.extra
+            if "layers" in overrides: ex2["hitl_layer_overrides"] = overrides["layers"]
+            if "upm" in overrides: ex2["hitl_units"] = {"upm": overrides["upm"]}
         Path(out_dir, f"{name}.json").write_text(json.dumps(asdict(b2), ensure_ascii=False, indent=1, default=str), encoding="utf-8")
         try:
             _render(dxf_path, f, str(Path(out_dir, f"{name}.png")), p["margin"], doc=sel.doc)

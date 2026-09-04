@@ -154,6 +154,16 @@ def apply_answer(pred: dict, iss: dict, answer: str) -> dict:
     elif iss["kind"] == "unit_suspect":
         extra["hitl_units"] = {"answer": answer, "upm": UPM_BY_ANSWER.get(answer)}
         predicted["upm"] = fl["params"]["units_per_meter"]
+    elif (iss.get("data") or {}).get("targets"):                    # toplu issue (ambiguous_opening): her hedefe uygula
+        applied = []
+        for tid in iss["data"]["targets"]:
+            _, tel = _find(fl, tid)
+            if tel is None:
+                continue
+            ok = answer == ("kapı" if tel.get("kind") == "door" else "pencere")
+            tel["status"] = "human_confirmed" if ok else "human_rejected"
+            tel.setdefault("hitl", {})["answer"] = answer; applied.append(tid)
+        predicted["targets"] = applied
     elif el is not None:
         confirms = {"room_no_door": {"kapı eksik", "açık geçiş", "sürgülü kapı"}, "ambiguous_opening": {el.get("kind") == "door" and "kapı" or "pencere"},
                     "open_room": set(), "area_mismatch": {"geometri"}}.get(iss["kind"], set())
