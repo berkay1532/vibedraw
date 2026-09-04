@@ -208,7 +208,8 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
                      default=None)
             room, strike = None, None
             if sd is not None and math.hypot(sd[0][0] - dx, sd[0][1] - dy) <= door_wall_dist * TD["swing_match_factor"]:
-                room = _room_by_swing((dx, dy), sd[1], floor.rooms)
+                room = _room_by_swing((dx, dy), sd[1], floor.rooms,
+                                      max_dist=(T("swing", "max_dist_m") * units_per_meter) if units_per_meter else None)
                 # kilit sövesi = KAPALI kanat ucu = kanat ortası bir duvara YASLI olan
                 # uç (açık kanat oda boşluğuna gider, duvara uzak). Köşe menteşelerde
                 # 'en yakın duvara paralel' testi yanılıyordu; bu test kapının asıl

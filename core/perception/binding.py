@@ -17,7 +17,7 @@ def _room_by_swing(hinge, bdir, rooms, max_dist=None):
     'En yakın etiket' değil 'yay YÖNÜ'; merkezi oda etiketi (Banyo) fazla sahiplenmez,
     bitişik kapılar (Salon/Mutfak) açılış yönüyle ayrışır.
     """
-    max_dist = T("swing", "max_dist_units") if max_dist is None else max_dist
+    max_dist = T("swing", "max_dist_units_fallback") if max_dist is None else max_dist
     cos_min, pen = T("swing", "cos_min"), T("swing", "dist_penalty")
     bx, by = bdir
     best, bscore = None, -9.0
