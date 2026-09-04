@@ -18,7 +18,8 @@ import numpy as np
 from core.perception.ir_v1 import BuildingIR, Door, Floor, Room
 from core.perception.binding import _room_by_swing, pair_names_with_areas
 from core.perception.calibration import (estimate_units_from_doors, estimate_units_per_meter, file_params,
-                                         scaled_params)
+                                         label_upm_confidence, scaled_params)
+from core.perception.openings import _swing_dirs
 from core.perception.config import T
 from core.perception.ir_compat import to_v2
 from core.perception.names import NameMap, apply_overrides, layer_stats, names_for, refine_with_stats
@@ -314,11 +315,40 @@ def select_plan(dxf_path: str, doc=None, overrides: dict | None = None) -> PlanS
     if with_doors and floor not in with_doors:
         floor = with_doors[0]; floor.index = 0
         stats["pick"] = "doors"
+    label_conf = label_upm_confidence(labels)
+    stats["upm_label_conf"] = label_conf
+    if not with_doors and not overrides.get("upm"):
+        # Kalibrasyon sağlamlığı (2026-09-05): hiçbir kümede kapı kanıtı yok → etiket öncülü şüpheli. Standart
+        # öncüllerle (cm, mm, m, dm) yeniden kümele; kapı yayı sayısı en yüksek hipotezi (küme) seç.
+        # Hipotez = toplam kapı yayı (ilk N küme) en yüksek öncül; kat = yayı güçlü (≥ hypothesis_strong_arcs) küme,
+        # yoksa o öncülün kümelerinde pick_plan_floor (zayıf kanıtla küçük kümeye kaymamak için).
+        rf = TD["calib_radius_frac"]; best = None
+        for prior in TD["standard_priors"]:
+            fl_p = [f for f in cluster_floors_2d(rooms, gap=TL["cluster_gap_m"] * prior) if len(f.rooms) >= TL["min_rooms"]]
+            arcs = []
+            for f in sorted(fl_p, key=lambda f: -len(f.rooms))[:TL["door_evidence_top"]]:
+                arcs.append((len(_swing_dirs(msp, _floor_bbox(f, TL["bbox_margin_m"] * prior), rf[0] * prior, rf[1] * prior, names=names)), f))
+            total = sum(n for n, _ in arcs)
+            if total >= TD["calib_min_doors"] and (best is None or total > best[0]):
+                best = (total, prior, arcs, fl_p)
+        if best:
+            total, prior, arcs, floors = best
+            n_arc, f_best = max(arcs, key=lambda t: t[0])
+            floor = f_best if n_arc >= TD["hypothesis_strong_arcs"] else pick_plan_floor(floors, float(prior))
+            floor.index = 0; upm = float(prior)
+            stats.update({"pick": "hypothesis", "hypothesis": {"prior": prior, "arcs_total": total, "arcs_best": n_arc,
+                                                                "floor_by": "arcs" if n_arc >= TD["hypothesis_strong_arcs"] else "plan"},
+                          "floors": [len(f.rooms) for f in floors], "upm": round(upm, 1), "upm_source": "prior"})
+            sel.floors = floors
     # Ölçeği kapı yaylarından düzelt (etiket-mesafesi tahmini kaba)
     upm_doors = None if overrides.get("upm") else estimate_units_from_doors(dxf_path, _floor_bbox(floor, TL["bbox_margin_m"] * upm), upm, msp=msp, names=names)
     stats["upm_labels"] = round(upm, 1)
-    acc = TD["upm_ratio_accept"]
+    acc = TD["hypothesis_refine_accept"] if stats.get("pick") == "hypothesis" else TD["upm_ratio_accept"]
+    if upm_doors and not (acc[0] * upm <= upm_doors <= acc[1] * upm):
+        stats["upm_doors_rejected"] = round(upm_doors, 1)
     if upm_doors and acc[0] * upm <= upm_doors <= acc[1] * upm:   # etiket öncülü kaba; kapı kümesi güçlü kanıt
+        dev = abs(upm_doors / stats["upm_labels"] - 1.0) if stats.get("upm_labels") else 0.0
+        stats["upm_doors_vs_labels_dev"] = round(dev, 2)
         upm = upm_doors
         stats["upm"] = round(upm, 1)
         stats["upm_source"] = "doors"
@@ -333,6 +363,16 @@ def select_plan(dxf_path: str, doc=None, overrides: dict | None = None) -> PlanS
             floor.index = 0
             stats["floors"] = [len(f.rooms) for f in floors2]
             sel.floors = floors2
+    # Birim güveni: kapı kalibrasyonu etiketle uyumluysa yüksek; sapma büyükse ya da yalnız etiket/öncülse düşük
+    src = stats.get("upm_source", "labels")
+    if src == "doors":
+        stats["units_confidence"] = 0.5 if stats.get("upm_doors_vs_labels_dev", 0.0) > TD["doors_vs_labels_max_dev"] else 0.9
+    elif src == "prior":
+        stats["units_confidence"] = 0.4
+    elif src == "hitl":
+        stats["units_confidence"] = 1.0
+    else:
+        stats["units_confidence"] = label_conf
     sel.floor, sel.upm = floor, upm
     # 3. kademe: içerik istatistiği (upm bilinince); bilinmeyen katmanlar text/dim/hatch/furniture/ignore olabilir
     refine_with_stats(names, layer_stats(doc, upm))
@@ -367,6 +407,7 @@ def run_selected(dxf_path: str, sel: PlanSelection, *, max_cells: int = MAX_CELL
     extra["layer_classes"] = sel.names.summary()
     extra["heavy"] = bool(sel.stats.get("heavy"))
     fparams = file_params(upm, sel.stats.get("upm_source", "labels"), extra)   # dosyadan türeyenler tek nesnede
+    fparams.units_confidence = float(sel.stats.get("units_confidence", 1.0))
     fparams.res = p["res"]                                                    # hücre sınırı düzeltmesi dahil
     fparams.wall_thickness_modes = list(getattr(f, "wall_thickness_modes", []) or [])
     b2 = to_v2(b, units_per_meter=upm, units_source=sel.stats.get("upm_source", "labels"),

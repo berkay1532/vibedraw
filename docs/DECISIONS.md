@@ -268,9 +268,34 @@ uygulanmayan iyileştirme fikri; uygulanınca "karar" olur ve commit'i yazılır
   katmanında 45/45 (sınıf ignore, stats kademesi) — filigran/çerçeve çizgileri. İkisi de conflicting_layer
   issue'su olarak çıktı; #22 tanımının (geometri duvar der, katman başka sınıf der) sahada doğrulanması.
 
+- **[karar] 2026-09-05 — kalibrasyon sağlamlığı (kullanıcı kararı 1, ayrı commit).** select_plan: etiket
+  öncülüyle kümelenen hiçbir kümede kapı kanıtı yoksa standart öncüllerle (100, 1000, 1, 10 birim/m) yeniden
+  kümelenir; kapı yayı sayısı (öncül × [0,3, 2,0] yarıçap bandı) en yüksek küme/hipotez seçilir (`stats.pick =
+  hypothesis`, `upm_source = prior`), ardından mevcut kapı-yayı düzeltmesi bu öncülle koşar. Etiket-mesafesi
+  kestirimine güven (`calibration.label_upm_confidence`): <6 etiket 0,3; nn IQR/medyan < 0,3 (dar) −0,4;
+  nn değerlerinin > %40'ı aynı (tekrarlı) −0,4. `FileParams.units_confidence`: doors 0,9 (kapı/etiket sapması
+  ≤ %30) ya da 0,5 (sapma > %30, 536_1 örneği), prior 0,4, hitl 1,0, labels → etiket güveni. unit_suspect:
+  standart dışı upm YA DA güven < 0,6. Sonuç EVAL_HISTORY'de (fam00 plan/upm tablosu).
+
+- **[karar] 2026-09-05 — kalibrasyon sağlamlığı, ölçüm sonrası düzeltmeler.** İlk sürümde (a) hipotez kümesi
+  ham "en çok yay" ile seçilince 519_ADA'da 6 yaylı 6 odalık küme 82 odalık planı geçti, (b) hipotez öncülü
+  (100) sonrasındaki kapı-yayı düzeltmesi fam00'da 160 cm'lik büyük yay kümesinden upm 182,9 üretip katları
+  birleştirdi (541_5 142, 554_1 280 "oda"), (c) kapı/etiket sapması > %30 kuralı 47 dosyanın 30'unu şüpheli
+  yaptı (etiket kestirimi sistematik ~%35 düşük, tipik oda 3,5 m varsayımı). Düzeltmeler: hipotez = toplam yayı
+  en yüksek öncül; kat = yayı ≥ 10 olan küme, yoksa o öncülde pick_plan_floor; hipotez yolunda düzeltme kabul
+  bandı [0,7, 1,4] (183/100 reddedilir, `upm_doors_rejected` stats'ta); şüphe eşiği sapma > 1,0 (2 kat);
+  unit_tol_frac 0,25 → 0,15 (536_1 76 birim/m işaretlenir). Sonuç: fam00 6 dosya upm 100 (prior, güven 0,4 →
+  unit_suspect), 541_3 29 oda / 23 kapı, 541_5 22 / 20, 554_1 22 / 20, 560_8 14 / 15, 386_8 upm 103 (doors)
+  7 oda / 8 kapı; 553_3 hâlâ etiket (41,7): etiket-öncülü kümesinde 2 yay "kapı kanıtı" sayıldığı için hipotez
+  yolu çalışmadı — aday: kapı kanıtı eşiği calib_min_doors (3) yerine hypothesis_strong_arcs ile. GT-7 eval
+  birebir aynı.
+
 ## Adaylar (uygulanmadı)
 
-- **[aday] 2026-09-05 — kat seçimi: kapı kanıtı yoksa standart upm öncülleriyle yeniden kümeleme** (fam00 raporu). Ayrı commit, dosya bazında fark ölçülür.
+- **[aday] 2026-09-05 — 553_3: etiket-öncülü yolunda 2 yaylı küme 'kapı kanıtı' sayılıyor; kanıt eşiğini hipotez eşiğine (≥10) çekmek.**
+- **[aday] 2026-09-05 — kapsama için `room_merged` issue tipi** (alias_merge kaynaklı odalar: "iki etiket tek bölge, aynı oda mı?" — HITL #8); room_fn 5/7 açığının çoğu birleşmiş odalar. Kullanıcı kararı bekliyor.
+
+- ~~[aday] kat seçimi: standart öncüllerle yeniden kümeleme~~ → 2026-09-05 karar olarak uygulandı.
 
 - **[aday] 2026-09-04 — Adım 6 devamı:** (a) walls/windows/rooms/polygons/raster/blocks sabitleri thresholds'a (envanter yukarıda); (b) duvar sinyalleri `parallel_pair` (katman sınıfından bağımsız) + `layer_class` + `thickness_mode`, çelişki → düşük güvenli duvar + conflicting_signal (HITL #22); (c) oda/pencere güven tabloları (ir_compat) → scoring; (d) `swing.max_dist_units` metreye; (e) run_floor imza varsayılanları FileParams'a.
 

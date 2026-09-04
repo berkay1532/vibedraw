@@ -95,10 +95,16 @@ def issues_for_floor(fl: Floor, names: NameMap = EMPTY, layer_counts: Optional[d
     # --- unit_suspect: upm standart değerlerden uzak
     upm = fl.params.units_per_meter
     std = V["unit_standard_upm"]; tol = V["unit_tol_frac"]
-    if on("unit_suspect") and upm and not any(abs(upm - s) <= tol * s for s in std):
+    nonstd = bool(upm) and not any(abs(upm - s) <= tol * s for s in std)
+    lowconf = fl.params.units_confidence < T("labels", "conf_min")
+    if on("unit_suspect") and (nonstd or lowconf):
+        why = []
+        if nonstd: why.append("standart değerlere (m/dm/cm/mm) uzak")
+        if lowconf: why.append(f"kestirim güveni düşük ({fl.params.units_confidence:.2f}: {fl.params.units_source})")
         out.append(Issue("unit_suspect", "file",
-                         f"Birim kestirimi {upm:.1f} birim/m ({fl.params.units_source}); standart değerlere (m/dm/cm/mm) uzak. Çizim birimi ne?",
-                         ["m", "dm", "cm", "mm", "inç"], {"upm": round(upm, 2), "source": fl.params.units_source}))
+                         f"Birim kestirimi {upm:.1f} birim/m ({fl.params.units_source}); " + "; ".join(why) + ". Çizim birimi ne?",
+                         ["m", "dm", "cm", "mm", "inç"], {"upm": round(upm, 2), "source": fl.params.units_source,
+                                                          "confidence": fl.params.units_confidence}))
     # --- odalar. area_convention: dosya medyanı (yazı/geometri); yalnız medyandan ±dev sapan odalar issue
     ratios = sorted(r.area_m2_text / r.area_m2_geom for r in fl.rooms if r.area_m2_text and r.area_m2_geom)
     conv = ratios[len(ratios) // 2] if ratios else None

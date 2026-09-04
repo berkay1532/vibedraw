@@ -45,6 +45,10 @@ door:
   calib_priors: [100.0, 1000.0]    # etiket öncülü başarısızsa denenen upm öncülleri (cm, mm)
   calib_radius_frac: [0.3, 2.0]    # öncül × [0.3, 2.0] yarıçap aralığı
   upm_ratio_accept: [0.25, 4.0]    # kapı upm'i etiket upm'inin bu katları arasında ise kabul
+  standard_priors: [100.0, 1000.0, 1.0, 10.0]   # hiçbir kümede kapı kanıtı yoksa yeniden kümeleme hipotezleri (cm, mm, m, dm)
+  doors_vs_labels_max_dev: 1.0      # kapı upm'i etiket upm'inden 2 kattan fazla sapıyorsa birim şüpheli (etiket kestirimi sistematik ~%35 düşük; 0.3 tüm dosyaları işaretliyordu)
+  hypothesis_strong_arcs: 10        # hipotez içinde kat seçimi: küme yayı bu kadarsa o küme, değilse pick_plan_floor
+  hypothesis_refine_accept: [0.7, 1.4]   # hipotez (standart öncül) seçildiyse kapı düzeltmesi yalnız bu bantta kabul (183/100 gibi büyük yaylar reddedilir)
 swing:                             # binding._room_by_swing
   cos_min: 0.2
   dist_penalty: 0.4
@@ -61,6 +65,10 @@ labels:                            # pipeline.select_plan / parse.pick_plan_floo
   table_thr: 0.85
   table_max_n: 16
   grid_tol_m: 0.3
+  conf_min_n: 6                    # etiket-mesafesi kestirimi güveni: bu kadar etiketten az → düşük
+  conf_narrow_iqr: 0.3             # nn mesafe IQR/medyan bu altında (dar, tablo benzeri) → düşük
+  conf_repeat_share: 0.4           # nn mesafelerin bu payı aynı değerdeyse (tekrarlı) → düşük
+  conf_min: 0.6                    # units_confidence bu altında → unit_suspect
 validate:                        # Adım 7 issue üretimi (perception/validate.py)
   conflicting_layer_min_ratio: 0.3     # dosya × katman: çelişkili segment oranı ≥ bu
   conflicting_layer_min_count: 20      # ve çelişkili segment sayısı ≥ bu → tek conflicting_layer issue
@@ -68,7 +76,7 @@ validate:                        # Adım 7 issue üretimi (perception/validate.p
   area_mismatch_frac: 0.15             # |yazı − geometri| / yazı > bu → area_mismatch
   ambiguous_opening_conf: 0.5          # açıklık güveni bunun altında → ambiguous_opening
   unit_standard_upm: [1.0, 10.0, 100.0, 1000.0]   # m, dm, cm, mm
-  unit_tol_frac: 0.25                  # upm standart değerlerden bu oranda uzaksa → unit_suspect
+  unit_tol_frac: 0.15                  # upm standart değerlerden bu oranda uzaksa → unit_suspect (0.25 → 0.15: 536_1'in 76 birim/m değeri işaretlensin; kapı kanadı 0.875 m varsayımının payı)
   issues_per_file_target: 5            # raporlama hedefi (HITL yükü)
   # --- politika (kullanıcı kararı 2026-09-05)
   unknown_layer_max_per_file: 3        # entity × duvar-benzeri geometri oranına göre ilk N

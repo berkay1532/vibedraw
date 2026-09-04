@@ -105,3 +105,30 @@ def thickness_modes(thicknesses, upm: float) -> list[float]:
     n = len(vals)
     peaks = [k for k, c in hist.items() if c / n >= share and c >= hist.get(k - 1, 0) and c >= hist.get(k + 1, 0)]
     return sorted(round((k + 0.5) * b, 4) for k in peaks)
+
+
+def label_upm_confidence(labels: list[YaziText]) -> float:
+    """Etiket-mesafesi kestiriminin güveni (0,1..1): az etiket, dar (tablo benzeri) ya da tekrarlı en-yakın-komşu
+    dağılımı güveni düşürür (thresholds labels.conf_*). Kullanıcı kararı 2026-09-05."""
+    L = T("labels")
+    pts = [t.xy for t in labels if not is_area_text(t.content)]
+    if len(pts) < 2:
+        return 0.1
+    nn = []
+    for i, p in enumerate(pts):
+        d = min(math.hypot(p[0] - q[0], p[1] - q[1]) for j, q in enumerate(pts) if j != i)
+        if d > 0:
+            nn.append(d)
+    if len(nn) < L["conf_min_n"]:
+        return 0.3
+    nn.sort(); med = nn[len(nn) // 2]
+    q1, q3 = nn[len(nn) // 4], nn[(3 * len(nn)) // 4]
+    conf = 1.0
+    if med and (q3 - q1) / med < L["conf_narrow_iqr"]:
+        conf -= 0.4
+    rounded = [round(d / med, 1) for d in nn] if med else []
+    if rounded:
+        top = max(set(rounded), key=rounded.count)
+        if rounded.count(top) / len(rounded) > L["conf_repeat_share"]:
+            conf -= 0.4
+    return max(0.1, round(conf, 2))

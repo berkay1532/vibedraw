@@ -82,7 +82,8 @@ class FileParams:
     upm'e bağlı koşu parametreleri çizim birimindedir; dosyadan türetilemeyen sabitler
     config/thresholds.yaml'dadır (oraya bakan kod bu alanları kullanmaz)."""
     units_per_meter: float = 100.0
-    units_source: str = "labels"                   # labels | doors | header | hitl
+    units_source: str = "labels"                   # labels | doors | header | hitl | prior
+    units_confidence: float = 1.0                  # birim kestirimi güveni (etiket dağılımı, kapı/etiket uyumu)
     res: Optional[float] = None                    # raster hücre boyu (birim)
     seal: Optional[int] = None                     # morfolojik kapama (piksel)
     margin: Optional[float] = None                 # kat bbox marjı (birim)
@@ -153,6 +154,7 @@ def floor_from_dict(d: dict) -> Floor:
                         door_max_boundary_dist=pr.get("door_max_boundary_dist"), wall_thickness=_tup(pr.get("wall_thickness")),
                         wall_min_overlap=pr.get("wall_min_overlap"), wall_thickness_modes=list(pr.get("wall_thickness_modes") or []),
                         area_convention=pr.get("area_convention"), extra=dict(pr.get("extra") or {}))
+    params.units_confidence = pr.get("units_confidence", 1.0)
     fl = Floor(index=d.get("index", 0), name=d.get("name"), params=params)
     for r in d.get("rooms", []):
         fl.rooms.append(Room(id=r["id"], confidence=r.get("confidence", 0.0), evidence=evidence_from_dict(r.get("evidence")),

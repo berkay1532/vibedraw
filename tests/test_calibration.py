@@ -19,3 +19,15 @@ def test_scaled_params_scale_linearly():
     q = scaled_params(2 * BASE_UPM)
     assert abs(q["res"] - 2 * BASE["res"]) < 1e-9 and abs(q["margin"] - 2 * BASE["margin"]) < 1e-9
     assert FileParams(units_per_meter=100).to_mm((1.0, 2.0)) == (10.0, 20.0)
+
+
+def test_label_upm_confidence_low_for_grid_and_high_for_scatter():
+    from core.perception.calibration import label_upm_confidence
+    from core.perception.parse import YaziText
+    grid = [YaziText("ODA", (x * 50.0, y * 50.0)) for x in range(4) for y in range(4)]      # tablo: hep 50 birim
+    assert label_upm_confidence(grid) <= 0.3
+    import random
+    random.seed(1)
+    scatter = [YaziText("ODA", (random.uniform(0, 3000), random.uniform(0, 3000))) for _ in range(20)]
+    assert label_upm_confidence(scatter) >= 0.9
+    assert label_upm_confidence(grid[:3]) == 0.3
