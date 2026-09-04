@@ -75,10 +75,10 @@ def _render(dxf_path, floor, out_png, margin):
 
 def run_one(dxf_path: str, out_dir: str, q):
     """Alt süreçte koşar; sonucu kuyruğa yazar."""
-    from core.perception.parse import parse_dxf, extract_room_labels
+    from core.perception.parse import (parse_dxf, extract_room_labels, cluster_floors_2d, dedupe_labels,
+                                       pick_plan_floor, grid_likeness)
     from core.perception.binding import pair_names_with_areas
-                            cluster_floors_2d, dedupe_labels, estimate_units_per_meter,
-                            pick_plan_floor, grid_likeness)
+    from core.perception.calibration import estimate_units_per_meter
     from core.perception.pipeline import reconstruct
     from core.perception.ir_v1 import BuildingIR
     name = Path(dxf_path).stem
