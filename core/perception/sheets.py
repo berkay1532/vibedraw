@@ -16,7 +16,7 @@ from typing import Optional
 import numpy as np
 
 from core.perception.parse import _plain, room_label_name
-from core.perception.vocab import FLOOR_WORDS, VIEW_KIND_WORDS, fold
+from core.perception.vocab import FLOOR_WORDS, VIEW_KIND_WORDS, fold, has_word
 from core.perception.sheet_segment import _TITLE_RE, segment_views  # noqa: F401 (yeniden dışa aktarım)
 
 # Başlık sözlüğü: vocab.VIEW_KIND_WORDS / vocab.FLOOR_WORDS
@@ -64,15 +64,15 @@ def _kind_from_title(title: str):
     scale = int(m.group(1)) if m else None
     if "detay" in f or "detail" in f:
         return "detail"
-    if any(w in f for w in VIEW_KIND_WORDS["site_plan"]):
+    if has_word(title, VIEW_KIND_WORDS["site_plan"]):
         return "site_plan"
-    if any(w in f for w in VIEW_KIND_WORDS["section"]):
+    if has_word(title, VIEW_KIND_WORDS["section"]):
         return "section"
-    if any(w in f for w in VIEW_KIND_WORDS["elevation"]):
+    if has_word(title, VIEW_KIND_WORDS["elevation"]):
         return "elevation"
     if "çatı" in f or "cati" in f or "roof" in f:
         return "roof_plan"
-    if any(w in f for w in VIEW_KIND_WORDS["table"]):
+    if has_word(title, VIEW_KIND_WORDS["table"]):
         return "table"
     if scale is not None and scale <= 25:      # 1/20, 1/10, 1/5 = detay ölçeği
         return "detail"

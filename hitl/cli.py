@@ -57,6 +57,8 @@ def target_bbox(pred: dict, iss: dict, margin_m: float = 1.5):
     kind, el = _find(fl, tid)
     if kind == "room" and el.get("polygon"):
         xs = [p[0] for p in el["polygon"]]; ys = [p[1] for p in el["polygon"]]
+    elif kind == "room" and el.get("label_xy"):                 # poligonsuz oda (open_room): etiket çevresi
+        xs, ys = [el["label_xy"][0]], [el["label_xy"][1]]; margin_m = 4.0
     elif kind == "opening":
         c = el.get("hinge") or el["center"]; xs, ys = [c[0]], [c[1]]
     elif kind == "wall":

@@ -21,7 +21,7 @@ from typing import Optional
 
 import yaml
 
-from core.perception.vocab import LAYER_WORDS, fold
+from core.perception.vocab import LAYER_WORDS, fold, has_word
 
 ROOT = Path(__file__).resolve().parents[2]
 PROFILE_DIR = ROOT / "source_profiles"
@@ -138,8 +138,7 @@ def match_profile(layer_names, profiles: list[SourceProfile], fingerprint: Optio
 def keyword_class(layer: str):
     """Genel sözlük kademesi: (sınıf, güven). Ek açıklama kelimeleri (yazı/ölçü/aks/tarama) yapısal
     kelimeyi yener (kapı-pencere-yazısı → text); kapı+pencere birlikte → window (düşük güven)."""
-    f = fold(layer)
-    hits = {c for c, words in LAYER_WORDS.items() if any(w in f for w in words)}
+    hits = {c for c, words in LAYER_WORDS.items() if has_word(layer, words)}
     hits = {LayerClass(c) for c in hits}
     if not hits:
         return LayerClass.unknown, 0.0

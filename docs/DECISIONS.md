@@ -218,6 +218,13 @@ uygulanmayan iyileştirme fikri; uygulanınca "karar" olur ve commit'i yazılır
   katman override'ı params.extra.hitl_layer_overrides, birim params.extra.hitl_units). Yeniden koşu yok (aday:
   run_baseline override'ları okusun). Dosya başına issue hedefi ≤ 5 (thresholds); ölçüm EVAL_HISTORY'de.
 
+- **[düzeltme] 2026-09-04 — Türkçe katlama İngilizce büyük I'yı bozuyordu.** `vocab.fold` I→ı yapınca "WINDOW"
+  → "wındow", "DIM" → "dım", "KITCHEN" → "kıtchen": sözlük eşleşmesi tutmuyordu (adım 7 issue yükünde
+  unknown_layer 758'in büyük kısmı; İngilizce oda etiketleri de kaçıyordu). Çözüm `vocab.folds`/`has_word`:
+  Türkçe ve düz casefold ikisi de denenir; tüketiciler: names.keyword_class, parse.looks_like_room_label,
+  triage.room_hits/electrical_hits, windows._window_word, sheets başlık kelimeleri. Davranış değişir (İngilizce
+  altlıklar): triage ADAY seti ve eval farkı EVAL_HISTORY'de dosya bazında.
+
 ## Adaylar (uygulanmadı)
 
 - **[aday] 2026-09-04 — Adım 6 devamı:** (a) walls/windows/rooms/polygons/raster/blocks sabitleri thresholds'a (envanter yukarıda); (b) duvar sinyalleri `parallel_pair` (katman sınıfından bağımsız) + `layer_class` + `thickness_mode`, çelişki → düşük güvenli duvar + conflicting_signal (HITL #22); (c) oda/pencere güven tabloları (ir_compat) → scoring; (d) `swing.max_dist_units` metreye; (e) run_floor imza varsayılanları FileParams'a.

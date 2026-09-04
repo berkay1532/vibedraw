@@ -84,3 +84,11 @@ def test_union_side_file_used_for_jaccard(tmp_path):
     profs = load_profiles(tmp_path)
     assert profs[0].layer_union == ["X-DUV", "A", "B", "C"]
     assert match_profile(["A", "B", "C", "Q"], profs)[1] == "jaccard"      # 3/5 ≥ 0.5, yapısal ad yok
+
+
+def test_english_uppercase_layers_classified():
+    """Türkçe katlama I→ı: 'WINDOW'→'wındow' sözlüğe uymuyordu (2026-09-04). İki katlama birden denenir."""
+    assert keyword_class("WINDOW")[0] is LayerClass.window and keyword_class("WIN")[0] is LayerClass.unknown
+    assert keyword_class("DIM")[0] is LayerClass.dim and keyword_class("PUB_DIM")[0] is LayerClass.dim
+    assert keyword_class("STAIR")[0] is LayerClass.stair and keyword_class("AXIS")[0] is LayerClass.grid
+    assert keyword_class("A_STAIR_STR")[0] is LayerClass.stair

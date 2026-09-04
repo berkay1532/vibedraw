@@ -13,7 +13,7 @@ import ezdxf
 
 from core.perception.config import T
 from core.perception.ir_v1 import Room, Floor
-from core.perception.vocab import NON_ROOM_WORDS, ROOM_WORDS, SHORT_ROOM_WORDS, fold
+from core.perception.vocab import NON_ROOM_WORDS, ROOM_WORDS, SHORT_ROOM_WORDS, fold, folds
 
 AREA_RE = re.compile(r"A\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*m\s*[²2]", re.IGNORECASE)
 
@@ -56,15 +56,15 @@ def looks_like_room_label(content: str) -> bool:
         return False
     if sum(ch.isdigit() for ch in c) > 4:        # kod/ölçü yazıları
         return False
-    f = fold(c)
-    if any(w in f for w in NON_ROOM_WORDS):      # "ÇAMAŞIR MAK.YERİ", "MUTFAK DOLABI", "KAT PLANI"
+    f, f2 = folds(c)                              # Türkçe ve düz katlama (İngilizce büyük I için)
+    if any(w in f or w in f2 for w in NON_ROOM_WORDS):      # "ÇAMAŞIR MAK.YERİ", "MUTFAK DOLABI", "KAT PLANI"
         return False
-    words = set(_WORD_RE.findall(f))
+    words = set(_WORD_RE.findall(f)) | set(_WORD_RE.findall(f2))
     for w in ROOM_WORDS:
         if w in SHORT_ROOM_WORDS:
             if w in words:                        # "oda" tam kelime; "sicil no"daki 'no' değil
                 return True
-        elif w in f:
+        elif w in f or w in f2:
             return True
     return False
 

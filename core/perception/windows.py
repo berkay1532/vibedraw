@@ -17,8 +17,9 @@ from core.perception.names import EMPTY, WALL_EXCLUDE_CLASSES, WINDOW_CLASSES
 
 
 def _window_word(name: str) -> bool:
-    f = (name or "").replace("İ", "i").replace("I", "ı").casefold() + " "
-    return any(w in f for w in WINDOW_WORDS)
+    from core.perception.vocab import folds
+    f1, f2 = folds((name or "") + " ")
+    return any(w in f1 or w in f2 for w in WINDOW_WORDS)
 
 
 def _near_parallel_wall(mid, ux, uy, walls, upm, perp_tol=0.25, along_tol=0.3):

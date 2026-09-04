@@ -2,7 +2,7 @@
 
 Veri klasörleri repoda yoktur (`data/raw`, `data/dataset`, `ornekler`, `output`; telif/boyut). Bu belge veri setinin
 bileşimini, ADAY dışı bırakılan dosyaları, girdi-çıktı çiftlerini ve GT listesini kayıt altında tutar.
-Sayılar `python3 triage_dataset.py data/dataset` çıktısındandır (2026-09-04).
+Sayılar `python3 triage_dataset.py data/dataset` çıktısındandır (2026-09-04, fold düzeltmesi sonrası; deniz-evi-projesi-dwg-2 ADAY oldu).
 
 ## Kaynaklar
 
@@ -16,9 +16,9 @@ Sayılar `python3 triage_dataset.py data/dataset` çıktısındandır (2026-09-0
 |---|---:|
 | Taranan dosya | 68 |
 | Okunabilen | 67 |
-| ADAY (≥3 oda metni + çizgi geometrisi, elektrik değil) | 49 |
+| ADAY (≥3 oda metni + çizgi geometrisi, elektrik değil) | 50 |
 | ELEKTRİK (mimari altlık değil) | 4 |
-| ZAYIF | 14 |
+| ZAYIF | 13 |
 | HATA | 1 |
 | Katman ailesi (Jaccard ≥ 0,5) / aday içeren | 34 / 20 |
 | Ağır dosya (heavy) | 5 |

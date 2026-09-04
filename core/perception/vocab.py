@@ -16,6 +16,19 @@ def fold(s: str) -> str:
     return ("" if s is None else str(s)).replace("İ", "i").replace("I", "ı").casefold()
 
 
+def folds(s: str) -> tuple[str, str]:
+    """İki katlama: Türkçe (I→ı) ve düz casefold (I→i). Büyük harfli İngilizce adlar ("WINDOW", "DIM",
+    "KITCHEN") Türkçe katlamada bozulur (wındow); sözlük eşleşmesi ikisini de dener (2026-09-04 düzeltmesi)."""
+    raw = "" if s is None else str(s)
+    return fold(raw), raw.casefold()
+
+
+def has_word(s: str, words) -> bool:
+    """Kelimelerden biri metnin Türkçe ya da düz katlamasında alt-dizgi olarak geçiyor mu."""
+    f1, f2 = folds(s)
+    return any(w in f1 or w in f2 for w in words)
+
+
 # --- Oda adları ----------------------------------------------------------------
 # Alt-dizgi eşleşmesi (fold sonrası). SHORT_ROOM_WORDS tam kelime ister ("oda" ≠ "modası").
 ROOM_WORDS = (

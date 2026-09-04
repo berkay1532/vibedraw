@@ -19,7 +19,7 @@ from typing import Optional
 import ezdxf
 from ezdxf import recover
 
-from core.perception.vocab import ELECTRICAL_BLOCK_WORDS, ELECTRICAL_LAYER_WORDS, ROOM_WORDS, fold
+from core.perception.vocab import ELECTRICAL_BLOCK_WORDS, ELECTRICAL_LAYER_WORDS, ROOM_WORDS, fold, folds
 
 
 DWG_EXT = {".dwg"}
@@ -42,9 +42,9 @@ def room_hits(texts: list[str]) -> dict[str, int]:
     """Metin listesinde oda sözlüğü eşleşmelerini sayar (metin başına en fazla 1 kelime)."""
     hits: Counter = Counter()
     for t in texts:
-        f = tr_fold(t)
+        f, f2 = folds(t)
         for w in ROOM_WORDS:
-            if w in f:
+            if w in f or w in f2:
                 hits[w] += 1
                 break
     return dict(hits)
@@ -207,10 +207,10 @@ def electrical_hits(layers, block_names) -> list[str]:
     """Elektrik ipucu taşıyan katman ve blok adları (fold sonrası alt-dizgi)."""
     out = []
     for l in layers:
-        if any(w in fold(l) for w in ELECTRICAL_LAYER_WORDS):
+        if any(w in x for x in folds(l) for w in ELECTRICAL_LAYER_WORDS):
             out.append(f"katman:{l}")
     for b in block_names:
-        if any(w in fold(b) for w in ELECTRICAL_BLOCK_WORDS):
+        if any(w in x for x in folds(b) for w in ELECTRICAL_BLOCK_WORDS):
             out.append(f"blok:{b}")
     return out
 

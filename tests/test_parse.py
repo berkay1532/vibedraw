@@ -134,3 +134,9 @@ def test_decode_dxf_unicode_escapes():
     assert decode_dxf_text("A:13.20 M\\U+00B2") == "A:13.20 M²"
     assert looks_like_room_label(decode_dxf_text("\\U+00C7OCUK ODASI"))
     assert AREA_RE.search(decode_dxf_text("MUTFAK\\PA:13.20 M\\U+00B2")).group(1) == "13.20"
+
+
+def test_english_uppercase_room_labels():
+    from core.perception.parse import looks_like_room_label
+    assert looks_like_room_label("KITCHEN") and looks_like_room_label("LIVING ROOM") and looks_like_room_label("DINING")
+    assert looks_like_room_label("TOILET") and not looks_like_room_label("KITCHEN PLAN")
