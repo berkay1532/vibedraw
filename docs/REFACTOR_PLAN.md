@@ -69,10 +69,10 @@ taşınır, mantık değişmez. `reconstruct` yalnızca sıralayan bir orkestrat
 **Kabul:** testler geçer, eval değişmez, hiçbir modül 400 satırı geçmez.
 
 ## Adım 4 — Tek parse yolu, tek sözlük
-- [ ] `vocab.py` oluştur; `parse.ROOM_WORDS`, `triage.ROOM_VOCAB`,
+- [x] `vocab.py` oluştur; `parse.ROOM_WORDS`, `triage.ROOM_VOCAB`,
       `semantics.ROOM_DICTIONARY`, `geometry.WINDOW_WORDS`, `_ANNO_LAYER_WORDS`,
       `sheets._KIND_WORDS` tek yere. Dil-bağımsız, genel kelimeler.
-- [ ] Eski `parse_dxf`, `extract_yazi_texts`, `cluster_floors` (x-only) sil;
+- [x] Eski `parse_dxf`, `extract_yazi_texts`, `cluster_floors` (x-only) sil;
       `graph.py` ve tüm çağıranlar `extract_room_labels` + `cluster_floors_2d` +
       `pick_plan_floor` yoluna geçer. `run_baseline.run_one` içindeki akış
       `pipeline.py`'ye taşınır (deney scripti pipeline'ı çağırır, mantık taşımaz).

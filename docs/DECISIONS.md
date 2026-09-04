@@ -67,10 +67,35 @@ uygulanmayan iyileştirme fikri; uygulanınca "karar" olur ve commit'i yazılır
   Kural: karşılaştırmadan önce koşu günlüğünde dosya başına "→ ok" satırı ve pred JSON mtime'ı
   doğrulanır. Aday (aşağıda): `evaluate.py` pred JSON'un koşu zaman damgasını rapora yazsın.
 
+- **[karar] 2026-09-04 — Adım 4 tazelik kapısı kodda.** `core/perception/run_stamp.py`: koşu damgası
+  = perception kaynaklarının içerik hash'i (12 hex) + git commit/kirli bayrağı + başlangıç zamanı;
+  `run_baseline` her results.json kaydına yazar. `evaluate.py` her GT dosyası için kayıt yok / koşu
+  hatalı / damgasız / kod hash'i farklı / JSON koşudan eski durumlarında rapor üretmeden çıkış 2 verir.
+  İçerik hash'i seçildi (commit hash'i değil): commit'lenmemiş düzenleme de yakalanır. Geçersiz kılma
+  bayrağı YOK (insan kontrolüne bırakılmasın). Rapor başlığına koşu damgası ve ölçüm anı commit'i yazılır.
+
+- **[karar] 2026-09-04 — Adım 4 sözlük birleştirme.** `parse.ROOM_WORDS` (üst küme) ile
+  `triage.ROOM_VOCAB` (alt küme; "kat holü, yemek, çalışma, toilet, dining, entrance, lobby" eksikti)
+  tek liste `vocab.ROOM_WORDS` oldu; triage artık üst kümeyi kullanır. Etki ölçüldü: veri seti
+  triage'ı (68 dosya) birleştirme öncesi/sonrası karşılaştırıldı: 68/68 verdict aynı (53 ADAY); tek profil
+  farkı detayli-villa (İngilizce altlık): 'entrance' 2 etiket eklendi, n_room_texts 13→15, zaten ADAY.
+  `vocab.fold` tek Türkçe casefold; `triage.tr_fold` ona alias, `metrics._tr_fold` alan ekini atan
+  sarmalayıcı olarak kaldı (davranış aynı).
+
+- **[karar] 2026-09-04 — Adım 4 eski yol silindi; yan etkiler.** `parse_dxf`, `extract_yazi_texts`,
+  `cluster_floors` (x-only) kaldırıldı; `pipeline.reconstruct` alias'ı kaldırıldı (tek ad `run_floor`).
+  results.json'daki `parse_stock` aşaması ve baseline raporundaki "Stok oda" sütunu gitti (eski yolun
+  tek kullanıcısıydı). `run_baseline.run_one` akışı `pipeline.select_plan` (etiket → ölçek → kümeleme →
+  kapı kanıtı → ölçek düzeltme) + `run_selected` (ölçekli parametreler → run_floor → v2) oldu; ölçek
+  düzeltme adımı artık "labels_generic" aşamasında (eskiden "geometry" try bloğundaydı) — yalnız hata
+  etiketlemesi değişir, çıktı değil. `MAX_CELLS` pipeline'a taşındı (config/ adayı). Test/araçlar için
+  `pipeline.label_floors(dxf, gap)` yardımcısı eklendi (ölçek/plan seçimi yok; 2-etiketli sentetik
+  dosyalar ≥3 kuralına takıldığı için). `graph.py` `select_plan` kullanır; `target_floor`/`gap`
+  parametreleri kalktı. Döngüsel import: `parse_dxf` silinince parse→binding yerel importu da gitti.
+
 ## Adaylar (uygulanmadı)
 
-- **[aday] 2026-09-04 — `evaluate.py` her pred JSON'un mtime'ını ve `results.json` koşu zamanını
-  rapora yazsın; GT'den eski pred için uyarı.**
+- ~~[aday] `evaluate.py` mtime/koşu zamanı~~ → Adım 4'te karar olarak uygulandı (run_stamp).
 
 - **[aday] 2026-09-04 — `evaluate.py`'de güven eşikli ikinci tablo.** Tüm tahminler + "güven ≥ 0.5"
   tahminleri için ayrı P/R/F1; düşük güvenli sahteler (thin_lines) HITL'e gidecekse otomatik F1
@@ -83,8 +108,7 @@ uygulanmayan iyileştirme fikri; uygulanınca "karar" olur ve commit'i yazılır
   bırakıldı, importları güncellendi.
 - **[aday] 2026-09-04 — `evaluate.py`, `triage_dataset.py`, `annotate.py` → `experiments/`.**
   ARCHITECTURE §10 hedef yapıda orada; Adım 0 kapsamı dışı olduğu için taşınmadı.
-- **[aday] 2026-09-04 — `run_baseline.run_one` içindeki akış (etiket → ölçek → kat seçimi →
-  reconstruct) `pipeline.py`'ye taşınsın.** Adım 4'te planlı.
+- ~~[aday] `run_baseline.run_one` akışı pipeline'a~~ → Adım 4'te yapıldı (`select_plan`/`run_selected`).
 - **[aday] 2026-09-04 — `core/sheets.py` çıktısı (görünümler, kat adları) runner'ın kat
   seçimine bağlansın; tek kat yerine tüm kat planları çıksın.** Pafta anlama v1 hazır ama
   bağlı değil.
