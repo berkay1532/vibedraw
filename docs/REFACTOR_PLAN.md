@@ -136,7 +136,7 @@ taşınır, mantık değişmez. `reconstruct` yalnızca sıralayan bir orkestrat
 
 ## Veri seti görevleri (paralel, kod değil)
 - [ ] GT dosyalarına `tier` alanı ekle (clean/typical/hard).
-- [ ] **fam00 GT önceliği (kullanıcı kararı 2026-09-04): 541_3, 536_1, 386_8; ardından 553_3 veya 6249'dan birine sayısal-özet GT** (oda/kapı/pencere sayıları, poligonsuz; ağır dosya). 10 dosyalık en büyük aile, GT'si yok; ABM satırı yalnız fam04'ten besleniyor.
+- [ ] **fam00 GT önceliği (güncel karar 2026-09-05): 541_3, 541_5, 386_8 (536_1 çıkarıldı: plan seçimi şüpheli); ardından 553_3 veya 6249'dan birine sayısal-özet GT** (oda/kapı/pencere sayıları, poligonsuz; ağır dosya). 10 dosyalık en büyük aile, GT'si yok; ABM satırı yalnız fam04'ten besleniyor.
 - [ ] GT kapılarına `rooms: [a, b]` (kapının bağladığı iki oda; v1 `connects` zaten bunu taşıyor)
       ve annotate aracına "ikinci oda" desteği → v2 "çift doğruluğu" metriği dolsun.
 - [ ] En az 3 Revit/ArchiCAD export, 2 patlatılmış blok, 1 yabancı dil dosyası bul; GT çıkar.

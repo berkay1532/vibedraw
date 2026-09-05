@@ -300,6 +300,14 @@ uygulanmayan iyileştirme fikri; uygulanınca "karar" olur ve commit'i yazılır
   en yüksek kapı yayı sayısı < hypothesis_strong_arcs (10) ise hipotez yolu; etiket öncülü de aday (eşitlikte
   korunur), en çok toplam yay kazanır (553_3: 2 yaylı kanıt artık yeterli sayılmaz).
 
+- **[gerileme] 2026-09-05 — mimarlik-evi: etiket öncülü hipotez, kapı-tabanlı kestirimden düşük güvenle kazandı.**
+  Hipotez tetiği genelleşince (kanıt < 10 yay) etiket öncülü (44,1) aday oldu ve toplam yay sayısında standart
+  öncülü (100) geçti; upm 100 → 44,1'e geriledi, units_confidence etiket güveni (1,0) ile yüksek kaldı ama
+  dosya unit_suspect listesinde (standart dışı). Kural: **etiket öncülü hipotez, kapı-tabanlı kestirimden
+  düşük güvenle kazanmamalı** — hipotez karşılaştırmasında etiket öncülünün toplam yayı standart öncülün en az
+  X katı olmalı ya da etiket güveni ağırlık olarak girmeli. Ağırlık turunda (holdout) düzeltilecek; şimdilik
+  dokunulmadı (yeni kaynak girişi kod değişikliği istemiyor).
+
 ## Adaylar (uygulanmadı)
 
 - ~~[aday] 553_3 kanıt eşiği~~ → 2026-09-05 uygulandı (hipotez tetiği < 10 yay).

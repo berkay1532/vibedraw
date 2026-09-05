@@ -93,7 +93,8 @@ kalibrasyonu tutmadı). Validator bunlara `unit_suspect` issue üretir (HITL sor
 
 Kapı-adlı blok yok, kapılar standalone yay; geometri cm. Etiket-mesafesi upm'i (21–44) yanlıştı → kat kümeleri
 parçalanıyordu (DECISIONS (h)). Kalibrasyon sağlamlığı (2026-09-05) sonrası: 541_3 upm 100 (prior), 29 oda / 23 kapı;
-536_1 upm 76 (doors, unit_suspect); 386_8 upm 103 (doors), 7 oda / 8 kapı. GT bu koşunun katı üzerinde çıkarılabilir;
+541_5 upm 100 (prior), 22 / 20; 386_8 upm 103 (doors), 7 / 8. **fam00 GT listesi (karar 2026-09-05): 541_3, 541_5, 386_8.**
+536_1 listeden çıkarıldı: plan seçimi şüpheli (113 "oda" tek kümede, 4 kapı, upm 76 unit_suspect), GT'ye uygun değil.
 upm'i 'prior' olan dosyalarda GT'ye units_per_meter elle yazılmalı (unit_suspect sorusu).
 
 ## Aileler ve kaynak profilleri
