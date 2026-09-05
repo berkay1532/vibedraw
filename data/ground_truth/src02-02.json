@@ -1,0 +1,524 @@
+{
+ "source": "/Users/beko/Documents/beko/elektrik-projesi/data/dataset/src02/dxf/src02-02.dxf",
+ "units_per_meter": 100,
+ "floor": {
+  "rooms": [
+   {
+    "id": "r1",
+    "name": "YATAK ODASI",
+    "type": "",
+    "polygon": [
+     [
+      8997.25,
+      -3047.1
+     ],
+     [
+      8997.25,
+      -2929.6
+     ],
+     [
+      9013.11,
+      -2929.6
+     ],
+     [
+      9013.11,
+      -2646.27
+     ],
+     [
+      9341.73,
+      -2646.27
+     ],
+     [
+      9341.73,
+      -3047.1
+     ]
+    ],
+    "kind": "daire içi"
+   },
+   {
+    "id": "r2",
+    "name": "SALON",
+    "type": "",
+    "polygon": [
+     [
+      8741.9,
+      -3070.17
+     ],
+     [
+      9258.15,
+      -3070.17
+     ],
+     [
+      9258.15,
+      -3431.02
+     ],
+     [
+      8741.9,
+      -3431.02
+     ]
+    ],
+    "kind": "daire içi"
+   },
+   {
+    "id": "r3",
+    "name": "ÇOCUK ODASI",
+    "type": "",
+    "polygon": [
+     [
+      8467.16,
+      -3085.66
+     ],
+     [
+      8728.9,
+      -3085.66
+     ],
+     [
+      8728.9,
+      -3431.02
+     ],
+     [
+      8467.16,
+      -3431.02
+     ]
+    ],
+    "kind": "daire içi"
+   },
+   {
+    "id": "r4",
+    "name": "MUTFAK",
+    "type": "",
+    "polygon": [
+     [
+      8440.94,
+      -3332.1
+     ],
+     [
+      8181.9,
+      -3332.1
+     ],
+     [
+      8181.9,
+      -3290.6
+     ],
+     [
+      8151.9,
+      -3290.6
+     ],
+     [
+      8151.9,
+      -2929.6
+     ],
+     [
+      8440.94,
+      -2929.6
+     ]
+    ],
+    "kind": "daire içi"
+   },
+   {
+    "id": "r5",
+    "name": "BANYO",
+    "type": "",
+    "polygon": [
+     [
+      8997.25,
+      -2646.27
+     ],
+     [
+      8996.98,
+      -2908.55
+     ],
+     [
+      8828.7,
+      -2910.7
+     ],
+     [
+      8827.13,
+      -2646.27
+     ]
+    ],
+    "kind": "daire içi"
+   },
+   {
+    "id": "r6",
+    "name": "TERAS",
+    "type": "terrace",
+    "polygon": [
+     [
+      8125.4,
+      -3358.6
+     ],
+     [
+      8412.4,
+      -3358.6
+     ],
+     [
+      8412.4,
+      -3332.1
+     ],
+     [
+      8467.16,
+      -3332.1
+     ],
+     [
+      8467.16,
+      -3465.08
+     ],
+     [
+      8275.89,
+      -3465.08
+     ],
+     [
+      8275.89,
+      -3485.25
+     ],
+     [
+      8285.18,
+      -3485.25
+     ],
+     [
+      8285.18,
+      -3521.1
+     ],
+     [
+      8125.4,
+      -3521.1
+     ]
+    ],
+    "kind": "dış"
+   },
+   {
+    "id": "r7",
+    "name": "HOL",
+    "type": "",
+    "polygon": [
+     [
+      8467.16,
+      -3070.17
+     ],
+     [
+      8467.16,
+      -2929.6
+     ],
+     [
+      8968.45,
+      -2929.6
+     ],
+     [
+      8968.45,
+      -3070.17
+     ]
+    ],
+    "kind": "daire içi"
+   },
+   {
+    "id": "r8",
+    "name": "KAT HOLÜ",
+    "type": "corridor",
+    "polygon": [
+     [
+      8467.16,
+      -2646.27
+     ],
+     [
+      8574.68,
+      -2646.27
+     ],
+     [
+      8575.93,
+      -2900.68
+     ],
+     [
+      8464.93,
+      -2901.39
+     ]
+    ],
+    "kind": "ortak"
+   },
+   {
+    "id": "r9",
+    "name": "MAKİNE DAİRESİZ ASANSÖR",
+    "type": "elevator",
+    "polygon": [
+     [
+      8600,
+      -2904
+     ],
+     [
+      8805,
+      -2904
+     ],
+     [
+      8805,
+      -2644
+     ],
+     [
+      8600,
+      -2644
+     ]
+    ],
+    "kind": "ortak"
+   },
+   {
+    "id": "r10",
+    "name": "MERDİVEN",
+    "type": "stair",
+    "polygon": [
+     [
+      8203.56,
+      -2643.6
+     ],
+     [
+      8427.7,
+      -2645.75
+     ],
+     [
+      8426.26,
+      -2898.53
+     ],
+     [
+      8205.71,
+      -2899.96
+     ]
+    ],
+    "note": "etiketsiz; blok içinde, kullanıcı çizdi",
+    "kind": "ortak"
+   }
+  ],
+  "doors": [
+   {
+    "id": "d_bina_giris",
+    "hinge": [
+     8573,
+     -2636
+    ],
+    "width": 98,
+    "connects": [
+     "r8",
+     "outside"
+    ],
+    "type": "door",
+    "note": "bina giriş kapısı (kat holü–dış); blok adı KAPI 250X160, yay yarıçapı 98"
+   },
+   {
+    "id": "d_daire_giris",
+    "hinge": [
+     8482,
+     -2933
+    ],
+    "width": 94,
+    "connects": [
+     "r8",
+     "r7"
+    ],
+    "type": "door",
+    "note": "daire giriş kapısı (kat holü–hol)"
+   },
+   {
+    "id": "d_asansor",
+    "hinge": [
+     8600,
+     -2774
+    ],
+    "width": 110,
+    "connects": [
+     "r8",
+     "r9"
+    ],
+    "type": "door",
+    "subtype": "elevator",
+    "note": "asansör kapısı; tür çizimden anlaşılmıyor, blok kutusu 72x110"
+   },
+   {
+    "id": "d_mutfak",
+    "hinge": [
+     8446,
+     -2945
+    ],
+    "width": 88,
+    "connects": [
+     "r7",
+     "r4"
+    ],
+    "type": "door"
+   },
+   {
+    "id": "d_cocuk",
+    "hinge": [
+     8472,
+     -3083
+    ],
+    "width": 88,
+    "connects": [
+     "r7",
+     "r3"
+    ],
+    "type": "door"
+   },
+   {
+    "id": "d_salon",
+    "hinge": [
+     8772,
+     -3063
+    ],
+    "width": 88,
+    "connects": [
+     "r7",
+     "r2"
+    ],
+    "type": "door"
+   },
+   {
+    "id": "d_yatak",
+    "hinge": [
+     8985,
+     -3027
+    ],
+    "width": 88,
+    "connects": [
+     "r7",
+     "r1"
+    ],
+    "type": "door"
+   },
+   {
+    "id": "d_banyo",
+    "hinge": [
+     8837,
+     -2909
+    ],
+    "width": 88,
+    "connects": [
+     "r7",
+     "r5"
+    ],
+    "type": "door"
+   },
+   {
+    "id": "d_surgulu_yatak",
+    "hinge": [
+     9345,
+     -2849
+    ],
+    "width": 160,
+    "connects": [
+     "r1",
+     "outside"
+    ],
+    "type": "door",
+    "subtype": "sliding",
+    "note": "cam sürgülü, dışa (giriş katı); konum orta nokta; blok adı _160X130XP1"
+   },
+   {
+    "id": "d_surgulu_salon_dogu",
+    "hinge": [
+     9258,
+     -3244
+    ],
+    "width": 180,
+    "connects": [
+     "r2",
+     "outside"
+    ],
+    "type": "door",
+    "subtype": "sliding",
+    "note": "cam sürgülü, dışa; konum orta nokta; blok sk180x220"
+   },
+   {
+    "id": "d_surgulu_salon_guney",
+    "hinge": [
+     9020,
+     -3440
+    ],
+    "width": 200,
+    "connects": [
+     "r2",
+     "outside"
+    ],
+    "type": "door",
+    "subtype": "sliding",
+    "note": "cam sürgülü, dışa; konum orta nokta; blok 200x220 sk; dışında 110 cm cam+krom korkuluk"
+   },
+   {
+    "id": "d_surgulu_cocuk",
+    "hinge": [
+     8595,
+     -3431
+    ],
+    "width": 160,
+    "connects": [
+     "r3",
+     "outside"
+    ],
+    "type": "door",
+    "subtype": "sliding",
+    "note": "cam sürgülü, dışa; konum orta nokta"
+   },
+   {
+    "id": "d_surgulu_mutfak",
+    "hinge": [
+     8300,
+     -3332
+    ],
+    "width": 180,
+    "connects": [
+     "r4",
+     "r6"
+    ],
+    "type": "door",
+    "subtype": "sliding",
+    "note": "cam sürgülü, mutfak–teras; konum orta nokta"
+   }
+  ],
+  "windows": [
+   {
+    "a": [
+     8880.4,
+     -2616.9
+    ],
+    "b": [
+     8940.4,
+     -2616.9
+    ],
+    "note": "banyo havalandırma penceresi; blok 60x60x20pen1 (DUVAR katmanı)"
+   }
+  ]
+ },
+ "meta": {
+  "status": "verified",
+  "tool": "annotate.html",
+  "tier": "typical",
+  "holdout": false,
+  "source": "src02",
+  "pred_upm": 103.25313673692486,
+  "pred_upm_source": "doors",
+  "note": " | kör sayım sonrası: X alanı = MAKİNE DAİRESİZ ASANSÖR (DXF yazısı), r9 eklendi; çevredeki büyük alan çatı saçak izdüşümü (mahal değil)",
+  "method": "assisted",
+  "blind_count": {
+   "units": 1,
+   "floor": "normal kat",
+   "rooms": [
+    "kat holü",
+    "banyo",
+    "yatak odası",
+    "hol",
+    "mutfak",
+    "çocuk odası",
+    "salon",
+    "teras"
+   ],
+   "uncertain": [
+    "kat holünde X işaretli kapalı alan: asansör ya da boşluk",
+    "bina çevresinde sürgülü kapıların açıldığı büyük alan: balkon/teras?"
+   ],
+   "doors": {
+    "giriş": 1,
+    "oda": 5,
+    "sürgülü": 3,
+    "asansör": 1
+   },
+   "doors_total_est": 10
+  },
+  "blind_vs_pred": "kör sayım 10 kapı (giriş 1, oda 5, sürgülü 3, asansör 1) / tahmin 7 / GT 13 (bina giriş kapısı ve 2 sürgülü kör sayımda yok; tahminde sürgülüler ve asansör yok). Kör sayım 'normal kat' dedi; tur sonunda giriş katı olduğu anlaşıldı (bina giriş kapısı)."
+ }
+}

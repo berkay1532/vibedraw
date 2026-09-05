@@ -201,9 +201,9 @@ function render(){
 document.getElementById('save').onclick = ()=>{
   const missing = rooms.filter(r=>!r.name).length, badDoors = doors.filter(d=>(d.connects||[]).length<2).length;
   const gt = { source: DATA.source, units_per_meter: UPM,
-    floor: { rooms: rooms.map(r=>({id:r.id,name:r.name,type:r.type||'',polygon:r.polygon.map(p=>[+p[0].toFixed(2),+p[1].toFixed(2)])})),
-             doors: doors.map(d=>({id:d.id,hinge:[+d.hinge[0].toFixed(2),+d.hinge[1].toFixed(2)],width:d.width,connects:d.connects||[]})),
-             windows: windows.map(w=>({a:[+w[0][0].toFixed(2),+w[0][1].toFixed(2)],b:[+w[1][0].toFixed(2),+w[1][1].toFixed(2)]})) },
+    floor: { rooms: rooms.map(r=>Object.assign({}, r, {id:r.id,name:r.name,type:r.type||'',polygon:r.polygon.map(p=>[+p[0].toFixed(2),+p[1].toFixed(2)])})),
+             doors: doors.map(d=>Object.assign({}, d, {id:d.id,hinge:[+d.hinge[0].toFixed(2),+d.hinge[1].toFixed(2)],width:d.width,connects:d.connects||[]})),
+             windows: windows.map(w=>Object.assign({}, w[2]||{}, {a:[+w[0][0].toFixed(2),+w[0][1].toFixed(2)],b:[+w[1][0].toFixed(2),+w[1][1].toFixed(2)]})) },
     meta: Object.assign({}, DATA.meta || {}, { status: document.getElementById('stat').value, note: document.getElementById('note').value, tool:'annotate.html' }) };
   const warn = (missing?`\nUyarı: ${missing} odanın adı boş.`:'') + (badDoors?`\nUyarı: ${badDoors} kapının bağlantısı eksik (<2).`:'');
   if (location.protocol.startsWith('http')) {                    // annotate.py --serve: doğrudan dosyaya yaz

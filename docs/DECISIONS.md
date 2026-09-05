@@ -409,3 +409,33 @@ uygulanmayan iyileştirme fikri; uygulanınca "karar" olur ve commit'i yazılır
 - **[aday] 2026-09-04 — `core/sheets.py` çıktısı (görünümler, kat adları) runner'ın kat
   seçimine bağlansın; tek kat yerine tüm kat planları çıksın.** Pafta anlama v1 hazır ama
   bağlı değil.
+
+## 2026-09-05 — GT araçlarında blok açma hatası (annotate.py, tools/render_gt_ref.py)
+
+**Ne:** Kırpılmış altlık (`annotate.py --view`) ve ham PNG (`render_gt_ref.py --raw`) blok içi
+geometriyi yalnız bloğun yerleşim noktası kesim içindeyse çiziyordu. Plan bloğu/merdiven bloğu
+gibi yerleşim noktası uzakta olan bloklar tümüyle düşüyordu. Düzeltme: her blok açılır, parçalar
+tek tek kesime göre süzülür.
+
+**Etkisi:** src02-02 kör sayımı eksik ham PNG üzerinde yapıldı (merdiven bloğu görünmüyordu;
+kullanıcı merdiven saymadı). src02-07 kör sayımındaki kapı eksikliği (12 vs 20) de büyük olasılıkla
+aynı nedendir (kapı blokları görünmüyordu). İki dosyanın da `meta.note` alanına yazıldı; kör sayım
+tekrarlanmadı (kullanıcı tahmini artık gördü), karşılaştırma "araç hatası" notuyla değerlendirilir.
+
+**Alternatif:** Kör sayımı düzeltilmiş PNG ile yenilemek; reddedildi, tahmin görüldükten sonra kör
+sayım anlamını yitirir. src02-12 ve src02-09 düzeltilmiş araçla yapılacak.
+
+## 2026-09-06 — src02-02 GT süreci gözlemleri (aday, karar yok)
+
+- **KAPI___PENCERE katmanındaki 6 "pencere" tahmininin tamamı kapı çıktı** (5 cam sürgülü kapı + asansör
+  kapısı). src02-07'de de aynı katman "kapı içerebilir" notu düşülmüştü; artık 2 dosyada tekrar ediyor.
+  Aday sinyal: blok adı deseni (`sk180x220`, `200x220 sk`, `KAPI 250X160`) → kapı; `60x60x20pen1` → pencere.
+  Üçüncü dosyada görülürse sinyal olur.
+- **Etiketsiz merdiven** (blok içinde, yazı yok) yine üretilmedi; src02-07'deki gözlemle birlikte
+  "etiketsiz kapalı bölge" sinyali adayı güçleniyor (2 dosya).
+- **Giriş katı**: kör sayım "normal kat" dedi; bina giriş kapısı (kat holü–dış) ve saçak izdüşümü ancak
+  kapı turunda anlaşıldı. IR'da kat türü alanı yok; HITL soru adayı ("bu kat giriş katı mı?").
+- **Sürgülü kapı genişliği 1.6–2.0 m**: gt_check 0.6–1.5 m uyarısı sürgülüde beklenen durum; `subtype: sliding`
+  için üst sınır ayrı olmalı (araç, perception değil).
+- Tahminde kat holü ve banyo poligonları çok küçüktü (kat holü 8465–8576 şeridi doğru ama banyo yalnız
+  duşakabin); IoU 1.0 raporlanıyor çünkü eşleşen 6 odada poligonlar birebir tahminden alındı.

@@ -62,11 +62,9 @@ def base_segments(dxf_path, bbox, max_segs=80000):
                 n = 12 if t == "ARC" else 24
                 P = [(c[0] + r * math.cos(a0 + (a1 - a0) * k / n), c[1] + r * math.sin(a0 + (a1 - a0) * k / n)) for k in range(n + 1)]
                 for i in range(n): add(P[i], P[i + 1])
-            elif t == "INSERT":
-                ip = e.dxf.insert                      # blok geometrisi insert noktasından uzak olabilir (kapı/pencere
-                if inb(ip) or near(ip):                # blokları): geniş komşulukta da aç
-                    for ve in e.virtual_entities():
-                        handle(ve)
+            elif t == "INSERT":                       # blok geometrisi yerleşim noktasından uzak olabilir (plan bloğu,
+                for ve in e.virtual_entities():       # kapı/pencere blokları): her bloğu aç, parçalar inb ile süzülür
+                    handle(ve)
         except Exception:
             pass
 
@@ -101,11 +99,13 @@ def build(name, pred_dir, gt_dir, view=None):
     gt = json.loads(gt_path.read_text(encoding="utf-8")) if gt_path.exists() else None
     if gt:
         upm = float(gt.get("units_per_meter") or upm)
-        rooms = [{"id": r.get("id", f"r{i+1}"), "name": r.get("name", ""), "type": r.get("type", ""), "polygon": r["polygon"]}
+        # Ek alanlar (kind, note, subtype, type...) olduğu gibi taşınır; Kaydet onları geri yazar
+        rooms = [dict(r, id=r.get("id", f"r{i+1}"), name=r.get("name", ""), type=r.get("type", ""))
                  for i, r in enumerate(gt["floor"].get("rooms", []))]
-        doors = [{"id": d.get("id", f"d{i+1}"), "hinge": d["hinge"], "width": d.get("width"), "connects": d.get("connects", [])}
+        doors = [dict(d, id=d.get("id", f"d{i+1}"), width=d.get("width"), connects=d.get("connects", []))
                  for i, d in enumerate(gt["floor"].get("doors", []))]
-        windows = [[w["a"], w["b"]] for w in gt["floor"].get("windows", [])]
+        windows = [[w["a"], w["b"], {k: v for k, v in w.items() if k not in ("a", "b")}]
+                   for w in gt["floor"].get("windows", [])]
     else:
         rooms = [{"id": f"r{i+1}", "name": r["raw_name"], "type": r.get("room_type") or "",
                   "polygon": r["polygon"] or _square(r["label_xy"], 1.5 * upm)} for i, r in enumerate(floor["rooms"])]

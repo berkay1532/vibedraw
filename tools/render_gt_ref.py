@@ -34,7 +34,7 @@ def draw_entity(ax, e, col, lw, inb):
                     if a1 < a0: a1 += 2 * math.pi
                     P = [(c[0] + r * math.cos(a0 + (a1 - a0) * k / 24), c[1] + r * math.sin(a0 + (a1 - a0) * k / 24)) for k in range(25)]
                     ax.plot([p[0] for p in P], [p[1] for p in P], color=col, lw=lw)
-        elif t == "INSERT" and inb(e.dxf.insert):
+        elif t == "INSERT":                                   # yerleşim noktası kesim dışında olsa da blok içi çizgiler süzülür
             for ve in e.virtual_entities(): draw_entity(ax, ve, col, lw, inb)
     except Exception:
         pass
