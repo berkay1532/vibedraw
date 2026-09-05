@@ -31,6 +31,11 @@ def base_segments(dxf_path, bbox, max_segs=80000):
     def inb(p):
         return x0 <= p[0] <= x1 and y0 <= p[1] <= y1
 
+    m = 0.15 * max(x1 - x0, y1 - y0) + 300.0
+
+    def near(p):
+        return x0 - m <= p[0] <= x1 + m and y0 - m <= p[1] <= y1 + m
+
     def add(a, b):
         if inb(a) or inb(b):
             segs.append([round(a[0], 2), round(a[1], 2), round(b[0], 2), round(b[1], 2)])
@@ -58,8 +63,8 @@ def base_segments(dxf_path, bbox, max_segs=80000):
                 P = [(c[0] + r * math.cos(a0 + (a1 - a0) * k / n), c[1] + r * math.sin(a0 + (a1 - a0) * k / n)) for k in range(n + 1)]
                 for i in range(n): add(P[i], P[i + 1])
             elif t == "INSERT":
-                ip = e.dxf.insert
-                if inb(ip):
+                ip = e.dxf.insert                      # blok geometrisi insert noktasından uzak olabilir (kapı/pencere
+                if inb(ip) or near(ip):                # blokları): geniş komşulukta da aç
                     for ve in e.virtual_entities():
                         handle(ve)
         except Exception:
@@ -72,7 +77,9 @@ def base_segments(dxf_path, bbox, max_segs=80000):
     return segs
 
 
-def build(name, pred_dir, gt_dir):
+def build(name, pred_dir, gt_dir, view=None):
+    """view: (x0,y0,x1,y1) — altlık ve başlangıç görünümü bu kutuya kırpılır; tüm oda/kapı/pencere yine yüklenir
+    (Kaydet dosyanın tamamını yazar)."""
     pred_path = Path(pred_dir) / f"{name}.json"
     if not pred_path.exists():
         sys.exit(f"pred bulunamadı: {pred_path} (önce experiments/run_baseline.py)")
@@ -88,7 +95,9 @@ def build(name, pred_dir, gt_dir):
         for r in json.loads(res_path.read_text(encoding="utf-8")):
             if unicodedata.normalize("NFC", r["file"]) == nf:
                 upm = float(r["stages"].get("labels_generic", {}).get("upm", upm))
-    gt_path = Path(gt_dir) / f"{name}.json"
+    gt_path = Path(gt_dir) / f"{name}.draft.json"           # taslak varsa o (Kaydet de buraya yazar)
+    if not gt_path.exists():
+        gt_path = Path(gt_dir) / f"{name}.json"
     gt = json.loads(gt_path.read_text(encoding="utf-8")) if gt_path.exists() else None
     if gt:
         upm = float(gt.get("units_per_meter") or upm)
@@ -110,7 +119,7 @@ def build(name, pred_dir, gt_dir):
         windows = [[w[0], w[1]] for w in floor["windows"]]
     xs = [p[0] for r in rooms for p in r["polygon"]]; ys = [p[1] for r in rooms for p in r["polygon"]]
     m = 3.0 * upm
-    bbox = (min(xs) - m, min(ys) - m, max(xs) + m, max(ys) + m)
+    bbox = tuple(view) if view else (min(xs) - m, min(ys) - m, max(xs) + m, max(ys) + m)
     segs = base_segments(dxf_path, bbox)
     data = {"name": name, "source": dxf_path, "units_per_meter": upm, "bbox": bbox, "segments": segs,
             "rooms": rooms, "doors": doors, "windows": windows,
@@ -123,6 +132,37 @@ def build(name, pred_dir, gt_dir):
     return out, len(segs)
 
 
+def serve(html_path: Path, save_path: Path, port: int, open_browser: bool):
+    """Tek dosyalık HTTP sunucu: GET / → etiketleme sayfası, POST /save → JSON'u save_path'e yaz (tarayıcı indirmesi yok)."""
+    import http.server, json as _json
+    html = html_path.read_bytes()
+
+    class H(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200); self.send_header("Content-Type", "text/html; charset=utf-8"); self.end_headers(); self.wfile.write(html)
+
+        def do_POST(self):
+            n = int(self.headers.get("Content-Length", 0)); body = self.rfile.read(n)
+            try:
+                data = _json.loads(body.decode("utf-8"))
+                save_path.write_text(_json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+                msg = f"{save_path} (oda {len(data['floor']['rooms'])}, kapı {len(data['floor']['doors'])}, pencere {len(data['floor']['windows'])})"
+                self.send_response(200)
+            except Exception as ex:
+                msg = f"HATA {ex}"; self.send_response(500)
+            self.send_header("Content-Type", "text/plain; charset=utf-8"); self.end_headers(); self.wfile.write(msg.encode("utf-8"))
+            print("[annotate] kaydedildi:", msg, flush=True)
+
+        def log_message(self, *a):
+            pass
+
+    srv = http.server.HTTPServer(("127.0.0.1", port), H)
+    print(f"[annotate] http://127.0.0.1:{port}/  (Ctrl-C ile kapat)", flush=True)
+    if open_browser:
+        subprocess.run(["open", f"http://127.0.0.1:{port}/"])
+    srv.serve_forever()
+
+
 def _square(c, h):
     return [[c[0] - h, c[1] - h], [c[0] + h, c[1] - h], [c[0] + h, c[1] + h], [c[0] - h, c[1] + h]]
 
@@ -133,8 +173,14 @@ def main(argv=None):
     ap.add_argument("--pred", default="output/baseline")
     ap.add_argument("--gt", default="data/ground_truth")
     ap.add_argument("--open", action="store_true")
+    ap.add_argument("--view", default=None, help="x0,y0,x1,y1 — yalnız bu bölgeyi göster (kırpılmış etiketleme)")
+    ap.add_argument("--serve", type=int, default=None, help="port: sayfayı http://localhost:PORT/ üzerinden sun; Kaydet → <gt>/<ad>.draft.json (indirme yok)")
     a = ap.parse_args(argv)
-    out, n = build(a.name, a.pred, a.gt)
+    view = tuple(float(v) for v in a.view.split(",")) if a.view else None
+    out, n = build(a.name, a.pred, a.gt, view)
+    if a.serve:
+        serve(out, Path(a.gt) / f"{a.name}.draft.json", a.serve, a.open)
+        return
     print(f"→ {out}  ({n} altlık parçası)")
     if a.open:
         subprocess.run(["open", str(out)])

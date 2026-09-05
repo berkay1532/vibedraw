@@ -361,6 +361,21 @@ uygulanmayan iyileştirme fikri; uygulanınca "karar" olur ve commit'i yazılır
   şemasında yer var). src02-13'te 0 kapının nedeni; sinyal tarafı `block_class`'ın blok adı/katman oyu almasıyla
   tamamlanır (ağırlık turu).
 
+- **[gözlem] 2026-09-05 — src02-07 GT süreci (assisted, kullanıcı kararları + araç).** Kör sayım → tahmin kıyası →
+  bölge bölge (ham crop, sonra overlay) → kullanıcı kırpılmış annotate görünümünde çizdi (`annotate.py --view/--serve`:
+  tarayıcı indirmesi yerine POST ile taslağa yazma; meta korunur; blok geometrisi kesim komşuluğunda açılır).
+  Bulgular (adaylar): (1) sözlükte "asansör", "aydınlık" yok → çizimdeki "ASANSÖR A: 4.85 m²" etiketi oda olmadı;
+  ROOM_WORDS'e eklenmeli (ölçümle). (2) Çekirdek (kat holü + merdiven + asansör) flood-fill'de KAPI___PENCERE kanat
+  çizgileri, kiriş izdüşümü ve tefriş bariyerleriyle parçalanıyor; kat holü 2.7 m² şerit kaldı (GT 14.1). Etiketi
+  olmayan mahal (merdiven, aydınlık) hiç üretilmiyor — "etiketsiz kapalı bölge" sinyali (Adım 9 duvar grafı).
+  (3) Ham görselde/araçta kapı blokları (A$C7b0df17d: 27 çizgi + yay + WIPEOUT) zor görünüyor; kullanıcı kör
+  sayımda 12 kapı saydı, tahmin 20 doğruydu — kör sayım görselleştirmesi blok geometrisini belirgin çizmeli.
+  (4) Pencere tahmini 57 → GT 36: 15 sahte (thin_lines/keyword) + giriş kapısı kasaları pencere sayılmış
+  (KAPI___PENCERE window sınıfı, profil notu "kapı içerebilir" doğrulandı). (5) Balkon takma-ad sızması (r13 119 m²)
+  cam korkuluk çizgisinin bariyer olmamasından (kullanıcı: "korkuluk gözden kaçmış"); korkuluk katmanı → barrier
+  adayı. (6) GT şeması genişledi: kapıda `type/subtype/note` (sliding), odada `type` (stairs/elevator/light_well/
+  balcony) ve `note`; pencerede `note`. gt_check ve metrics ek alanları yok sayar.
+
 ## Adaylar (uygulanmadı)
 
 - **[aday] 2026-09-05 — yapısal profil eşleşmesi hâlâ küçük profillere kayıyor:** ≥3 ortak ad şartı fam06'yı (1 anahtar) eledi ama 3 anahtarlı fam10 (KOLON/BACA/YAZI), fam11, fam16 src02'nin 10 dosyasını 1,00 ile aldı; KOLON/BACA/YAZI genel adlar. Aday: yapısal kademede yalnız ofise ÖZGÜ adlar sayılsın (sözlükle sınıflanabilen genel adlar hariç) ya da skor anahtar sayısıyla ağırlıklansın; src02 kendi profillerini GT sonrası alsın.

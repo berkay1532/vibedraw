@@ -204,9 +204,15 @@ document.getElementById('save').onclick = ()=>{
     floor: { rooms: rooms.map(r=>({id:r.id,name:r.name,type:r.type||'',polygon:r.polygon.map(p=>[+p[0].toFixed(2),+p[1].toFixed(2)])})),
              doors: doors.map(d=>({id:d.id,hinge:[+d.hinge[0].toFixed(2),+d.hinge[1].toFixed(2)],width:d.width,connects:d.connects||[]})),
              windows: windows.map(w=>({a:[+w[0][0].toFixed(2),+w[0][1].toFixed(2)],b:[+w[1][0].toFixed(2),+w[1][1].toFixed(2)]})) },
-    meta: { status: document.getElementById('stat').value, note: document.getElementById('note').value, tool:'annotate.html' } };
+    meta: Object.assign({}, DATA.meta || {}, { status: document.getElementById('stat').value, note: document.getElementById('note').value, tool:'annotate.html' }) };
+  const warn = (missing?`\nUyarı: ${missing} odanın adı boş.`:'') + (badDoors?`\nUyarı: ${badDoors} kapının bağlantısı eksik (<2).`:'');
+  if (location.protocol.startsWith('http')) {                    // annotate.py --serve: doğrudan dosyaya yaz
+    fetch('/save', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(gt,null,1)})
+      .then(r=>r.text()).then(txt=>status('Kaydedildi → ' + txt + warn)).catch(e=>status('Kaydetme hatası: ' + e));
+    return;
+  }
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(gt,null,1)],{type:'application/json'})); a.download=DATA.name+'.json'; a.click();
-  status(`İndirildi: ${DATA.name}.json → data/ground_truth/ altına taşıyın.` + (missing?`\nUyarı: ${missing} odanın adı boş.`:'') + (badDoors?`\nUyarı: ${badDoors} kapının bağlantısı eksik (<2).`:''));
+  status(`İndirildi: ${DATA.name}.json → data/ground_truth/ altına taşıyın.` + warn);
 };
 window.addEventListener('resize', resize); resize(); fit(); render();
 </script>
