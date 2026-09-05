@@ -75,9 +75,9 @@ def test_policy_exemptions_area_convention_and_budget():
     iss = issues_for_floor(fl, NameMap(), {})
     am = [i for i in iss if i.kind == "area_mismatch"]
     assert len(am) == 1 and am[0].target_id == "r3" and fl.params.area_convention == 1.5
-    fl.params.extra["heavy"] = True
+    fl.params.extra["heavy"] = True                      # üretim sınırı yok: heavy dosyada da tüm issue'lar üretilir
     iss2 = issues_for_floor(fl, NameMap(), {f"L{k}": 100 for k in range(5)})
-    assert len(iss2) <= 10
+    assert len(iss2) >= len(iss)
 
 
 def test_unknown_layer_ranked_and_capped():
@@ -115,3 +115,16 @@ def test_window_missing_door_side_and_absolute_area():
     assert "r1" in am                                            # oran 0.4 < 0.5: mutlak kural (medyan 1.5'ten sapma da var)
     sub = issues_for_floor(fl, NameMap(), {}, enabled={"open_room"})
     assert all(i.kind == "open_room" for i in sub)
+
+
+def test_room_merged_issue_and_no_budget_truncation():
+    fl = _floor()
+    sq = [(0.0, 0.0), (400.0, 0.0), (400.0, 500.0), (0.0, 500.0)]
+    fl.rooms = [Room("r1", 0.6, Evidence(source="flood:alias_merge"), polygon=sq, raw_name="ANTRE", aliases=["HOL"], label_xy=(1, 1))]
+    fl.openings = []; fl.walls = []
+    iss = issues_for_floor(fl, NameMap(), {})
+    rm = [i for i in iss if i.kind == "room_merged"]
+    assert len(rm) == 1 and rm[0].target_id == "r1" and rm[0].data["aliases"] == ["HOL"]
+    fl.params.extra["heavy"] = True
+    many = issues_for_floor(fl, NameMap(), {f"L{k}": 100 for k in range(12)})
+    assert len(many) >= 1 and not any("budget_dropped" in i.data for i in many)     # üretim sınırı yok

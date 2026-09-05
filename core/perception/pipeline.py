@@ -19,7 +19,7 @@ from core.perception.ir_v1 import BuildingIR, Door, Floor, Room
 from core.perception.binding import _room_by_swing, pair_names_with_areas
 from core.perception.calibration import (estimate_units_from_doors, estimate_units_per_meter, file_params,
                                          label_upm_confidence, scaled_params)
-from core.perception.openings import _swing_dirs
+from core.perception.openings import _swing_dirs  # noqa: E402
 from core.perception.config import T
 from core.perception.ir_compat import to_v2
 from core.perception.names import NameMap, apply_overrides, layer_stats, names_for, refine_with_stats
@@ -307,23 +307,27 @@ def select_plan(dxf_path: str, doc=None, overrides: dict | None = None) -> PlanS
     # Kapı-yayı kanıtı: mahal listesi tabloları (döndürülmüş olsa bile) kapı yayı içermez.
     # Kapı yayı bulunan en kalabalık kümeyi tercih et.
     with_doors = []
+    rf = TD["calib_radius_frac"]
+    label_arcs = 0                                   # etiket-öncülü kümelerindeki en yüksek kapı yayı sayısı (kanıt gücü)
     for f in sorted(floors, key=lambda f: -len(f.rooms))[:TL["door_evidence_top"]]:
         if len(f.rooms) < TL["min_rooms"]:
             continue
+        n_arc = len(_swing_dirs(msp, _floor_bbox(f, TL["bbox_margin_m"] * upm), rf[0] * upm, rf[1] * upm, names=names))
+        label_arcs = max(label_arcs, n_arc)
         if estimate_units_from_doors(dxf_path, _floor_bbox(f, TL["bbox_margin_m"] * upm), upm, msp=msp, names=names) is not None:
             with_doors.append(f)
     if with_doors and floor not in with_doors:
         floor = with_doors[0]; floor.index = 0
         stats["pick"] = "doors"
+    stats["label_arcs"] = label_arcs
     label_conf = label_upm_confidence(labels)
     stats["upm_label_conf"] = label_conf
-    if not with_doors and not overrides.get("upm"):
-        # Kalibrasyon sağlamlığı (2026-09-05): hiçbir kümede kapı kanıtı yok → etiket öncülü şüpheli. Standart
-        # öncüllerle (cm, mm, m, dm) yeniden kümele; kapı yayı sayısı en yüksek hipotezi (küme) seç.
-        # Hipotez = toplam kapı yayı (ilk N küme) en yüksek öncül; kat = yayı güçlü (≥ hypothesis_strong_arcs) küme,
-        # yoksa o öncülün kümelerinde pick_plan_floor (zayıf kanıtla küçük kümeye kaymamak için).
-        rf = TD["calib_radius_frac"]; best = None
-        for prior in TD["standard_priors"]:
+    if label_arcs < TD["hypothesis_strong_arcs"] and not overrides.get("upm"):
+        # Kalibrasyon sağlamlığı (2026-09-05): etiket-öncülü kümelerinde kapı kanıtı zayıf (< strong) → etiket
+        # öncülü şüpheli. Etiket öncülü + standart öncüllerle (cm, mm, m, dm) yeniden kümele; toplam kapı yayı en
+        # yüksek hipotezi seç (eşitlikte etiket öncülü). Kat = yayı güçlü (≥ strong) küme, yoksa pick_plan_floor.
+        best = None
+        for prior in [upm] + list(TD["standard_priors"]):
             fl_p = [f for f in cluster_floors_2d(rooms, gap=TL["cluster_gap_m"] * prior) if len(f.rooms) >= TL["min_rooms"]]
             arcs = []
             for f in sorted(fl_p, key=lambda f: -len(f.rooms))[:TL["door_evidence_top"]]:
@@ -331,7 +335,7 @@ def select_plan(dxf_path: str, doc=None, overrides: dict | None = None) -> PlanS
             total = sum(n for n, _ in arcs)
             if total >= TD["calib_min_doors"] and (best is None or total > best[0]):
                 best = (total, prior, arcs, fl_p)
-        if best:
+        if best and best[1] != upm:
             total, prior, arcs, floors = best
             n_arc, f_best = max(arcs, key=lambda t: t[0])
             floor = f_best if n_arc >= TD["hypothesis_strong_arcs"] else pick_plan_floor(floors, float(prior))

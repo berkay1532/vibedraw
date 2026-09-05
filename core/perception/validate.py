@@ -15,7 +15,7 @@ from core.perception.ir_v1 import BuildingIR as BuildingIRv1
 from core.perception.names import EMPTY, LayerClass, NameMap
 from core.perception.vocab import EXEMPT_ROOM_WORDS, WINDOW_EXPECTED_ROOM_WORDS, WINDOW_EXPECTED_SHORT, fold, has_word
 
-PRIORITY = ("unknown_layer", "conflicting_layer", "unit_suspect", "open_room", "room_no_door", "window_missing",
+PRIORITY = ("unknown_layer", "conflicting_layer", "unit_suspect", "open_room", "room_merged", "room_no_door", "window_missing",
             "door_side_ambiguous", "ambiguous_opening", "area_mismatch")
 LAYER_OPTIONS = ["duvar", "kapı", "pencere", "mobilya", "yazı", "yoksay"]
 
@@ -116,6 +116,10 @@ def issues_for_floor(fl: Floor, names: NameMap = EMPTY, layer_counts: Optional[d
                 out.append(Issue("open_room", r.id, f"'{r.raw_name}' odasının poligonu kapanmıyor (sızma/boşluk). Boşluk ne?",
                              ["kapı", "geçiş", "pencere", "duvar eksik", "yoksay"], {"name": r.raw_name}))
             continue
+        if on("room_merged") and r.aliases and (r.evidence.source or "").endswith("alias_merge"):
+            out.append(Issue("room_merged", r.id,
+                             f"'{r.raw_name}' ile {', '.join(repr(a) for a in r.aliases)} etiketleri tek bölgeye düştü (takma ad birleşmesi, HITL #8). Aynı oda mı?",
+                             ["aynı oda", "ayrı odalar (bölme eksik)", "yoksay"], {"name": r.raw_name, "aliases": list(r.aliases)}))
         ex = exempt_room_type(r.raw_name)
         if on("room_no_door") and r.id not in door_rooms and not ex:
             out.append(Issue("room_no_door", r.id, f"'{r.raw_name}' odasına açılan kapı yok. Giriş nerede?",
@@ -195,11 +199,7 @@ def issues_for_floor(fl: Floor, names: NameMap = EMPTY, layer_counts: Optional[d
                          ["pencere", "kapı", "geçiş", "hiçbiri"],
                          {"targets": grouped, "rooms": sorted(rooms_hit), "count": len(grouped)}))
     out.sort(key=lambda i: PRIORITY.index(i.kind) if i.kind in PRIORITY else len(PRIORITY))
-    # --- bütçe: hard (heavy) dosyada etki sırasıyla ilk N
-    if fl.params.extra.get("heavy") and len(out) > V["budget_hard"]:
-        dropped = len(out) - V["budget_hard"]
-        out = out[:V["budget_hard"]]
-        out[-1].data["budget_dropped"] = dropped
+    # Üretim sınırı yok (kullanıcı kararı 2026-09-05): bütçe ölçütü issue/oda (evaluate), CLI etki sıralı ilk 10 + devam.
     return out
 
 
@@ -217,3 +217,8 @@ def issue_counts(issues) -> dict:
         k = i.kind if hasattr(i, "kind") else i.get("kind")
         out[k] = out.get(k, 0) + 1
     return out
+
+
+def issues_per_room(issues, n_rooms: int) -> float | None:
+    """Bütçe ölçütü: issue sayısı / oda sayısı (hedef typical dosyada ≤ thresholds validate.issues_per_room_target)."""
+    return round(len(issues) / n_rooms, 3) if n_rooms else None

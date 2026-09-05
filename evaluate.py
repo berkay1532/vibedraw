@@ -69,6 +69,7 @@ def main(argv=None) -> int:
     tiers = {}                                  # GT meta.tier: easy | normal | hard (dosya zorluğu, raporda)
     fam_of = {}                                 # GT dosyası → pred params.extra.family_id
     issue_of = {}                               # GT dosyası → {issue tipi: sayı}
+    rooms_of = {}                               # GT dosyası → tahmin oda sayısı (issue/oda)
     for gp in gt_paths:
         gt = json.loads(gp.read_text(encoding="utf-8"))
         tiers[gp.stem] = (gt.get("meta") or {}).get("tier", "")
@@ -79,6 +80,7 @@ def main(argv=None) -> int:
         fam_of[gp.stem] = (((pj.get("floors") or [{}])[0].get("params") or {}).get("extra") or {}).get("family_id", "unknown")
         from core.perception.validate import issue_counts as _ic
         issue_of[gp.stem] = _ic((pj.get("validation") or {}).get("issues") or [])
+        rooms_of[gp.stem] = len(((pj.get("floors") or [{}])[0]).get("rooms") or [])
         pred = load_floor_for_eval(pj)   # v1 veya v2 JSON
         r = evaluate_floor(gt, pred)
         from core.perception.metrics import issue_coverage
@@ -186,20 +188,23 @@ def main(argv=None) -> int:
     # Issue yükü (Adım 7): dosya başına issue sayısı ve tipe göre dağılım (hedef ≤ issues_per_file_target)
     from core.perception.config import T as _T
     from core.perception.validate import issue_counts
-    tgt = _T("validate", "issues_per_file_target")
-    L.append("\n## Issue yükü (HITL; hedef ≤ %d/dosya)\n" % tgt)
-    L.append("| Dosya | Toplam | Dağılım |")
-    L.append("|---|---:|---|")
-    agg_issue: dict = {}
+    L.append("\n## Issue yükü (HITL; ölçüt issue/oda, hedef ≤ %s)\n" % _T("validate", "issues_per_room_target"))
+    ipr_t = _T("validate", "issues_per_room_target")
+    L.append("| Dosya | Toplam | Oda | Issue/oda | Dağılım |")
+    L.append("|---|---:|---:|---:|---|")
+    agg_issue: dict = {}; iprs = []
     for name, r in rows:
         cnt = issue_of.get(name)
         if cnt is None:
             continue
         for k, v in cnt.items():
             agg_issue[k] = agg_issue.get(k, 0) + v
-        L.append(f"| {name} | {sum(cnt.values())}{' ⚠' if sum(cnt.values()) > tgt else ''} | " + ", ".join(f"{k}:{v}" for k, v in sorted(cnt.items(), key=lambda kv: -kv[1])) + " |")
+        nr = rooms_of.get(name, 0); ipr = (sum(cnt.values()) / nr) if nr else None
+        if ipr is not None:
+            iprs.append(ipr)
+        L.append(f"| {name} | {sum(cnt.values())} | {nr} | {(f'{ipr:.2f}' + (' ⚠' if ipr > ipr_t else '')) if ipr is not None else '—'} | " + ", ".join(f"{k}:{v}" for k, v in sorted(cnt.items(), key=lambda kv: -kv[1])) + " |")
     if issue_of:
-        L.append(f"| **toplam** | {sum(agg_issue.values())} | " + ", ".join(f"{k}:{v}" for k, v in sorted(agg_issue.items(), key=lambda kv: -kv[1])) + " |")
+        L.append(f"| **toplam** | {sum(agg_issue.values())} | {sum(rooms_of.values())} | medyan {mean(sorted(iprs)[len(iprs)//2:len(iprs)//2+1]) if iprs else '—'}; ≤{ipr_t}: {sum(1 for x in iprs if x <= ipr_t)}/{len(iprs)} | " + ", ".join(f"{k}:{v}" for k, v in sorted(agg_issue.items(), key=lambda kv: -kv[1])) + " |")
     # Issue kapsama: GT'deki her hatalı varlık için onu işaret eden issue var mı (politika ölçütü)
     L.append("\n## Issue kapsama (hatalı varlık → onu işaret eden issue)\n")
     L.append("| Hata tipi | Kapsanan / toplam | Oran |")

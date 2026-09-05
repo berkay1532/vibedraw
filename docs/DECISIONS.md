@@ -290,10 +290,20 @@ uygulanmayan iyileştirme fikri; uygulanınca "karar" olur ve commit'i yazılır
   yolu çalışmadı — aday: kapı kanıtı eşiği calib_min_doors (3) yerine hypothesis_strong_arcs ile. GT-7 eval
   birebir aynı.
 
+- **[karar] 2026-09-05 — son issue tipi `room_merged`, bütçe ölçütü issue/oda, hipotez tetiği (kullanıcı kararları).**
+  `room_merged`: takma-ad birleşmesi (evidence flood:alias_merge, aliases dolu) → "aynı oda mı?" (HITL #8); kapsama
+  room_fn/room_fp kümesine girer. Bundan sonra yeni issue tipi eklenmez. `window_fp` 11/16 kapsanmıyor: bunlar
+  block_keyword / layer kaynaklı yüksek güvenli sahte pencereler — **kalibrasyon sorunu: block_keyword (0,85) ve
+  layer (0,85) pencere güveni fazla, ağırlık turunda (holdout) düşürülecek**; issue ile değil. Bütçe: üretim sınırı
+  yok (heavy bütçesi kaldırıldı); ölçüt issue/oda, evaluate ve rapor medyan + typical ≤ 0,5 oranını basar; CLI
+  etki sıralı ilk 10 (`cli_page`) + `--offset`/`--all`. Hipotez tetiği genelleştirildi: etiket-öncülü kümelerinde
+  en yüksek kapı yayı sayısı < hypothesis_strong_arcs (10) ise hipotez yolu; etiket öncülü de aday (eşitlikte
+  korunur), en çok toplam yay kazanır (553_3: 2 yaylı kanıt artık yeterli sayılmaz).
+
 ## Adaylar (uygulanmadı)
 
-- **[aday] 2026-09-05 — 553_3: etiket-öncülü yolunda 2 yaylı küme 'kapı kanıtı' sayılıyor; kanıt eşiğini hipotez eşiğine (≥10) çekmek.**
-- **[aday] 2026-09-05 — kapsama için `room_merged` issue tipi** (alias_merge kaynaklı odalar: "iki etiket tek bölge, aynı oda mı?" — HITL #8); room_fn 5/7 açığının çoğu birleşmiş odalar. Kullanıcı kararı bekliyor.
+- ~~[aday] 553_3 kanıt eşiği~~ → 2026-09-05 uygulandı (hipotez tetiği < 10 yay).
+- ~~[aday] room_merged~~ → 2026-09-05 uygulandı.
 
 - ~~[aday] kat seçimi: standart öncüllerle yeniden kümeleme~~ → 2026-09-05 karar olarak uygulandı.
 

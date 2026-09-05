@@ -47,7 +47,7 @@ door:
   upm_ratio_accept: [0.25, 4.0]    # kapı upm'i etiket upm'inin bu katları arasında ise kabul
   standard_priors: [100.0, 1000.0, 1.0, 10.0]   # hiçbir kümede kapı kanıtı yoksa yeniden kümeleme hipotezleri (cm, mm, m, dm)
   doors_vs_labels_max_dev: 1.0      # kapı upm'i etiket upm'inden 2 kattan fazla sapıyorsa birim şüpheli (etiket kestirimi sistematik ~%35 düşük; 0.3 tüm dosyaları işaretliyordu)
-  hypothesis_strong_arcs: 10        # hipotez içinde kat seçimi: küme yayı bu kadarsa o küme, değilse pick_plan_floor
+  hypothesis_strong_arcs: 10        # (a) etiket-öncülü kümelerinde kapı kanıtı bu kadardan azsa hipotez yolu tetiklenir; (b) hipotez içinde kat seçimi: küme yayı bu kadarsa o küme, değilse pick_plan_floor
   hypothesis_refine_accept: [0.7, 1.4]   # hipotez (standart öncül) seçildiyse kapı düzeltmesi yalnız bu bantta kabul (183/100 gibi büyük yaylar reddedilir)
 swing:                             # binding._room_by_swing
   cos_min: 0.2
@@ -77,15 +77,13 @@ validate:                        # Adım 7 issue üretimi (perception/validate.p
   ambiguous_opening_conf: 0.5          # açıklık güveni bunun altında → ambiguous_opening
   unit_standard_upm: [1.0, 10.0, 100.0, 1000.0]   # m, dm, cm, mm
   unit_tol_frac: 0.15                  # upm standart değerlerden bu oranda uzaksa → unit_suspect (0.25 → 0.15: 536_1'in 76 birim/m değeri işaretlensin; kapı kanadı 0.875 m varsayımının payı)
-  issues_per_file_target: 5            # raporlama hedefi (HITL yükü)
   # --- politika (kullanıcı kararı 2026-09-05)
   unknown_layer_max_per_file: 3        # entity × duvar-benzeri geometri oranına göre ilk N
   ambiguous_opening_conf: 0.5          # (yukarıdaki tekrar) toplu soru: yalnız penceresiz odaya değen adaylar
   ambiguous_touch_m: 0.3               # aday merkezi odaya bu kadar yakınsa "değiyor"
   area_convention_dev: 0.20            # oda oranı dosya medyanından bu kadar sapınca area_mismatch
-  budget_hard: 10                      # hard (heavy) dosyada etki sırasıyla ilk N issue
-  budget_typical_target: 10            # raporlama hedefi: typical ≤ 10, medyan ≤ 8
-  budget_median_target: 8
+  issues_per_room_target: 0.5          # bütçe ölçütü (2026-09-05): issue/oda; typical dosyada ≤ 0.5, rapor medyan + oran basar
+  cli_page: 10                         # hitl/cli.py --list: etki sıralı ilk N, sonra --offset ile devam
   # --- yeni tipler (kullanıcı kararı 2026-09-05)
   area_abs_low: 0.5                    # yazı/geometri oranı bu altında ya da area_abs_high üstünde → her zaman issue
   area_abs_high: 2.0

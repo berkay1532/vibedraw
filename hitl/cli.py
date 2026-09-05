@@ -180,12 +180,20 @@ def main(argv=None) -> int:
     ap.add_argument("--issue", type=int, default=None); ap.add_argument("--answer", default=None)
     ap.add_argument("--png", default=None, help="crop PNG yolu (varsayılan output/hitl/<ad>/<i>_<tip>.png)")
     ap.add_argument("--no-write", action="store_true", help="IR JSON'u ve learning log'u yazma")
+    ap.add_argument("--offset", type=int, default=0, help="--list: bu sıradan itibaren göster (etki sıralı, sayfa thresholds validate.cli_page)")
+    ap.add_argument("--all", action="store_true", help="--list: hepsini göster")
     a = ap.parse_args(argv)
     pred = load(Path(a.pred)); iss = issues(pred); stem = Path(a.pred).stem
     if a.list or a.issue is None:
-        print(f"{stem}: {len(iss)} issue (hedef ≤ 5/dosya)")
-        for i, it in enumerate(iss):
-            print(f"  [{i}] {it['kind']:18s} {str(it.get('target_id')):24s} {it['message'][:90]}")
+        from core.perception.config import T
+        n_rooms = len(pred["floors"][0].get("rooms", [])); page = T("validate", "cli_page")
+        print(f"{stem}: {len(iss)} issue, {n_rooms} oda → {len(iss) / n_rooms if n_rooms else 0:.2f} issue/oda (hedef ≤ {T('validate', 'issues_per_room_target')})")
+        end = len(iss) if a.all else min(len(iss), a.offset + page)
+        for i in range(a.offset, end):
+            it = iss[i]
+            print(f"  [{i}] {it['kind']:20s} {str(it.get('target_id')):24s} {it['message'][:90]}")
+        if end < len(iss):
+            print(f"  … {len(iss) - end} issue daha: --offset {end} (ya da --all)")
         return 0
     it = iss[a.issue]
     png = Path(a.png) if a.png else ROOT / "output" / "hitl" / stem / f"{a.issue}_{it['kind']}.png"

@@ -207,7 +207,7 @@ def evaluate_floor(gt: dict, pred: dict, iou_thr=0.5, door_tol_m=0.5, window_tol
 
 
 # --- Issue kapsama (Adım 7 politika ölçütü) ---------------------------------------------------
-ROOM_ISSUES = {"open_room", "room_no_door", "area_mismatch"}
+ROOM_ISSUES = {"open_room", "room_no_door", "area_mismatch", "room_merged"}
 
 
 def _issue_targets(issues) -> dict:
