@@ -26,6 +26,8 @@ def test_issues_types_and_priority():
     kinds = [i.kind for i in iss]
     assert kinds[0] == "unknown_layer" and iss[0].target_id == "layer:GIZEMLI"
     assert "conflicting_layer" in kinds and next(i for i in iss if i.kind == "conflicting_layer").data["count"] == 25
+    nm2 = NameMap(classes={"A_ANNO": (LayerClass.column, 0.6, "keyword"), "DUVAR": (LayerClass.wall, 0.6, "keyword")})
+    assert not any(i.kind == "conflicting_layer" for i in issues_for_floor(_floor(), nm2, {}))   # kolon oyu çelişki değil
     assert "unit_suspect" in kinds                                  # 42 birim/m standart değil
     assert "open_room" in kinds and "ambiguous_opening" in kinds
     amb = next(i for i in iss if i.kind == "ambiguous_opening")

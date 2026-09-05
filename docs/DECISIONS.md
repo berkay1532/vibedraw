@@ -336,7 +336,34 @@ uygulanmayan iyileştirme fikri; uygulanınca "karar" olur ve commit'i yazılır
   - **Kapı güveni tek dilimde** (%100 0,7–0,9) her kaynakta: block+arc 0,95 hiç gözlenmiyor, kapılar blok (0,70) ya da
     yay (0,75). Kalibrasyon tablosu için ayırt edici değil; ağırlık turu notu.
 
+- **[karar] 2026-09-05 — A: conflicting_layer yalnız text/dim/furniture/ignore/unknown oylarında; yapısal profil
+  eşleşmesi en az 3 ortak ad.** Bariyer sınıfları (wall/beam/column/chimney/window) ve hatch/stair çelişki üretmez
+  (kolon/kiriş zaten paralel çift çizer); segment bayrağı evidence'ta kalır. `names.STRUCT_MIN_KEYS = 3`.
+  GT-7 eval ve kapsama değişmedi (EVAL_HISTORY).
+- **[gözlem] 2026-09-05 — D raporu (src02, kod yok).** (a) src02-07 area_mismatch 20/24 oda: dosya konvansiyonu 1,91
+  (yazı ≈ 1,9 × geometri!) — oranlar 1,3–2,7 arasında geniş dağılıyor; KAT HOLÜ 17,6 / 2,0 m² (8,6×), HOL 4,6 / 0,9
+  (5,1×), BALKON 5,9 / 89,7 (0,07, alias_merge sızması). Yorum: geometri alanları sistematik küçük → oda poligonları
+  bu dosyada duvar kalınlığı/sıva çizgileri arasında dar kalıyor ya da mm/cm karışımı; GT src02-07 bunu ölçecek.
+  (b) src02-13 kapılar YAYSIZ bloklar: '95 KAPI' ×32 (6 LWPOLYLINE, iç INSERT), '110 KAPI' ×9, 'Single_Door_12' ×5,
+  '95-200-20 kapı' ×4, 'yangın kapısı' ×2; blok içinde ARC yok, modelspace 51 ARC hepsi < 1 m yarıçap (sembol).
+  Kapı katmanı KAPI___PENCERE'de 53 INSERT. Mevcut kapı yolu (yay imzası) bu ofiste kör; blok ADI sinyali gerekir.
+  (c) Duvar sayısı şişmesi: src02-08 2123 parça — .ABM-SIVA 523, '0' 477 (unknown), ABM.DUVAR 217, ABM.SIVA 207,
+  ABM.ALAN 194 (unknown, alan çizgileri); src02-11 4344 parça — 'PLAN DUVAR' 3056, .ABM-SIVA 647, PLAN SIVA 445.
+  Crop: PLAN DUVAR katmanı tüm kat planlarını (çok daire, çok kat) kapsıyor; seçilen kat bbox'ı geniş olduğu için
+  komşu daire/katların duvarları da sayılıyor; '0' ve ABM.ALAN sınıfsız katmanlar çift filtresinden geçiyor.
+  (d) Revizyon çifti 430-35: src02-09 (1 Eylül) 13 odalı kat (9×16 m, BANYO/KAT HOLÜ/MUTFAK/YATAK…) seçildi,
+  src02-10 (2 Temmuz) 6 odalı küme (8×10 m, WC×4/APT. GİRİŞ HOLÜ/KAT HOLÜ) — iki sürümde etiket kümeleri [6,12,12,15,5]
+  vs [6,12,12,13], kapı kanıtı 4 yay; 2 Temmuz'da 13'lük küme yok, plan seçimi WC ağırlıklı zemin/giriş katına
+  kaydı. Kat seçimi kanıtı zayıf (4 yay) olduğunda revizyonlar arasında kararsız.
+- **[aday] 2026-09-05 — `unknown_block` issue tipi (yeni tip yasağı sonrası ilk istisna adayı, karar bekliyor):**
+  bir dosyada adı kapı/pencere kelimesi taşıyan ya da kapı katmanında yer alan ama yayı olmayan, ≥ N kez yerleştirilmiş
+  blok → "Bu blok ne?" [kapı/pencere/mobilya/sembol/yoksay]; cevap profile `blocks:` olarak yazılır (ARCHITECTURE §5
+  şemasında yer var). src02-13'te 0 kapının nedeni; sinyal tarafı `block_class`'ın blok adı/katman oyu almasıyla
+  tamamlanır (ağırlık turu).
+
 ## Adaylar (uygulanmadı)
+
+- **[aday] 2026-09-05 — yapısal profil eşleşmesi hâlâ küçük profillere kayıyor:** ≥3 ortak ad şartı fam06'yı (1 anahtar) eledi ama 3 anahtarlı fam10 (KOLON/BACA/YAZI), fam11, fam16 src02'nin 10 dosyasını 1,00 ile aldı; KOLON/BACA/YAZI genel adlar. Aday: yapısal kademede yalnız ofise ÖZGÜ adlar sayılsın (sözlükle sınıflanabilen genel adlar hariç) ya da skor anahtar sayısıyla ağırlıklansın; src02 kendi profillerini GT sonrası alsın.
 
 - ~~[aday] 553_3 kanıt eşiği~~ → 2026-09-05 uygulandı (hipotez tetiği < 10 yay).
 - ~~[aday] room_merged~~ → 2026-09-05 uygulandı.

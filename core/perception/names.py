@@ -26,6 +26,7 @@ from core.perception.vocab import LAYER_WORDS, fold, has_word
 ROOT = Path(__file__).resolve().parents[2]
 PROFILE_DIR = ROOT / "source_profiles"
 STRUCT_MIN = 0.5      # kayıtlı yapısal adların en az bu oranı dosyada varsa aile eşleşti (config/ adayı)
+STRUCT_MIN_KEYS = 3   # yapısal eşleşme için en az bu kadar ORTAK ad (tek anahtarlı profil her dosyayı alıyordu; 2026-09-05)
 JACCARD_MIN = 0.5     # triage aile eşiğiyle aynı
 PROFILE_CONF = 0.9    # profil kaynaklı sınıf güveni
 KEYWORD_CONF = 0.6    # genel sözlük kaynaklı sınıf güveni (kapı+pencere çakışması: KEYWORD_CONF - 0.1)
@@ -119,7 +120,7 @@ def match_profile(layer_names, profiles: list[SourceProfile], fingerprint: Optio
     best, best_s = None, 0.0
     for p in profiles:
         keys = {fold(k) for k in p.layers}
-        if keys:
+        if keys and len(L & keys) >= STRUCT_MIN_KEYS:
             s = len(L & keys) / len(keys)
             if s > best_s:
                 best, best_s = p, s

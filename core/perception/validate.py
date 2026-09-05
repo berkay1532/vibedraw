@@ -18,6 +18,9 @@ from core.perception.vocab import EXEMPT_ROOM_WORDS, WINDOW_EXPECTED_ROOM_WORDS,
 PRIORITY = ("unknown_layer", "conflicting_layer", "unit_suspect", "open_room", "room_merged", "room_no_door", "window_missing",
             "door_side_ambiguous", "ambiguous_opening", "area_mismatch")
 LAYER_OPTIONS = ["duvar", "kapı", "pencere", "mobilya", "yazı", "yoksay"]
+# conflicting_layer yalnız bu sınıf oylarında (kullanıcı kararı 2026-09-05): bariyer sınıfları (wall/beam/column/
+# chimney/window) ve hatch/stair çelişki üretmez; segment bayrağı evidence'ta kalır.
+CONFLICT_VOTES = {"text", "dim", "furniture", "ignore", "unknown"}
 
 
 class PipelineError(Exception):
@@ -86,8 +89,10 @@ def issues_for_floor(fl: Floor, names: NameMap = EMPTY, layer_counts: Optional[d
         by_layer[lay] = (tot + 1, con + (1 if w.evidence.note == "conflicting_signal" else 0))
     for lay, (tot, con) in sorted(by_layer.items(), key=lambda kv: -kv[1][1]):
         ratio = con / tot if tot else 0.0
+        vote = names.cls(lay).value if lay != "?" else "unknown"
+        if vote not in CONFLICT_VOTES:          # kolon/kiriş/pencere/baca zaten paralel çift çizer; tarama/merdiven de çelişki değil
+            continue
         if on("conflicting_layer") and con >= V["conflicting_layer_min_count"] and ratio >= V["conflicting_layer_min_ratio"]:
-            vote = names.cls(lay).value if lay != "?" else "unknown"
             out.append(Issue("conflicting_layer", f"layer:{lay}",
                              f"'{lay}' katmanı: geometri {con}/{tot} segmentte duvar çifti diyor, katman sınıfı '{vote}' diyor. Bu çizgiler ne?",
                              ["duvar", "açıklama-yazı", "mobilya", "yoksay"],

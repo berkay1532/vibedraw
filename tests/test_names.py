@@ -43,7 +43,8 @@ def _profile(tmp_path):
 def test_match_profile_three_tiers(tmp_path):
     profs = _profile(tmp_path)
     assert match_profile(["x"], profs, fingerprint="deadbeef")[1] == "fingerprint"
-    assert match_profile(["OFIS-DUV", "OFIS-KAP", "Z"], profs)[1] == "structural"        # 2/3 kayıtlı ad
+    assert match_profile(["OFIS-DUV", "OFIS-KAP", "ince", "Z"], profs)[1] == "structural"   # 3/3 kayıtlı ad (en az 3 ortak)
+    assert match_profile(["OFIS-DUV", "OFIS-KAP", "Z"], profs)[1] != "structural"           # 2 ortak: yapısal kademe yetmez
     assert match_profile(["OFIS-DUV", "0", "YAZI", "OLCU", "Q"], profs)[1] == "jaccard"   # 4/6 ≥ 0.5
     assert match_profile(["A", "B", "C"], profs)[0] is None
 
@@ -71,7 +72,7 @@ def test_repo_profiles_load_and_have_classes():
 def test_has_min_conf_gates_keyword_classes(tmp_path):
     from core.perception.names import GATED_MIN_CONF, WALL_EXCLUDE_CLASSES
     profs = _profile(tmp_path)
-    prof, how, sc = match_profile(["OFIS-KAP", "OFIS-DUV"], profs)
+    prof, how, sc = match_profile(["OFIS-KAP", "OFIS-DUV", "ince"], profs)          # 3 ortak ad → yapısal
     nm = classify_layers(["OFIS-KAP", "YAZI"], prof, how, sc)
     assert nm.has("YAZI", WALL_EXCLUDE_CLASSES)                          # sözlük: ekleyici tüketiciler için yeter
     assert not nm.has("YAZI", WALL_EXCLUDE_CLASSES, GATED_MIN_CONF)      # hariç tutma profil güveni ister

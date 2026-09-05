@@ -109,6 +109,7 @@ upm'i 'prior' olan dosyalarda GT'ye units_per_meter elle yazılmalı (unit_suspe
 - **Dönüşüm:** LibreDWG dwg2dxf, 15/15 başarılı (0 hata); DXF'ler `data/dataset/src02/dxf/src02-NN.dxf`, ham DWG'ler `src02/raw/`.
 - **Revizyon çifti:** src02-09 (430-35, 1 Eylül) eval ve holdout'ta; src02-10 (430-35, 2 Temmuz) `consistency_pair`, yalnız tutarlılık karşılaştırması.
 - **Holdout (config/holdout.yaml, değişmez):** src02-03, src02-06, src02-09, src02-13 (ada göre sıralı, src02-10 hariç, her üçüncü).
+- **GT listesi (karar 2026-09-05):** src02-02 (küçük), src02-07 (orta), src02-12 (büyük), src02-09 (holdout; 430-35 revizyon çifti tutarlılık ölçümü).
 
 | Kimlik | Proje no | Yıl | Birim ($INSUNITS) | Katman | Entity | INSERT | Blok içi entity | Ağır | Triage ailesi (src02 içi) |
 |---|---|---|---|---:|---:|---:|---:|---|---|
