@@ -32,6 +32,8 @@ def check(d: dict) -> tuple[list[str], list[str]]:
         elif P.area / upm ** 2 < 0.5: warn.append(f"{rid} ({r.get('name')}): alan {P.area / upm ** 2:.2f} m² çok küçük")
         polys[rid] = P
         if not r.get("name"): warn.append(f"{rid}: name boş")
+        if (d.get("meta") or {}).get("source", "").startswith("src02"):                # src02 standardı: kind zorunlu
+            if r.get("kind") not in ("daire içi", "ortak", "teknik", "dış"): err.append(f"{rid} ({r.get('name')}): kind eksik/geçersiz (daire içi|ortak|teknik|dış)")
     dids = set()
     for o in f.get("doors", []):
         did = o.get("id")

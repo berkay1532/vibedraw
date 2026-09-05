@@ -72,7 +72,8 @@
       12491.83,
       5391.33
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r2",
@@ -127,7 +128,8 @@
       13815.92,
       5066.47
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r3",
@@ -190,7 +192,8 @@
       12491.83,
       4189.3
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r4",
@@ -261,7 +264,8 @@
       13780.61,
       3853.05
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r5",
@@ -332,7 +336,8 @@
       12493.15,
       4718.67
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r6",
@@ -379,7 +384,8 @@
       12491.83,
       4561.88
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r7",
@@ -434,7 +440,8 @@
       13682.05,
       4651.74
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r8",
@@ -489,7 +496,8 @@
       13300.54,
       4360.59
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r9",
@@ -520,7 +528,8 @@
       12508.14,
       5069.92
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r10",
@@ -559,7 +568,8 @@
       12511.07,
       3854.48
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r11",
@@ -582,7 +592,8 @@
       13233.95,
       3853.57
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r12",
@@ -605,7 +616,8 @@
       13233.95,
       5423.59
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r14",
@@ -636,7 +648,8 @@
       13707,
       4654.38
      ]
-    ]
+    ],
+    "kind": "dış"
    },
    {
     "id": "r15",
@@ -667,7 +680,8 @@
       13705.78,
       4241.58
      ]
-    ]
+    ],
+    "kind": "dış"
    },
    {
     "id": "r16",
@@ -690,7 +704,8 @@
       12328.99,
       5044.74
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r17",
@@ -721,7 +736,8 @@
       12330.29,
       4238.22
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r18",
@@ -760,7 +776,8 @@
       12970.87,
       4353.39
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r19",
@@ -799,7 +816,8 @@
       13306.23,
       5048.69
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r20",
@@ -830,7 +848,8 @@
       12511.77,
       4371.94
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r21",
@@ -869,7 +888,8 @@
       12708,
       5040
      ]
-    ]
+    ],
+    "kind": "ortak"
    },
    {
     "id": "r22",
@@ -908,7 +928,8 @@
       12684.18,
       4857.2
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r23",
@@ -939,7 +960,8 @@
       13193.92,
       4574.44
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r24",
@@ -994,7 +1016,8 @@
       13155.43,
       4918.96
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r25",
@@ -1017,7 +1040,8 @@
       12858,
       4650
      ]
-    ]
+    ],
+    "kind": "ortak"
    },
    {
     "id": "r26",
@@ -1040,7 +1064,8 @@
       12882,
       4879
      ]
-    ]
+    ],
+    "kind": "ortak"
    },
    {
     "id": "r27",
@@ -1063,7 +1088,8 @@
       11955,
       4650
      ]
-    ]
+    ],
+    "kind": "dış"
    },
    {
     "id": "r13",
@@ -1098,7 +1124,8 @@
       11943.5,
       5041.07
      ]
-    ]
+    ],
+    "kind": "dış"
    },
    {
     "id": "r28",
@@ -1122,7 +1149,8 @@
       5404
      ]
     ],
-    "note": "apartman boşluğu (kullanıcı varsayımı); çizimde yazı yok; sınır raster bileşeninin kutusu"
+    "note": "apartman boşluğu (kullanıcı varsayımı); çizimde yazı yok; sınır raster bileşeninin kutusu",
+    "kind": "teknik"
    },
    {
     "id": "r29",
@@ -1146,7 +1174,8 @@
       4184
      ]
     ],
-    "note": "apartman boşluğu (kullanıcı varsayımı); çizimde yazı yok; sınır raster bileşeninin kutusu"
+    "note": "apartman boşluğu (kullanıcı varsayımı); çizimde yazı yok; sınır raster bileşeninin kutusu",
+    "kind": "teknik"
    }
   ],
   "doors": [
@@ -1837,6 +1866,7 @@
    "pred_doors": 20,
    "note": "karşılaştırma kör sayımdan SONRA; tur 1: balkon 4/3, merdiven-asansör yok, kapı 12+2/20",
    "doors_resolution": "kör sayım 12+2, tahmin 20; fark ham görselde görünmeyen kapı bloklarından (kullanıcı onayı)"
-  }
+  },
+  "kind_schema": "daire içi | ortak | teknik | dış (2026-09-05; mahal tipinden ayrı, bağlanacağı tabloyu belirler)"
  }
 }

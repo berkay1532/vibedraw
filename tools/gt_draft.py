@@ -13,6 +13,20 @@ import argparse, json
 from pathlib import Path
 
 
+KIND_WORDS = {"ortak": ("kat holü", "kat holu", "merdiven", "asansör", "asansor", "bina giriş", "apt. giriş", "sığınak", "kapıcı", "ortak"),
+              "teknik": ("aydınlık", "aydinlik", "şaft", "saft", "baca", "tesisat", "kazan", "hidrofor", "trafo"),
+              "dış": ("balkon", "teras", "bahçe", "avlu", "veranda")}
+
+
+def guess_kind(name: str) -> str:
+    """kind ön-doldurma (kullanıcı düzeltir): daire içi | ortak | teknik | dış."""
+    from core.perception.vocab import has_word
+    for k, words in KIND_WORDS.items():
+        if has_word(name or "", words):
+            return k
+    return "daire içi"
+
+
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("name"); ap.add_argument("--pred", default="output/src02")
     ap.add_argument("--upm", type=float, default=None, help="GT birimi (varsayılan: tahmin upm'i; unit_suspect ise elle ver)")
@@ -26,7 +40,7 @@ def main():
         def poly(pts):                          # tahmin poligonu kapatma noktasını tekrarlayabilir; GT'de yazılmaz
             pts = [list(p) for p in (pts or [])]
             return pts[:-1] if len(pts) > 3 and pts[0] == pts[-1] else pts
-        rooms = [{"id": r["id"], "name": r["raw_name"], "type": r.get("room_type") or "", "polygon": poly(r["polygon"])} for r in fl["rooms"]]
+        rooms = [{"id": r["id"], "name": r["raw_name"], "type": r.get("room_type") or "", "kind": guess_kind(r["raw_name"]), "polygon": poly(r["polygon"])} for r in fl["rooms"]]
         doors = [{"id": o["id"], "hinge": list(o["hinge"] or o["center"]), "width": o.get("width"), "connects": [x for x in (o.get("rooms") or []) if x]}
                  for o in fl["openings"] if o["kind"] == "door"]
         wins = [{"a": [o["center"][0] - (o.get("width") or 0) / 2, o["center"][1]], "b": [o["center"][0] + (o.get("width") or 0) / 2, o["center"][1]]}
