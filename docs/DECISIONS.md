@@ -308,6 +308,34 @@ uygulanmayan iyileştirme fikri; uygulanınca "karar" olur ve commit'i yazılır
   X katı olmalı ya da etiket güveni ağırlık olarak girmeli. Ağırlık turunda (holdout) düzeltilecek; şimdilik
   dokunulmadı (yeni kaynak girişi kod değişikliği istemiyor).
 
+- **[kaynak] 2026-09-05 — src02 dokunulmamış koşu (commit 71a52a9), yalnız gözlem; hiçbir eşik/ağırlık/profil/sözlük
+  değişmedi.** 15 dosya, 15/15 ok; upm 13 doors / 1 prior (src02-06) / 1 labels (src02-13, 0 kapı); issue/oda medyan
+  1,46 (mevcut kaynak 1,39). Adaylar (uygulanmadı):
+  - **Yapısal eşleşme tek anahtarlı profilde her dosyayı alıyor**: fam06 (hafif çelik) profili yalnız `YAZI` taşıyor,
+    "YAZI" olan her dosya fam06'ya structural 1,0 ile bağlanıyor (src02'de 10/15). Aday: yapısal kademe için en az
+    3 kayıtlı ad şartı ya da anahtar sayısıyla ağırlıklı skor; src02 aileleri (2 büyük, 5 tekil) için profil GT sonrası.
+  - **conflicting_layer yapısal sınıflarda yanlış pozitif**: KOLON (column), KİRİŞ İZD (beam), KAPI___PENCERE (window),
+    TARAMA (hatch), MERDIVEN (stair) katmanları 30–54 segmentin tamamında "çift" geometrisi taşıyor — kolon ve kiriş
+    zaten paralel çift ÇİZER, bu çelişki değil. Aday: `layer_class_vote` bariyer sınıfları (column/beam/window/chimney)
+    için 1 (ya da None) dönsün; çelişki yalnız text/dim/furniture/hatch/ignore/stair oylarında. src02-07'de 6 sahte
+    conflicting_layer bundan.
+  - **area_mismatch src02'de 14/dosya** (mevcut 5,6): dosya medyanı konvansiyonu tutuyor ama sapanlar çok; yazı alanı
+    net/brüt ve "SALON+MUTFAK" birleşik alan yazıları olabilir. Aday: GT çıkınca yazı/geometri oranını oda tipine göre
+    incelemek; mutlak kural (0,5–2) burada büyük pay taşıyor mu ölçmek.
+  - **src02-13: 0 kapı, 31 oda, upm etiketten (83)** — kapı yayı bulunmadı; kapılar muhtemelen yaysız blok ya da
+    KAPI___PENCERE çizgisi. Aday: blok adı "KAPI/KP" → door_block sinyali (profil ya da sözlük), bu dosya GT adayı değil.
+  - **Pencere sayısı yüksek** (src02 medyan 34/dosya, mevcut 12): KAPI___PENCERE katmanı window sınıfı (profil notu
+    "kapı içerebilir"); kapı kanatları pencere sayılıyor olabilir. Aday: GT ile pencere FP ölçümü, ağırlık turu.
+  - **AA-0.xx katmanları** (kalem kalınlığı adlı katmanlar: AA-0.00…0.60, 10+ dosyada) unknown_layer sorusu üretiyor;
+    içerik istatistiği karar veremiyor (uzun çizgi var). Aday: sözlük deseni `AA-\d` → ignore ya da HITL cevabıyla profil.
+  - **unit_suspect 115,2 (src02-07, doors)**: %15 tolerans sınırında; kapı kanadı 0,875 m varsayımı ofis standardına
+    (0,80/0,90) göre kayıyor. Aday: tolerans yerine kanat genişliği histogramından ofis kanadı.
+  - **consistency_pair 430-35**: src02-09 (1 Eylül) 13 oda / 3 kapı / 12 pencere, src02-10 (2 Temmuz) 6 oda (3 poligon)
+    / 3 kapı / 8 pencere, upm 99,8 vs 108,5. İki sürümde plan seçimi farklı küme buluyor; GT src02-09 üzerinde çıkınca
+    revizyon tutarlılığı ölçülebilir.
+  - **Kapı güveni tek dilimde** (%100 0,7–0,9) her kaynakta: block+arc 0,95 hiç gözlenmiyor, kapılar blok (0,70) ya da
+    yay (0,75). Kalibrasyon tablosu için ayırt edici değil; ağırlık turu notu.
+
 ## Adaylar (uygulanmadı)
 
 - ~~[aday] 553_3 kanıt eşiği~~ → 2026-09-05 uygulandı (hipotez tetiği < 10 yay).

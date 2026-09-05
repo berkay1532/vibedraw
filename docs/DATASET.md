@@ -97,6 +97,41 @@ parçalanıyordu (DECISIONS (h)). Kalibrasyon sağlamlığı (2026-09-05) sonras
 536_1 listeden çıkarıldı: plan seçimi şüpheli (113 "oda" tek kümede, 4 kapı, upm 76 unit_suspect), GT'ye uygun değil.
 upm'i 'prior' olan dosyalarda GT'ye units_per_meter elle yazılmalı (unit_suspect sorusu).
 
+## src02 — ikinci kaynak (2026-09-05)
+
+- **Kimlik:** anonim kaynak (meslektaş arşivi). Orijinal DWG adları gerçek kişi adları içeriyor; ad eşlemesi yalnız
+  `data/dataset/src02/MAPPING.md` (gitignore). Bu belge, output/, EVAL_HISTORY ve raporlar yalnız `src02-NN` kimliği + proje numarası kullanır.
+- **Yazılım (DXF başlığından tahmin):** tüm dosyalar AC1032 (AutoCAD 2018+ dosya formatı); appid'ler yalnız ACAD_* (ACAD_MLEADERVER,
+  ACAUTHENVIRON, ACAD_NAV_VCDISPLAY) — BricsCAD/ZWCAD/Revit izi yok → AutoCAD 2018–2026. Kod sayfası ANSI_1254 (Türkçe).
+  $TDCREATE/$TDUPDATE LibreDWG dönüşümünde boş.
+- **Yıl:** dosya adlarındaki tarihler 09.2025 – 06.2026; proje numaraları 175–575 arası ada/parsel.
+- **Telif:** ruhsat projeleri, mimarlık ofisine ait; yalnız araştırma/geliştirme içi kullanım, repoya ve hiçbir yayına girmez.
+- **Dönüşüm:** LibreDWG dwg2dxf, 15/15 başarılı (0 hata); DXF'ler `data/dataset/src02/dxf/src02-NN.dxf`, ham DWG'ler `src02/raw/`.
+- **Revizyon çifti:** src02-09 (430-35, 1 Eylül) eval ve holdout'ta; src02-10 (430-35, 2 Temmuz) `consistency_pair`, yalnız tutarlılık karşılaştırması.
+- **Holdout (config/holdout.yaml, değişmez):** src02-03, src02-06, src02-09, src02-13 (ada göre sıralı, src02-10 hariç, her üçüncü).
+
+| Kimlik | Proje no | Yıl | Birim ($INSUNITS) | Katman | Entity | INSERT | Blok içi entity | Ağır | Triage ailesi (src02 içi) |
+|---|---|---|---|---:|---:|---:|---:|---|---|
+| src02-01 | 4060 ada 6 PARSEL |  | mm | 121 | 30071 | 2794 | 80071 |  | 2 |
+| src02-02 | 175-7 |  | mm | 72 | 1745 | 310 | 14991 |  | 0 |
+| src02-03 | 177-1 18 |  | mm | 102 | 11239 | 1583 | 413974 | AĞIR | 0 |
+| src02-04 | 184-3 |  | mm | 59 | 1805 | 262 | 14088 |  | 1 |
+| src02-05 | 193 13 | 2026 | cm | 330 | 292183 | 10 | 73465 | AĞIR | 3 |
+| src02-06 | 208 12 12 | 2026 | cm | 157 | 21757 | 31 | 88364 |  | 4 |
+| src02-07 | 281-21 | 2026 | mm | 59 | 7148 | 689 | 27619 |  | 1 |
+| src02-08 | 37 | 2026 | mm | 146 | 73428 | 1540 | 24545 |  | 5 |
+| src02-09 | 430-35 |  | mm | 61 | 2619 | 367 | 22312 |  | 1 |
+| src02-10 | 430-35 |  | mm | 60 | 4141 | 661 | 16567 |  | 1 |
+| src02-11 | 506 ADA 2 PARSEL | 2025 | cm | 124 | 60595 | 1476 | 44808 |  | 6 |
+| src02-12 | 534-1 |  | cm | 102 | 12351 | 2001 | 98226 |  | 0 |
+| src02-13 | 557 -7 21 |  | mm | 73 | 3345 | 404 | 25992 |  | 0 |
+| src02-14 | 575 - 5 PARSEL |  | cm | 79 | 2421 | 394 | 45723 |  | 0 |
+| src02-15 | 389-12 | 2025 | mm | 70 | 9165 | 1234 | 35509 |  | 1 |
+
+Triage: 15/15 ADAY, 0 elektrik çizimi, 7 src02-içi aile (2 büyük: {02,03,12,13,14} ve {04,07,09,10,15}); profil eşleşmesi
+yapısal örtüşme ile fam06/fam02/fam00 (bkz. DECISIONS adayı: tek anahtarlı profil yapısal eşleşmede her dosyayı alıyor).
+Bloklar korunmuş (INSERT 10–2794; blok içi entity 14k–414k; src02-05 patlatılmış görünüyor: 292k entity, 10 INSERT).
+
 ## Aileler ve kaynak profilleri
 
 Profil anahtarı triage ailesi (`source_profiles/fam<NN>.yaml`, NN = ilk numaralandırmadaki aile indeksi; aile 4+5 → fam04).
