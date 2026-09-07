@@ -486,3 +486,22 @@ sayım anlamını yitirir. src02-12 ve src02-09 düzeltilmiş araçla yapılacak
   cevabı (`hitl_floor`) gerekiyor — kod yok, aday.
 - **Holdout ilk ölçüm:** oda 0.759 / kapı 0.400 / pencere 0.286; geliştirme kümesi (3 GT) 0.617 / 0.788 / 0.648. Kapı
   farkı blok kapı yoğunluğundan (12 kapının 9'u blok), oda farkı bu katın daha az daire içi bölünmesinden.
+
+## 2026-09-08 — GT-7 revizyonu (kind alanı + eksik çekirdek/dış mahaller; aday, karar yok)
+
+- **Yöntem:** yedi eski GT ham çizgi + GT poligonu üstünde tarandı; GT dışı kalan DXF yazıları listelendi ("60x60 şaft",
+  "Asansör Boşluğu", "Kablo Bacası", "FRANSIZ BALKON"); etiketsiz bölgeler görselden seçildi. Poligonlar DXF çizgilerinden
+  deterministik çıkarıldı: tohum noktası çevresindeki çizgiler `polygonize`, tohumu içeren en küçük yüz (şaft/asansör/sahanlık),
+  basamak çizgileriyle parçalanan merdiven için kutu içindeki yüzlerin birleşimi. İki hata kullanıcı gözüyle yakalandı:
+  merdiven birleşimi ocak tezgâhı yüzlerini aldı (alan filtresi yetmedi), sahanlık kablo bacası girintisini içerdi.
+  Aday: gt araçlarına "tohumdan yüz" komutu (annotate `--face x,y`) — kullanıcı çizmek yerine tıklar.
+- **Eklenen mahal profili:** 8 mahal / 7 dosyada; hepsi etiketsiz ya da mahal adı katmanı dışında etiketli (şaft yazısı
+  A_ANNO_TXT, asansör yazısı MAHAL ADI değil). Tahmin bunların hiçbirini üretmiyor → "etiketsiz kapalı bölge" sinyali artık
+  eski kaynakta da 4 dosyada (KAYAPINAR, tip-1, tip-2, hafif_celik); src02 ile toplam 8.
+- **FRANSIZ BALKON yazıları** (KAYAPINAR, 10 adet) mahal değil, pencere/korkuluk notu; "balkon" kelimesi tek başına oda
+  sinyali olamaz — kelime + kapalı bölge birlikte gerekli (vocab'a olumsuz örnek adayı).
+- **Kapatma noktası / geçersiz poligon:** eski GT'lerde 15 poligon kapatma noktasını tekrar ediyordu, biri onarım gerektirdi;
+  gt_check uyarısı yeterli oldu. Eski GT meta'ları (tier/holdout/source/status) boştu, dolduruldu; birimler (78.5–103.3)
+  eski kapı kalibrasyonu, bilinçli olarak korundu (meta.note).
+- **Dış mahal adlandırması:** aynı ofis ailesinde (fam01) giriş önü örtülü alan "GİRİŞ VERANDA" (tip-4 etiketi); tip-2'deki
+  etiketsiz eşdeğeri aynı adla yazıldı, hafif_celik'te "GİRİŞ SAHANLIĞI". Aday: type=terrace altında ad serbest, kind=dış.

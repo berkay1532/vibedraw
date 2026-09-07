@@ -32,7 +32,8 @@
       59203.43,
       -73658.96
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r2",
@@ -119,7 +120,8 @@
       59663.45,
       -74204.95
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r3",
@@ -149,12 +151,9 @@
      [
       58626.6,
       -74204.85
-     ],
-     [
-      58621.7,
-      -74204.95
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r4",
@@ -188,12 +187,9 @@
      [
       58621.7,
       -73859.5
-     ],
-     [
-      58621.7,
-      -73675.5
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r5",
@@ -232,7 +228,8 @@
       58618.32,
       -73627.89
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r6",
@@ -262,12 +259,9 @@
      [
       58982.09,
       -73201.54
-     ],
-     [
-      58980.95,
-      -73490.25
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r7",
@@ -314,7 +308,8 @@
       59003.18,
       -73471.51
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r8",
@@ -352,12 +347,9 @@
      [
       59344.76,
       -73621.45
-     ],
-     [
-      59345.95,
-      -73182.75
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r9",
@@ -387,12 +379,9 @@
      [
       59328.45,
       -73508.5
-     ],
-     [
-      59328.45,
-      -73640.25
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r10",
@@ -422,6 +411,31 @@
      [
       58976.61,
       -73675.04
+     ]
+    ],
+    "kind": "daire içi"
+   },
+   {
+    "id": "r11",
+    "name": "ŞAFT",
+    "type": "shaft",
+    "kind": "teknik",
+    "polygon": [
+     [
+      58794.7,
+      -73801.5
+     ],
+     [
+      58854.7,
+      -73801.5
+     ],
+     [
+      58854.6,
+      -73861.5
+     ],
+     [
+      58794.7,
+      -73861.5
      ]
     ]
    }
@@ -536,8 +550,15 @@
   ]
  },
  "meta": {
-  "status": "draft",
-  "note": "d2 deki kapu duvar gibi görünsede boşluk ya da duvar olarak çizilmiş ama kapı olması lazım unutulmuş ya da mimar tarafından hatalı çizilmiş.\nd4 kapısı da aynı durumda\nd3 kapısı da aynı durumda\nve salon-r2 de kapı koyulcak yer bile unutulmuş görünüyor\nbir de banyoda farkettim ki duşa kabin boydan boya olduğu için duvar sanılıyor.",
-  "tool": "annotate.html"
+  "status": "verified",
+  "note": "d2 deki kapu duvar gibi görünsede boşluk ya da duvar olarak çizilmiş ama kapı olması lazım unutulmuş ya da mimar tarafından hatalı çizilmiş.\nd4 kapısı da aynı durumda\nd3 kapısı da aynı durumda\nve salon-r2 de kapı koyulcak yer bile unutulmuş görünüyor\nbir de banyoda farkettim ki duşa kabin boydan boya olduğu için duvar sanılıyor. | birim 96.5 eski GT kalibrasyonu (kapı genişliği), bilinçli; değiştirilmedi",
+  "tool": "annotate.html",
+  "tier": "typical",
+  "holdout": false,
+  "kind_schema": "daire içi | ortak | teknik | dış",
+  "revision": "2026-09-08 GT-7 revizyonu: kind alanı dolduruldu; eklenen mahaller: r11 ŞAFT 0.39 m² (poligonlar DXF çizgilerinden polygonize; tip-6 dış duvar dışı baca adayı eklenmedi)",
+  "source": "fam01",
+  "family": "fam01",
+  "method": "manual (annotate.py, 2026-09 öncesi)"
  }
 }

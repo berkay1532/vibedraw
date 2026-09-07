@@ -32,7 +32,8 @@
       13958.25,
       1028.95
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r2",
@@ -63,7 +64,8 @@
       14508.26,
       1028.91
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r3",
@@ -86,7 +88,8 @@
       14358.32,
       1028.77
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r4",
@@ -117,7 +120,8 @@
       14645.74,
       738.65
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r5",
@@ -140,7 +144,8 @@
       13958.99,
       599.2
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r6",
@@ -171,7 +176,8 @@
       14507.46,
       599.98
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r7",
@@ -209,6 +215,99 @@
      [
       14358.53,
       768.32
+     ]
+    ],
+    "kind": "daire içi"
+   },
+   {
+    "id": "r8",
+    "name": "GİRİŞ SAHANLIĞI",
+    "type": "terrace",
+    "kind": "dış",
+    "polygon": [
+     [
+      14326.0,
+      292.2
+     ],
+     [
+      14329.0,
+      296.8
+     ],
+     [
+      14329.0,
+      335.2
+     ],
+     [
+      14369.7,
+      334.8
+     ],
+     [
+      14373.4,
+      336.8
+     ],
+     [
+      14374.9,
+      341.2
+     ],
+     [
+      14463.9,
+      341.2
+     ],
+     [
+      14468.2,
+      344.3
+     ],
+     [
+      14469.1,
+      351.2
+     ],
+     [
+      14497.0,
+      351.2
+     ],
+     [
+      14497.3,
+      339.5
+     ],
+     [
+      14501.8,
+      335.3
+     ],
+     [
+      14559.0,
+      335.2
+     ],
+     [
+      14559.0,
+      296.6
+     ],
+     [
+      14561.0,
+      292.0
+     ],
+     [
+      14561.0,
+      185.6
+     ],
+     [
+      14356.1,
+      185.6
+     ],
+     [
+      14354.5,
+      189.4
+     ],
+     [
+      14351.1,
+      191.4
+     ],
+     [
+      14329.0,
+      191.5
+     ],
+     [
+      14326.0,
+      196.6
      ]
     ]
    }
@@ -372,8 +471,15 @@
   ]
  },
  "meta": {
-  "status": "draft",
-  "note": "",
-  "tool": "annotate.html"
+  "status": "verified",
+  "note": "birim 81.3 eski GT kalibrasyonu (kapı genişliği), bilinçli; değiştirilmedi",
+  "tool": "annotate.html",
+  "tier": "typical",
+  "holdout": false,
+  "kind_schema": "daire içi | ortak | teknik | dış",
+  "revision": "2026-09-08 GT-7 revizyonu: kind alanı dolduruldu; eklenen mahaller: r8 GİRİŞ SAHANLIĞI 5.42 m² (poligonlar DXF çizgilerinden polygonize; tip-6 dış duvar dışı baca adayı eklenmedi)",
+  "source": "fam06",
+  "family": "fam06",
+  "method": "manual (annotate.py, 2026-09 öncesi)"
  }
 }

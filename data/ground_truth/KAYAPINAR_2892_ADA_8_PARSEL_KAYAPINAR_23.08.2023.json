@@ -39,12 +39,9 @@
      [
       12052.61,
       1961
-     ],
-     [
-      12052.61,
-      1528.07
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r2",
@@ -74,12 +71,9 @@
      [
       13025.74,
       1981
-     ],
-     [
-      13025.74,
-      1528.07
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r3",
@@ -118,7 +112,8 @@
       12646.2,
       1848.49
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r4",
@@ -157,7 +152,8 @@
       12074.15,
       1375.73
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r5",
@@ -195,12 +191,9 @@
      [
       12663.96,
       2580.28
-     ],
-     [
-      12990.1,
-      2577.57
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r6",
@@ -238,12 +231,9 @@
      [
       12668.11,
       2015.01
-     ],
-     [
-      12668.59,
-      2276
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r7",
@@ -298,7 +288,8 @@
       12056.66,
       2274.47
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r8",
@@ -337,7 +328,8 @@
       11714.5,
       2577.57
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r9",
@@ -384,7 +376,8 @@
       12349.25,
       2413.2
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r10",
@@ -431,7 +424,8 @@
       12533.54,
       2578.51
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r11",
@@ -454,7 +448,8 @@
       11674.5,
       1358.37
      ]
-    ]
+    ],
+    "kind": "dış"
    },
    {
     "id": "r12",
@@ -477,7 +472,8 @@
       13049.69,
       1357.12
      ]
-    ]
+    ],
+    "kind": "dış"
    },
    {
     "id": "r13",
@@ -524,7 +520,8 @@
       12197.96,
       1861.23
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r14",
@@ -570,6 +567,103 @@
      [
       12643.7,
       1869.77
+     ]
+    ],
+    "kind": "daire içi"
+   },
+   {
+    "id": "r15",
+    "name": "ASANSÖR",
+    "type": "elevator",
+    "kind": "ortak",
+    "polygon": [
+     [
+      12250.6,
+      2177.5
+     ],
+     [
+      12250.6,
+      2387.5
+     ],
+     [
+      12470.6,
+      2387.5
+     ],
+     [
+      12470.6,
+      2177.5
+     ]
+    ]
+   },
+   {
+    "id": "r16",
+    "name": "MERDİVEN",
+    "type": "stair",
+    "kind": "ortak",
+    "polygon": [
+     [
+      12226,
+      1788
+     ],
+     [
+      12496,
+      1788
+     ],
+     [
+      12496,
+      2008
+     ],
+     [
+      12226,
+      2008
+     ]
+    ]
+   },
+   {
+    "id": "r17",
+    "name": "KAT HOLÜ",
+    "type": "corridor",
+    "kind": "ortak",
+    "polygon": [
+     [
+      12220.6,
+      2042.5
+     ],
+     [
+      12500.6,
+      2042.5
+     ],
+     [
+      12500.6,
+      2157.5
+     ],
+     [
+      12220.6,
+      2157.5
+     ]
+    ]
+   },
+   {
+    "id": "r18",
+    "name": "HAVALANDIRMA ŞAFTI",
+    "type": "shaft",
+    "kind": "teknik",
+    "polygon": [
+     [
+      12390.6,
+      2577.8
+     ],
+     [
+      12390.6,
+      2517.8
+     ],
+     [
+      12330.6,
+      2517.8
+     ],
+     [
+      12330.6,
+      2577.8
      ]
     ]
    }
@@ -844,8 +938,15 @@
   ]
  },
  "meta": {
-  "status": "draft",
-  "note": "Toplamda 2 adet daire görüyorum birbirinin eşleniği ya da ayna simetrisi denebilir, mutfakların ortasında duvar geçiyor gibi ama aslında bu duvar değil mutfaklarının devamı.Bazı kapıları ve yaylarını göremedim ama yine de bulmuş sistem.Pencerelerin hepsi bulunmamış ama banyodaki havalandırmalar bulunmuş.Tabi yine polinomize etmekte ufak tefek hatalar var idir.",
-  "tool": "annotate.html"
+  "status": "verified",
+  "note": "Toplamda 2 adet daire görüyorum birbirinin eşleniği ya da ayna simetrisi denebilir, mutfakların ortasında duvar geçiyor gibi ama aslında bu duvar değil mutfaklarının devamı.Bazı kapıları ve yaylarını göremedim ama yine de bulmuş sistem.Pencerelerin hepsi bulunmamış ama banyodaki havalandırmalar bulunmuş.Tabi yine polinomize etmekte ufak tefek hatalar var idir. | birim 103.3 eski GT kalibrasyonu (kapı genişliği), bilinçli; değiştirilmedi",
+  "tool": "annotate.html",
+  "tier": "typical",
+  "holdout": false,
+  "kind_schema": "daire içi | ortak | teknik | dış",
+  "revision": "2026-09-08 GT-7 revizyonu: kind alanı dolduruldu; eklenen mahaller: r15 ASANSÖR 4.33 m², r16 MERDİVEN 5.57 m², r17 KAT HOLÜ 2.89 m², r18 HAVALANDIRMA ŞAFTI 0.34 m² (poligonlar DXF çizgilerinden polygonize; tip-6 dış duvar dışı baca adayı eklenmedi); kat holü girintisiz dikdörtgen (kablo bacası girintisi kaldırıldı, kullanıcı)",
+  "source": "fam04",
+  "family": "fam04",
+  "method": "manual (annotate.py, 2026-09 öncesi)"
  }
 }

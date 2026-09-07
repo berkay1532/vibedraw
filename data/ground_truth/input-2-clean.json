@@ -40,7 +40,8 @@
       5738.28,
       2186.4
      ]
-    ]
+    ],
+    "kind": "ortak"
    },
    {
     "id": "r2",
@@ -71,7 +72,8 @@
       5591.85,
       2196.01
      ]
-    ]
+    ],
+    "kind": "ortak"
    },
    {
     "id": "r3",
@@ -98,7 +100,8 @@
       6102.52,
       1829.7
      ]
-    ]
+    ],
+    "kind": "dış"
    },
    {
     "id": "r4",
@@ -169,7 +172,8 @@
       5232.44,
       2156.64
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r5",
@@ -216,7 +220,8 @@
       5232.87,
       1766.64
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r6",
@@ -267,7 +272,8 @@
       5721.27,
       1906.62
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r7",
@@ -306,7 +312,8 @@
       5581.23,
       1566.9
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r8",
@@ -329,7 +336,8 @@
       5581.35,
       1916.24
      ]
-    ]
+    ],
+    "kind": "daire içi"
    }
   ],
   "doors": [
@@ -570,8 +578,15 @@
   ]
  },
  "meta": {
-  "status": "draft",
-  "note": "",
-  "tool": "annotate.html"
+  "status": "verified",
+  "note": "birim 81.7 eski GT kalibrasyonu (kapı genişliği), bilinçli; değiştirilmedi",
+  "tool": "annotate.html",
+  "tier": "typical",
+  "holdout": false,
+  "kind_schema": "daire içi | ortak | teknik | dış",
+  "revision": "2026-09-08 GT-7 revizyonu: kind alanı dolduruldu; eklenen mahaller: yok (poligonlar DXF çizgilerinden polygonize; tip-6 dış duvar dışı baca adayı eklenmedi)",
+  "source": "fam04",
+  "family": "fam04",
+  "method": "manual (annotate.py, 2026-09 öncesi)"
  }
 }

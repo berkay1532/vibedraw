@@ -40,7 +40,8 @@
       314793.75,
       4430756.34
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r2",
@@ -63,7 +64,8 @@
       314789.95,
       4430515.69
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r3",
@@ -86,7 +88,8 @@
       314790.43,
       4430370.38
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r4",
@@ -125,7 +128,8 @@
       314484.96,
       4430745.95
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r5",
@@ -164,7 +168,8 @@
       315007.97,
       4430742.41
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r6",
@@ -219,7 +224,8 @@
       315007.88,
       4430335.42
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r7",
@@ -258,7 +264,8 @@
       314487.36,
       4430322.64
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r8",
@@ -329,7 +336,8 @@
       315019.09,
       4429712.08
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r9",
@@ -368,7 +376,8 @@
       314523.05,
       4429508.35
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r10",
@@ -407,7 +416,8 @@
       315380.49,
       4429891.97
      ]
-    ]
+    ],
+    "kind": "dış"
    },
    {
     "id": "r11",
@@ -446,7 +456,8 @@
       314502.83,
       4429798.03
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r12",
@@ -501,7 +512,8 @@
       314816.34,
       4429743.16
      ]
-    ]
+    ],
+    "kind": "daire içi"
    }
   ],
   "doors": [
@@ -768,8 +780,15 @@
   ]
  },
  "meta": {
-  "status": "draft",
-  "note": "bazı kapılar mimari altlıkta koyulmamış ya da görünmüyor fakat biz doğru tespit etmişiz meseal d4 ve d5",
-  "tool": "annotate.html"
+  "status": "verified",
+  "note": "bazı kapılar mimari altlıkta koyulmamış ya da görünmüyor fakat biz doğru tespit etmişiz meseal d4 ve d5 | birim 91.4 eski GT kalibrasyonu (kapı genişliği), bilinçli; değiştirilmedi",
+  "tool": "annotate.html",
+  "tier": "typical",
+  "holdout": true,
+  "kind_schema": "daire içi | ortak | teknik | dış",
+  "revision": "2026-09-08 GT-7 revizyonu: kind alanı dolduruldu; eklenen mahaller: yok (poligonlar DXF çizgilerinden polygonize; tip-6 dış duvar dışı baca adayı eklenmedi)",
+  "source": "fam01",
+  "family": "fam01",
+  "method": "manual (annotate.py, 2026-09 öncesi)"
  }
 }

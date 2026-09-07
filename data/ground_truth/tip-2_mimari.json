@@ -52,7 +52,8 @@
       11438.49,
       -50493.12
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r2",
@@ -118,12 +119,9 @@
      [
       12393.52,
       -50518.14
-     ],
-     [
-      11916.77,
-      -50516.72
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r3",
@@ -162,7 +160,8 @@
       12408.25,
       -50857.92
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r4",
@@ -209,7 +208,8 @@
       12033.75,
       -51042.85
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r5",
@@ -280,7 +280,8 @@
       11438.61,
       -50893.32
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r6",
@@ -311,7 +312,8 @@
       11693.5,
       -50723.34
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r7",
@@ -358,7 +360,8 @@
       11868.45,
       -51248.3
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r8",
@@ -400,12 +403,9 @@
      [
       11697.65,
       -50539.24
-     ],
-     [
-      11696.35,
-      -50670.97
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r9",
@@ -447,6 +447,131 @@
      [
       11436.65,
       -50723.02
+     ]
+    ],
+    "kind": "daire içi"
+   },
+   {
+    "id": "r10",
+    "name": "ŞAFT",
+    "type": "shaft",
+    "kind": "teknik",
+    "polygon": [
+     [
+      11676.1,
+      -50730.6
+     ],
+     [
+      11676.1,
+      -50780.6
+     ],
+     [
+      11616.1,
+      -50780.6
+     ],
+     [
+      11616.1,
+      -50720.6
+     ],
+     [
+      11676.1,
+      -50720.6
+     ]
+    ]
+   },
+   {
+    "id": "r11",
+    "name": "GİRİŞ VERANDA",
+    "type": "terrace",
+    "kind": "dış",
+    "polygon": [
+     [
+      12416.1,
+      -51482.6
+     ],
+     [
+      12408.1,
+      -51482.6
+     ],
+     [
+      12408.1,
+      -51505.6
+     ],
+     [
+      11879.1,
+      -51505.6
+     ],
+     [
+      11879.1,
+      -51288.6
+     ],
+     [
+      11891.1,
+      -51288.6
+     ],
+     [
+      11891.1,
+      -51292.4
+     ],
+     [
+      11895.1,
+      -51292.4
+     ],
+     [
+      11896.1,
+      -51288.6
+     ],
+     [
+      11986.1,
+      -51288.6
+     ],
+     [
+      11987.1,
+      -51292.4
+     ],
+     [
+      11991.1,
+      -51292.4
+     ],
+     [
+      11991.1,
+      -51288.6
+     ],
+     [
+      12134.6,
+      -51288.6
+     ],
+     [
+      12134.6,
+      -51293.6
+     ],
+     [
+      12237.6,
+      -51293.6
+     ],
+     [
+      12237.6,
+      -51288.6
+     ],
+     [
+      12254.6,
+      -51288.6
+     ],
+     [
+      12254.6,
+      -51293.6
+     ],
+     [
+      12357.6,
+      -51293.6
+     ],
+     [
+      12357.6,
+      -51288.6
+     ],
+     [
+      12416.1,
+      -51288.6
      ]
     ]
    }
@@ -725,8 +850,15 @@
   ]
  },
  "meta": {
-  "status": "draft",
-  "note": "r9 un ne olduğunu anlamadım dışarıdan bağlantı var ama r9 dan başka bir odaya geçiş göremedim\nbir de d9 kapısı da dış kapı gibi ama orda da aynı şekilde d7 gibi bir kapı  | Claude: r9=DEPO (mahal etiketi Z-09 DEPO 3.11m²), d7=DEPO↔dış, d9=KORİDOR↔dış (ana giriş).",
-  "tool": "annotate.html"
+  "status": "verified",
+  "note": "r9 un ne olduğunu anlamadım dışarıdan bağlantı var ama r9 dan başka bir odaya geçiş göremedim\nbir de d9 kapısı da dış kapı gibi ama orda da aynı şekilde d7 gibi bir kapı  | Claude: r9=DEPO (mahal etiketi Z-09 DEPO 3.11m²), d7=DEPO↔dış, d9=KORİDOR↔dış (ana giriş). | birim 78.5 eski GT kalibrasyonu (kapı genişliği), bilinçli; değiştirilmedi",
+  "tool": "annotate.html",
+  "tier": "typical",
+  "holdout": false,
+  "kind_schema": "daire içi | ortak | teknik | dış",
+  "revision": "2026-09-08 GT-7 revizyonu: kind alanı dolduruldu; eklenen mahaller: r10 ŞAFT 0.58 m², r11 GİRİŞ VERANDA 18.71 m² (poligonlar DXF çizgilerinden polygonize; tip-6 dış duvar dışı baca adayı eklenmedi)",
+  "source": "fam01",
+  "family": "fam01",
+  "method": "manual (annotate.py, 2026-09 öncesi)"
  }
 }

@@ -40,7 +40,8 @@
       6103.85,
       2302.8
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r3",
@@ -78,12 +79,9 @@
      [
       6791.77,
       2319.75
-     ],
-     [
-      6377.85,
-      2319.75
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r4",
@@ -114,7 +112,8 @@
       6770.38,
       2197.19
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r5",
@@ -177,7 +176,8 @@
       6359.94,
       2981.71
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r6",
@@ -199,12 +199,9 @@
      [
       6075.53,
       2303.5
-     ],
-     [
-      5967.23,
-      2303.5
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r7",
@@ -255,7 +252,8 @@
       6074.68,
       3206.78
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r8",
@@ -286,7 +284,8 @@
       5950.35,
       2669.75
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r9",
@@ -341,7 +340,8 @@
       5693.8,
       2319.34
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r10",
@@ -380,7 +380,8 @@
       6048.93,
       2008.09
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r11",
@@ -418,12 +419,9 @@
      [
       6585.35,
       2187.5
-     ],
-     [
-      6424.1,
-      2187.5
      ]
-    ]
+    ],
+    "kind": "daire içi"
    },
    {
     "id": "r12",
@@ -469,12 +467,9 @@
      [
       6108.71,
       2151.5
-     ],
-     [
-      6808.89,
-      2151.5
      ]
-    ]
+    ],
+    "kind": "dış"
    }
   ],
   "doors": [
@@ -755,8 +750,15 @@
   ]
  },
  "meta": {
-  "status": "draft",
-  "note": "",
-  "tool": "annotate.html"
+  "status": "verified",
+  "note": "birim 96.7 eski GT kalibrasyonu (kapı genişliği), bilinçli; değiştirilmedi",
+  "tool": "annotate.html",
+  "tier": "typical",
+  "holdout": false,
+  "kind_schema": "daire içi | ortak | teknik | dış",
+  "revision": "2026-09-08 GT-7 revizyonu: kind alanı dolduruldu; eklenen mahaller: yok (poligonlar DXF çizgilerinden polygonize; tip-6 dış duvar dışı baca adayı eklenmedi)",
+  "source": "fam01",
+  "family": "fam01",
+  "method": "manual (annotate.py, 2026-09 öncesi)"
  }
 }

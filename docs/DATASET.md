@@ -164,12 +164,18 @@ Yeni triage koşusunda aile indeksleri kayabilir; eşleşme parmak izi → yapı
 
 ## Ground truth (`data/ground_truth/`)
 
-- KAYAPINAR_2892_ADA_8_PARSEL_KAYAPINAR_23.08.2023
-- hafif_celik_tip_koy_konutu_70_m2_mimari
-- input-2-clean
-- tip-1_mimari
-- tip-2_mimari
-- tip-4_mimari
-- tip-6_mimari
+GT-7 (eski kaynak; **2026-09-08 revizyonu**: kind alanı dolduruldu, eksik çekirdek/dış mahaller eklendi — bkz. DECISIONS 2026-09-08 GT-7):
+
+| Dosya | Aile | Oda | Kapı | Pencere | kind (daire içi/ortak/teknik/dış) | Küme |
+|---|---|---:|---:|---:|---|---|
+| KAYAPINAR_2892_ADA_8_PARSEL_KAYAPINAR_23.08.2023 | fam04 | 18 | 12 | 12 | 12/3/1/2 | gel. |
+| hafif_celik_tip_koy_konutu_70_m2_mimari | fam06 | 8 | 7 | 7 | 7/0/0/1 | gel. |
+| input-2-clean | fam04 | 8 | 6 | 16 | 5/2/0/1 | gel. |
+| tip-1_mimari | fam01 | 11 | 8 | 1 | 10/0/1/0 | gel. |
+| tip-2_mimari | fam01 | 11 | 9 | 16 | 9/0/1/1 | gel. |
+| tip-4_mimari | fam01 | 11 | 11 | 14 | 10/0/0/1 | gel. |
+| tip-6_mimari | fam01 | 12 | 9 | 15 | 11/0/0/1 | holdout |
+
+Eklenen mahaller: KAYAPINAR ASANSÖR, MERDİVEN, KAT HOLÜ (sahanlık), HAVALANDIRMA ŞAFTI; tip-1 ŞAFT; tip-2 ŞAFT, GİRİŞ VERANDA; hafif_celik GİRİŞ SAHANLIĞI. tip-4 ve input-2'de eksik yok. tip-6 dış duvar dışındaki dar bölge (baca?) eklenmedi (kullanıcı emin değil).
 
 Etiketleme aracı `annotate.py` (tarayıcı). Kapı GT'sine `rooms: [a, b]` eklenmesi planlı (REFACTOR_PLAN).
