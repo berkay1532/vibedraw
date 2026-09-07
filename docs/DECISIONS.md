@@ -439,3 +439,25 @@ sayım anlamını yitirir. src02-12 ve src02-09 düzeltilmiş araçla yapılacak
   için üst sınır ayrı olmalı (araç, perception değil).
 - Tahminde kat holü ve banyo poligonları çok küçüktü (kat holü 8465–8576 şeridi doğru ama banyo yalnız
   duşakabin); IoU 1.0 raporlanıyor çünkü eşleşen 6 odada poligonlar birebir tahminden alındı.
+
+## 2026-09-08 — src02-12 GT süreci gözlemleri (aday, karar yok)
+
+- **Büyük dosya süreci:** 8 daire + 2 çekirdek; daire başına (ham → overlay → kullanıcı kırpılmış annotate'te
+  hol/banyo/e.banyo/balkon çizer → kapılar DXF yaylarından, sürgülüler bloklardan → pencere listesi) döngüsü işledi.
+  Kullanıcı yalnız zikzaklı/küçük poligonları yeniden çizdi; büyük odalar (salon, yatak, çocuk, mutfak) tahminden
+  alındı (IoU 0.91). Tahminin **hol ve banyo poligonları sistematik olarak bozuk** (zikzak, duşakabin boyu) —
+  3 dosyada tekrar: sinyal adayı "küçük/ince oda poligonu + etiket alanı uyuşmazlığı".
+- **DXF etiketleri alan taşıyor** ("SALON / A:21.70 M²"): GT alanları etiketin %5–10 altında (sıva yüzü). Aday:
+  etiket alanı varsa `area_mismatch` için doğrudan referans; perception'da text sinyali olarak kullanılabilir (3 dosya:
+  src02-02, src02-07, src02-12).
+- **Sürgülü / ebeveyn banyo kapıları DXF'te yay ya da blok olarak yok**; tahmin bunları "pencere" olarak buluyor
+  (KAPI___PENCERE katmanı, 142–180 birim). GT'de konum/genişlik o pencere parçasından alındı. 3 dosyada tekrar →
+  "KAPI___PENCERE üzerindeki 1.4–2.0 m parça iki oda arasındaysa kapı" sinyal adayı güçlendi.
+- **60x60 baca pencereleri** (`_60x60p10` bloğu) kullanıcıya göre cam; tahmin bazılarının eksenini yanlış (yatay)
+  veriyor; blok kutusundan düzeltildi (2 örnek). Aday: blok kutusu uzun kenarı = pencere ekseni.
+- **Kat holü çekirdeği** yine tahminde yok/parçalı (0.8 m² şerit); merdiven/asansör/yangın merdiveni etiketsiz.
+  "Etiketsiz kapalı bölge" sinyali artık 3 dosyada.
+- **Kör sayım ↔ GT:** 8 daire, ~86 mahal / ~81 kapı sayımı; GT 83 oda / 82 kapı. Sağ üst dairede "3 balkon" yerine
+  2 balkon + 3 balkon kapısı; bir dairede kullanıcı banyo poligonunu unuttu (gt_check bağlantı uyarısıyla yakalandı).
+- **Araç:** annotate `--view` ile tek daire çizimi verimli; yanlışlıkla komşu daire düzenlemesi 1 kez oldu
+  (yedek + fark listesi ile yakalandı). gt_check'e "kayıt öncesi/sonrası fark" çıktısı eklenebilir (aday).
