@@ -461,3 +461,28 @@ sayım anlamını yitirir. src02-12 ve src02-09 düzeltilmiş araçla yapılacak
   2 balkon + 3 balkon kapısı; bir dairede kullanıcı banyo poligonunu unuttu (gt_check bağlantı uyarısıyla yakalandı).
 - **Araç:** annotate `--view` ile tek daire çizimi verimli; yanlışlıkla komşu daire düzenlemesi 1 kez oldu
   (yedek + fark listesi ile yakalandı). gt_check'e "kayıt öncesi/sonrası fark" çıktısı eklenebilir (aday).
+
+## 2026-09-08 — src02-09 blind GT süreci gözlemleri (holdout; aday, karar yok)
+
+- **Blind akış çalıştı:** tahmin hiç açılmadı; ham PNG + `gt_draft --empty` şablonu, oda poligonları kullanıcı tarafından
+  annotate `--view/--serve` ile çizildi, kapı/pencere geometrisi DXF'ten deterministik türetildi (yay merkezi; blok
+  `matrix44` dönüşümü). İlk menteşe önerisi blok **insert** noktasından alınmıştı, kullanıcı D/E/F'in kaydığını gördü;
+  doğru menteşe `Single_Door_12` bloğunun yerel (0,10) noktası (kanat 95 cm, kasa 10 cm). Aday: kapı bloğu için
+  "menteşe = blok yerel kanat başlangıcı" kuralı `unknown_block` HITL cevabından öğrenilebilir (blok adı → yerel menteşe/genişlik).
+- **Çatı katı = ortak çekirdek ağırlıklı kat:** 16 odanın 6'sı ortak/teknik (kat holü, 3 merdiven bölgesi, su deposu yeri,
+  asansör makine dairesi); su deposu ve makine dairesi **etiketsiz** → tahminde yok. "Etiketsiz kapalı bölge" sinyali artık
+  **4 dosyada** (src02-02/07/12/09).
+- **Blok kapılar görünmez (4. dosya):** 5 `Single_Door_12`, 3 `210 SK`, 1 `120x220`; hiçbiri yay taşımadığı için kapı yolu
+  görmüyor; bunlar KAPI___PENCERE katmanında "pencere" olarak çıkıyor (12 tahmin pencerenin 10'u sahte). `unknown_block`
+  adayı güçlendi; gerçek pencere bloğu `_60X60X10LUKKDUVAR` ile kapı bloğu aynı katmanda → katman değil blok geometrisi ayırt eder.
+- **Yay kapılarında oda ataması zayıf:** 3 yay kapısının konumu 0,0 m hatalı ama bağlantı 1/3 doğru (KAT HOLÜ parçalı,
+  HOL'ler IoU<0.5); kapı-oda ataması oda poligonu kalitesine bağımlı — ayrı sinyal değil, oda hatası kaynaklı.
+- **Küçük oda poligonları (4. dosya):** HOL 2,2 m² ve 3,5 m² ile KAT HOLÜ 5,5 m² tahminde 0.22–0.47 IoU (şerit/bölünmüş);
+  src02-07/12'deki desenin aynısı.
+- **Çelişen etiket:** çocuk odası poligonu içinde ikinci bir "HOL A:3.10 M²" yazısı; kullanıcı kararı tek oda (yazı hatalı).
+  `room_merged` bu durumu iki etiket/tek bölge olarak işaret eder (tahminde 2 room_merged issue var) — HITL #8 doğru soru.
+- **Revizyon çifti kat düzeyinde karşılaştırılamadı:** src02-10 (2 Temmuz) plan seçimi giriş katına gitti (15 etiketli
+  çatı kümesi yok/bölünmüş, `pick: doors`). Plan seçimi revizyona duyarlı; consistency_pair ölçümü için kat seçimi HITL
+  cevabı (`hitl_floor`) gerekiyor — kod yok, aday.
+- **Holdout ilk ölçüm:** oda 0.759 / kapı 0.400 / pencere 0.286; geliştirme kümesi (3 GT) 0.617 / 0.788 / 0.648. Kapı
+  farkı blok kapı yoğunluğundan (12 kapının 9'u blok), oda farkı bu katın daha az daire içi bölünmesinden.

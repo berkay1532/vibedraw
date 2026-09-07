@@ -1,0 +1,774 @@
+{
+ "source": "/Users/beko/Documents/beko/elektrik-projesi/data/dataset/src02/dxf/src02-09.dxf",
+ "units_per_meter": 100,
+ "floor": {
+  "rooms": [
+   {
+    "id": "r1",
+    "name": "TERAS",
+    "type": "",
+    "polygon": [
+     [
+      6928.38,
+      1332.62
+     ],
+     [
+      7057.43,
+      1332.16
+     ],
+     [
+      7060.16,
+      1033.18
+     ],
+     [
+      6931.57,
+      1033.18
+     ]
+    ],
+    "kind": "dış"
+   },
+   {
+    "id": "r2",
+    "name": "MUTFAK",
+    "type": "",
+    "polygon": [
+     [
+      7079.89,
+      1509.26
+     ],
+     [
+      7327.71,
+      1490.17
+     ],
+     [
+      7325.67,
+      1465.05
+     ],
+     [
+      7356.91,
+      1462.4
+     ],
+     [
+      7358.84,
+      1157.85
+     ],
+     [
+      7239.56,
+      1157.62
+     ],
+     [
+      7239.78,
+      1127.68
+     ],
+     [
+      7080.4,
+      1127.63
+     ]
+    ],
+    "kind": "daire içi"
+   },
+   {
+    "id": "r3",
+    "name": "HOL",
+    "type": "",
+    "polygon": [
+     [
+      7373.48,
+      1150.77
+     ],
+     [
+      7393.61,
+      1150.19
+     ],
+     [
+      7393.32,
+      1127.77
+     ],
+     [
+      7507.44,
+      1127.2
+     ],
+     [
+      7507.44,
+      1136.11
+     ],
+     [
+      7582.75,
+      1212.86
+     ],
+     [
+      7587.03,
+      1213.18
+     ],
+     [
+      7587.03,
+      1314.94
+     ],
+     [
+      7470.54,
+      1314.94
+     ],
+     [
+      7470.54,
+      1285.47
+     ],
+     [
+      7373.84,
+      1285.93
+     ],
+     [
+      7373.84,
+      1285.93
+     ]
+    ],
+    "kind": "daire içi"
+   },
+   {
+    "id": "r4",
+    "name": "MERDİVEN",
+    "type": "",
+    "polygon": [
+     [
+      7373.13,
+      1486.17
+     ],
+     [
+      7373.39,
+      1286.2
+     ],
+     [
+      7470.68,
+      1285.39
+     ],
+     [
+      7470.62,
+      1314.97
+     ],
+     [
+      7587.44,
+      1315.42
+     ],
+     [
+      7586.99,
+      1469.41
+     ]
+    ],
+    "kind": "ortak"
+   },
+   {
+    "id": "r5",
+    "name": "BANYO",
+    "type": "",
+    "polygon": [
+     [
+      7603.34,
+      1468.24
+     ],
+     [
+      7717.17,
+      1459.12
+     ],
+     [
+      7717.42,
+      1377
+     ],
+     [
+      7787.19,
+      1377.23
+     ],
+     [
+      7786.98,
+      1208.03
+     ],
+     [
+      7631.43,
+      1208.03
+     ],
+     [
+      7631.6,
+      1212.8
+     ],
+     [
+      7604.05,
+      1213.06
+     ]
+    ],
+    "kind": "daire içi"
+   },
+   {
+    "id": "r6",
+    "name": "SU DEPOSU YERİ",
+    "type": "",
+    "polygon": [
+     [
+      7080.57,
+      1107.39
+     ],
+     [
+      7082.65,
+      903.51
+     ],
+     [
+      7370.1,
+      903.51
+     ],
+     [
+      7369.4,
+      1107.74
+     ]
+    ],
+    "kind": "teknik"
+   },
+   {
+    "id": "r7",
+    "name": "ÇOCUK ODASI",
+    "type": "",
+    "polygon": [
+     [
+      7082.04,
+      883.31
+     ],
+     [
+      7369.31,
+      882.88
+     ],
+     [
+      7370.19,
+      712.72
+     ],
+     [
+      7507.32,
+      712.48
+     ],
+     [
+      7507.32,
+      699.09
+     ],
+     [
+      7552.08,
+      699.49
+     ],
+     [
+      7552.02,
+      526.05
+     ],
+     [
+      7396.62,
+      525.59
+     ],
+     [
+      7396.97,
+      485.44
+     ],
+     [
+      7086.1,
+      485.9
+     ]
+    ],
+    "kind": "daire içi"
+   },
+   {
+    "id": "r8",
+    "name": "MAKİNE DAİRESİ ASANSÖR",
+    "type": "",
+    "polygon": [
+     [
+      7585.43,
+      488.13
+     ],
+     [
+      7798.72,
+      488.27
+     ],
+     [
+      7799.75,
+      702.35
+     ],
+     [
+      7790.02,
+      702.39
+     ],
+     [
+      7789.73,
+      707.41
+     ],
+     [
+      7586.3,
+      707.56
+     ],
+     [
+      7586.3,
+      707.56
+     ]
+    ],
+    "kind": "teknik"
+   },
+   {
+    "id": "r9",
+    "name": "KAT HOLÜ",
+    "type": "",
+    "polygon": [
+     [
+      7390.3,
+      1107.54
+     ],
+     [
+      7509.7,
+      1107.32
+     ],
+     [
+      7506.96,
+      848.91
+     ],
+     [
+      7532.81,
+      848.91
+     ],
+     [
+      7533.53,
+      871.61
+     ],
+     [
+      7795.38,
+      872.49
+     ],
+     [
+      7795.41,
+      765.69
+     ],
+     [
+      7787.22,
+      765.69
+     ],
+     [
+      7787.04,
+      735.59
+     ],
+     [
+      7390.25,
+      732.91
+     ]
+    ],
+    "kind": "ortak"
+   },
+   {
+    "id": "r10",
+    "name": "MERDİVEN",
+    "type": "",
+    "polygon": [
+     [
+      7533.89,
+      872.29
+     ],
+     [
+      7534.6,
+      1099.65
+     ],
+     [
+      7540.1,
+      1099.9
+     ],
+     [
+      7540.35,
+      1122.87
+     ],
+     [
+      7596.96,
+      1179.72
+     ],
+     [
+      7795.56,
+      1178.97
+     ],
+     [
+      7795.39,
+      872.55
+     ]
+    ],
+    "kind": "ortak"
+   },
+   {
+    "id": "r11",
+    "name": "TERAS",
+    "type": "",
+    "polygon": [
+     [
+      6933.82,
+      732.43
+     ],
+     [
+      7063.63,
+      732.4
+     ],
+     [
+      7067.83,
+      242.65
+     ],
+     [
+      6938.18,
+      242.83
+     ]
+    ],
+    "kind": "dış"
+   },
+   {
+    "id": "r12",
+    "name": "MERDİVEN",
+    "type": "",
+    "polygon": [
+     [
+      7088.9,
+      469.54
+     ],
+     [
+      7413.38,
+      469.57
+     ],
+     [
+      7412.54,
+      365.96
+     ],
+     [
+      7089.83,
+      365.58
+     ]
+    ],
+    "kind": "ortak"
+   },
+   {
+    "id": "r13",
+    "name": "HOL",
+    "type": "",
+    "polygon": [
+     [
+      7413.6,
+      509.18
+     ],
+     [
+      7552.15,
+      510.33
+     ],
+     [
+      7552.23,
+      365.31
+     ],
+     [
+      7412.77,
+      365.79
+     ]
+    ],
+    "kind": "daire içi"
+   },
+   {
+    "id": "r14",
+    "name": "YATAK ODASI",
+    "type": "",
+    "polygon": [
+     [
+      7089.92,
+      349.25
+     ],
+     [
+      7092.44,
+      74.41
+     ],
+     [
+      7797.08,
+      36.95
+     ],
+     [
+      7797.18,
+      95.43
+     ],
+     [
+      7772.22,
+      95.44
+     ],
+     [
+      7772.15,
+      215.46
+     ],
+     [
+      7762.15,
+      215.33
+     ],
+     [
+      7762.22,
+      251.52
+     ],
+     [
+      7797.15,
+      251.63
+     ],
+     [
+      7797.21,
+      305.44
+     ],
+     [
+      7552.01,
+      305.47
+     ],
+     [
+      7552.11,
+      349.35
+     ]
+    ],
+    "kind": "daire içi"
+   },
+   {
+    "id": "r15",
+    "name": "E. BANYO",
+    "type": "",
+    "polygon": [
+     [
+      7568.48,
+      454.5
+     ],
+     [
+      7568.76,
+      321.84
+     ],
+     [
+      7797.19,
+      321.47
+     ],
+     [
+      7797.23,
+      395.39
+     ],
+     [
+      7722.05,
+      395.36
+     ],
+     [
+      7721.27,
+      454.34
+     ]
+    ],
+    "kind": "daire içi"
+   },
+   {
+    "id": "r16",
+    "name": "TERAS",
+    "type": "",
+    "polygon": [
+     [
+      7220.3,
+      44.55
+     ],
+     [
+      7220.3,
+      -84.64
+     ],
+     [
+      7645.54,
+      -108.09
+     ],
+     [
+      7645.54,
+      22.02
+     ]
+    ],
+    "kind": "dış"
+   }
+  ],
+  "doors": [
+   {
+    "id": "d_A",
+    "hinge": [
+     7360.0,
+     921.4
+    ],
+    "width": 87,
+    "connects": [
+     "r6",
+     "r9"
+    ],
+    "type": "door"
+   },
+   {
+    "id": "d_B",
+    "hinge": [
+     7413.2,
+     742.6
+    ],
+    "width": 87,
+    "connects": [
+     "r9",
+     "r7"
+    ],
+    "type": "door"
+   },
+   {
+    "id": "d_C",
+    "hinge": [
+     7487.2,
+     1097.2
+    ],
+    "width": 87,
+    "connects": [
+     "r9",
+     "r3"
+    ],
+    "type": "door"
+   },
+   {
+    "id": "d_D",
+    "hinge": [
+     7360.2,
+     1157.5
+    ],
+    "width": 95,
+    "connects": [
+     "r3",
+     "r2"
+    ],
+    "type": "door"
+   },
+   {
+    "id": "d_E",
+    "hinge": [
+     7575.2,
+     318.5
+    ],
+    "width": 95,
+    "connects": [
+     "r14",
+     "r15"
+    ],
+    "type": "door"
+   },
+   {
+    "id": "d_F",
+    "hinge": [
+     7545.2,
+     352.4
+    ],
+    "width": 95,
+    "connects": [
+     "r14",
+     "r13"
+    ],
+    "type": "door"
+   },
+   {
+    "id": "d_H",
+    "hinge": [
+     7600.2,
+     1211.4
+    ],
+    "width": 95,
+    "connects": [
+     "r3",
+     "r5"
+    ],
+    "type": "door"
+   },
+   {
+    "id": "d_I",
+    "hinge": [
+     7545.2,
+     523.5
+    ],
+    "width": 95,
+    "connects": [
+     "r13",
+     "r7"
+    ],
+    "type": "door"
+   },
+   {
+    "id": "d_G",
+    "hinge": [
+     7702.0,
+     721.0
+    ],
+    "width": 120,
+    "connects": [
+     "r9",
+     "r8"
+    ],
+    "type": "door",
+    "subtype": "elevator"
+   },
+   {
+    "id": "d_J",
+    "hinge": [
+     7062.0,
+     1237.0
+    ],
+    "width": 210,
+    "connects": [
+     "r2",
+     "r1"
+    ],
+    "type": "door",
+    "subtype": "sliding"
+   },
+   {
+    "id": "d_K",
+    "hinge": [
+     7067.0,
+     608.0
+    ],
+    "width": 210,
+    "connects": [
+     "r7",
+     "r11"
+    ],
+    "type": "door",
+    "subtype": "sliding"
+   },
+   {
+    "id": "d_L",
+    "hinge": [
+     7430.0,
+     36.0
+    ],
+    "width": 210,
+    "connects": [
+     "r14",
+     "r16"
+    ],
+    "type": "door",
+    "subtype": "sliding"
+   }
+  ],
+  "windows": [
+   {
+    "id": "w1",
+    "a": [
+     7722,
+     1392
+    ],
+    "b": [
+     7722,
+     1452
+    ]
+   },
+   {
+    "id": "w2",
+    "a": [
+     7740,
+     400
+    ],
+    "b": [
+     7800,
+     400
+    ]
+   }
+  ]
+ },
+ "meta": {
+  "status": "verified",
+  "tool": "annotate.html",
+  "tier": "typical",
+  "holdout": true,
+  "source": "src02",
+  "pred_upm": 99.78178168036838,
+  "pred_upm_source": "doors",
+  "note": "Çatı katı, tek daire (mutfak, yatak+giyinme, çocuk, banyo, e.banyo, hol×2, 3 teras) + ortak çekirdek (kat holü, 3 merdiven bölgesi, asansör makine dairesi, su deposu yeri). Giyinme yatak odasına dahil (kullanıcı kararı). r7 içindeki 'HOL A:3.10' yazısı hatalı; r7 tek oda (kullanıcı kararı). Kapılar: A-C standalone yay, D/E/F/H/I Single_Door_12 bloğu (menteşe = blok yerel (0,10)), G asansör bloğu 120x220, J/K/L '210 SK' sürgülü (açıklık orta noktası). Pencereler _60X60X10LUKKDUVAR bloğu. Blind: tahmin hiç görülmedi.",
+  "method": "blind",
+  "blind_count": "(kullanıcı listesi, tahmin gösterilmedi) Mutfak (holden menteşeli); teras-1 (mutfaktan sürgülü cam); banyo (holden menteşeli); holde merdiven; kat holü (1. holden kat holüne menteşeli); bilinmeyen oda (kat holünden menteşeli); çocuk odası (kat holünden menteşeli); kat holünde merdiven + asansör (asansör kapısı); teras-2 (çocuk odasından sürgülü cam); teras-2'den 2. hole merdiven; 2. holden çocuk odasına ve yatak odasına menteşeli; ebeveyn banyosu (yatak odasından menteşeli); teras-3 (yatak odasından sürgülü). Kat türü / daire sayısı sorulacak."
+ }
+}
