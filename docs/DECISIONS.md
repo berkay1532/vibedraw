@@ -505,3 +505,21 @@ sayım anlamını yitirir. src02-12 ve src02-09 düzeltilmiş araçla yapılacak
   eski kapı kalibrasyonu, bilinçli olarak korundu (meta.note).
 - **Dış mahal adlandırması:** aynı ofis ailesinde (fam01) giriş önü örtülü alan "GİRİŞ VERANDA" (tip-4 etiketi); tip-2'deki
   etiketsiz eşdeğeri aynı adla yazıldı, hafif_celik'te "GİRİŞ SAHANLIĞI". Aday: type=terrace altında ad serbest, kind=dış.
+
+## 2026-09-09 — fam00 (ArchiCAD) GT ertelendi; taslak yöntemi gözlemleri (aday, karar yok)
+
+- **Erteleme nedeni:** fam00 dosyaları için ofis kullanım izni bekleniyor (kullanıcı). İzin gelince 541_3 taslağı repo dışından
+  geri alınır; 541_5 aynı bina ailesi (benzer plan), 386_8 küçük ve kapı yaylı — sıra: 541_3 → 386_8 → 541_5.
+- **ArchiCAD dışa aktarım profili adayı:** fam00 = ArchiCAD DXF. Belirtiler: katman adı sonunda sayı ("Structural - Bearing27"),
+  `_Pen_No__NN` eki, 'Interior - Furniture 82' katmanında hem mobilya hem pencere çerçevesi, blok yok (INSERT 0), aks çizgileri
+  'Structural - Shear4' katmanında Double Dashed 19 m çizgi. Tahmin bu ailede 'Interior - Furniture' katmanını duvar sayıyor
+  (541_3: 1769 duvarın 737'si bu katmandan) → oda poligonları 0.5–3.5 m² parçalar. Aday: profil için katman adında
+  "Furniture" → furniture sınıfı (source_profiles/fam00.yaml), linetype Double Dashed + çok uzun → axis sınıfı sinyali.
+- **GT taslağı için işe yarayan yöntem** (kod perception'a girmedi, scratch betiği): yalnız yapısal katman çizgileri
+  (aks çizgileri hariç: uzun ve iki ucu bina dışında) + tahmin kapı kapatma segmentleri → `polygonize`, tohum = oda etiketi,
+  tohumu içeren en küçük yüz. 541_3'te 29 etiketin 27'si tek geçişte doğru yüz aldı (alanlar 2–18 m², plana uygun);
+  balkonlar korkuluk katmanı eklenince çıktı; merdiven (etiketsiz, basamak çizgileri) ve bir balkon çıkmadı.
+  Pencere adayı: oda poligonunun dış kenar bandında (±45 cm) ince paralel çizgiler → 21 aday. Bu yöntem `gt_draft`'a
+  "--faces" seçeneği olarak eklenebilir (deterministik, LLM yok) ve perception'da "kapı kapatmalı polygonize" oda sinyali adayıdır.
+- **Birim doğrulama:** 541_3 prior 100 (güven 0.4) doğru çıktı; INSUNITS=5 (cm) başlığı + kapı yayı yarıçapı ~100 birim.
+  Aday: `$INSUNITS` başlığı units sinyali olarak (INSUNITS 4=mm, 5=cm, 6=m) — kalibrasyonda şu an kullanılmıyor.

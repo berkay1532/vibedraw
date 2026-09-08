@@ -94,6 +94,8 @@ kalibrasyonu tutmadı). Validator bunlara `unit_suspect` issue üretir (HITL sor
 Kapı-adlı blok yok, kapılar standalone yay; geometri cm. Etiket-mesafesi upm'i (21–44) yanlıştı → kat kümeleri
 parçalanıyordu (DECISIONS (h)). Kalibrasyon sağlamlığı (2026-09-05) sonrası: 541_3 upm 100 (prior), 29 oda / 23 kapı;
 541_5 upm 100 (prior), 22 / 20; 386_8 upm 103 (doors), 7 / 8. **fam00 GT listesi (karar 2026-09-05): 541_3, 541_5, 386_8.**
+
+**Erteleme (2026-09-09):** fam00 dosyaları için mimarlık ofisinden kullanım izni bekleniyor; izin gelene kadar GT yazılmaz, repoya fam00 GT/taslak girmez. 541_3 için hazırlanan taslak (29 oda, 23 kapı, 30 pencere adayı; birim 100 = INSUNITS cm doğrulandı) repo dışında saklandı. Kaynak bilgisi: üç dosya da ArchiCAD DXF dışa aktarımı (dosya içinde ARCHICAD imzası; katmanlar 'Structural - Bearing27', 'Interior - Furniture 82', '_Pen_No_' eki). Kapı/pencere blok yok, pencereler ve mobilya aynı 'Interior - Furniture' katmanında çizgi; aks çizgileri yapısal katmanda.
 536_1 listeden çıkarıldı: plan seçimi şüpheli (113 "oda" tek kümede, 4 kapı, upm 76 unit_suspect), GT'ye uygun değil.
 upm'i 'prior' olan dosyalarda GT'ye units_per_meter elle yazılmalı (unit_suspect sorusu).
 
