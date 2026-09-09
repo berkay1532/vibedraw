@@ -313,7 +313,7 @@ Validator issue tipleri (`perception/validate.py`, Adım 7; eşikler `config/thr
 | `room_no_door` | oda kapısız (merdiven muaf) | "Giriş nerede?" [kapı eksik/açık geçiş/sürgülü/yoksay] | var |
 | `area_mismatch` | \|text − geom\| > %15 | "Hangisi doğru?" [yazı/geometri/ikisi de yanlış] | var |
 | `ambiguous_opening` | açıklık güveni < 0,5 | [kapı/pencere/geçiş/hiçbiri] | var |
-| `unlabeled_region` | kapalı bölge, etiket yok | "Bu alan?" | planlı (duvar grafı, Adım 9) |
+| `unlabeled_region` | duvar grafı yüzü (polygonize) flood-fill odasıyla örtüşmüyor ve etiketsiz | "Bu alan?" [merdiven/asansör/aydınlık/şaft/balkon/oda/yoksay] | var (Adım 9) |
 | `unit_split` | daire kümesi belirsiz | "Tek daire mi?" | planlı (Adım 5d) |
 
 Sıralama: unknown_layer → conflicting_layer → unit_suspect → open_room → room_no_door → ambiguous_opening →

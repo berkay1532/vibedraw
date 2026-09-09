@@ -27,7 +27,10 @@ room:                            # flood-fill sonucu tek-sıcak: ağırlık = es
     voronoi: 0.50
     edge_fragment: 0.40
     fallback: 0.20
-  agreement_bonus: 0.0
+    graph_face: 0.80             # Adım 9: duvar grafı yüzü ile IoU ≥ graph.iou_match (1 / 0 / None)
+    graph_only: 0.45             # Adım 9: yalnız duvar grafı buldu (etiketsiz bölge adayı)
+    stair_footprint: 0.0         # bilgi sinyali: merdiven ayak izi (ağırlıksız)
+  agreement_bonus: 0.05          # flood + graf uyuşunca güven ↑ (0.85 → 0.90)
   cap: 0.99
   gates: []
 window:                          # kaynak tek-sıcak: ağırlık = eski WINDOW_CONF tablosu

@@ -189,3 +189,99 @@ def _segment_rooms(rasters, rooms, leak_fraction: float, seed_rad: int = 12):
 def _is_stair(name: str) -> bool:
     f = (name or "").replace("İ", "i").replace("I", "ı").casefold()
     return "merdiven" in f or "stair" in f
+
+
+# --- Adım 9: duvar grafından odalar (5c) ----------------------------------------------------
+def graph_faces(graph, upm, G, stair_polys=None, seal_units=0.0):
+    """WallGraph → kapalı yüzler (shapely). Raster flood-fill'in vektör eşdeğeri: yüz kenarları + kapatmalar
+    seal_units kadar şişirilir (mühür: ≤ 2·seal boşluklar kapanır), şişmiş bandın sınırı polygonize edilir; bandın
+    dışında kalan sınırlı yüzler oda adayıdır ve mühür kadar geri büyütülür (uzanım geri kazanımı). Küçük
+    (< min_room_area) ve ince (2·alan/çevre < thin_min) yüzler elenir; merdiven ayak izi içinde bulunduğu yüzden
+    çıkarılır ve ayrı yüz olur. Döner: [(Polygon, {"stair": bool}), ...]."""
+    from shapely.geometry import LineString, Polygon
+    from shapely.ops import polygonize, unary_union
+    segs = list(graph.face_edges) or list(graph.edges)
+    lines = [LineString(e) for e in segs + list(graph.closures)]
+    if not lines:
+        return []
+    d = max(float(seal_units or 0.0), 1e-6)
+    try:
+        # her çizgi ayrı tamponlanır (düz uç, yuvarlak birleşim) sonra birleşir: birleşik çizgi + gönye (mitre) tamponu
+        # büyük/karmaşık dosyalarda GEOS'ta askıda kalıyordu (detayli-villa, deniz-evi)
+        band = unary_union([ln.buffer(d, cap_style=2) for ln in lines])
+        faces = [f for f in polygonize(band.boundary) if not band.contains(f.representative_point())]
+    except Exception:
+        return []
+    amin = G["min_room_area_m2"] * upm * upm
+    thin = G["thin_min_m"] * upm
+    out = []
+    for f in faces:
+        if f.area < amin:
+            continue
+        if f.interiors:
+            hole = sum(Polygon(r).area for r in f.interiors)
+            if hole > G["hole_area_max_frac"] * (f.area + hole):
+                continue
+            f = Polygon(f.exterior)
+        if f.length > 0 and 2.0 * f.area / f.length < thin:
+            continue
+        g = f.buffer(d, cap_style=2)                                  # mühür kadar geri büyüt (bitmiş yüzeye)
+        if g.geom_type != "Polygon" or g.is_empty:
+            g = f
+        out.append(Polygon(g.exterior).simplify(1.0))
+    # merdiven ayak izi: içinde bulunduğu yüzden çıkar, ayrı yüz
+    result = []
+    stairs = list(stair_polys or [])
+    for f in out:
+        cut = f
+        for sp in stairs:
+            inter = cut.intersection(sp)
+            if not inter.is_empty and inter.area >= 0.5 * sp.area:
+                cut = cut.difference(sp)
+        if cut.geom_type == "MultiPolygon":
+            cut = max(cut.geoms, key=lambda g: g.area)
+        if cut.is_empty or cut.area < amin:
+            continue
+        result.append((Polygon(cut.exterior), {"stair": False}))
+    for sp in stairs:
+        if sp.area >= amin:
+            result.append((sp, {"stair": True}))
+    return result
+
+
+def reconcile_rooms(rooms, faces, iou_thr, overlap_ambiguous):
+    """Flood-fill odaları ↔ polygonize yüzleri. Döner (matched, unmatched_rooms, new_faces):
+    matched: {id(room): (face_idx, iou)}; unmatched_rooms: poligonlu ama yüz bulamayan odalar;
+    new_faces: hiçbir odayla eşleşmeyen ve oda birleşimiyle < overlap_ambiguous örtüşen yüz indeksleri."""
+    from shapely.geometry import Polygon
+    from shapely.ops import unary_union
+    polys = []
+    for r in rooms:
+        if r.polygon:
+            try:
+                polys.append((r, Polygon(r.polygon).buffer(0)))
+            except Exception:
+                pass
+    matched, used = {}, set()
+    for r, P in polys:
+        best, bi = 0.0, None
+        for k, (f, _) in enumerate(faces):
+            if not P.intersects(f):
+                continue
+            inter = P.intersection(f).area
+            u = P.union(f).area
+            iou = inter / u if u > 0 else 0.0
+            if iou > best:
+                best, bi = iou, k
+        if bi is not None and best >= iou_thr:
+            matched[id(r)] = (bi, round(best, 3)); used.add(bi)
+    unmatched = [r for r, _ in polys if id(r) not in matched]
+    union = unary_union([P for _, P in polys]) if polys else None
+    new = []
+    for k, (f, _) in enumerate(faces):
+        if k in used:
+            continue
+        ov = (f.intersection(union).area / f.area) if (union is not None and f.area > 0) else 0.0
+        if ov < overlap_ambiguous:
+            new.append(k)
+    return matched, unmatched, new

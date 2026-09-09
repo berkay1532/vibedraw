@@ -95,7 +95,9 @@ Kapı-adlı blok yok, kapılar standalone yay; geometri cm. Etiket-mesafesi upm'
 parçalanıyordu (DECISIONS (h)). Kalibrasyon sağlamlığı (2026-09-05) sonrası: 541_3 upm 100 (prior), 29 oda / 23 kapı;
 541_5 upm 100 (prior), 22 / 20; 386_8 upm 103 (doors), 7 / 8. **fam00 GT listesi (karar 2026-09-05): 541_3, 541_5, 386_8.**
 
-**Erteleme (2026-09-09):** fam00 dosyaları için mimarlık ofisinden kullanım izni bekleniyor; izin gelene kadar GT yazılmaz, repoya fam00 GT/taslak girmez. 541_3 için hazırlanan taslak (29 oda, 23 kapı, 30 pencere adayı; birim 100 = INSUNITS cm doğrulandı) repo dışında saklandı. Kaynak bilgisi: üç dosya da ArchiCAD DXF dışa aktarımı (dosya içinde ARCHICAD imzası; katmanlar 'Structural - Bearing27', 'Interior - Furniture 82', '_Pen_No_' eki). Kapı/pencere blok yok, pencereler ve mobilya aynı 'Interior - Furniture' katmanında çizgi; aks çizgileri yapısal katmanda.
+**status: excluded (dosya sorunu, 2026-09-09)** — fam00'ın 10 dosyası (132_SÜMBÜLTEPE, 386_8, 536_1, 541_3, 541_5, 553_3, 554_1, 560_5, 560_8, 6249) geçici olarak devre dışı: DWG+DXF'ler `data/excluded_fam00/` (triage kökünün dışında; kök altındaki DWG yeniden dönüştürülüyordu) altına taşındı (kod değişikliği yok), triage ve run_baseline ADAY setinde, eval ve issue tablolarında yok. GT listesindeki 541_3 / 541_5 / 386_8 **beklemede**. Geri alma: dosyaları `ekip/` ve `_dxf/` altına geri taşı, triage'ı yeniden koş.
+
+**Erteleme gerekçesi (2026-09-09):** fam00 dosyaları için mimarlık ofisinden kullanım izni bekleniyor; izin gelene kadar GT yazılmaz, repoya fam00 GT/taslak girmez. 541_3 için hazırlanan taslak (29 oda, 23 kapı, 30 pencere adayı; birim 100 = INSUNITS cm doğrulandı) repo dışında saklandı. Kaynak bilgisi: üç dosya da ArchiCAD DXF dışa aktarımı (dosya içinde ARCHICAD imzası; katmanlar 'Structural - Bearing27', 'Interior - Furniture 82', '_Pen_No_' eki). Kapı/pencere blok yok, pencereler ve mobilya aynı 'Interior - Furniture' katmanında çizgi; aks çizgileri yapısal katmanda.
 536_1 listeden çıkarıldı: plan seçimi şüpheli (113 "oda" tek kümede, 4 kapı, upm 76 unit_suspect), GT'ye uygun değil.
 upm'i 'prior' olan dosyalarda GT'ye units_per_meter elle yazılmalı (unit_suspect sorusu).
 
@@ -108,7 +110,7 @@ upm'i 'prior' olan dosyalarda GT'ye units_per_meter elle yazılmalı (unit_suspe
   $TDCREATE/$TDUPDATE LibreDWG dönüşümünde boş.
 - **Yıl:** dosya adlarındaki tarihler 09.2025 – 06.2026; proje numaraları 175–575 arası ada/parsel.
 - **Telif:** ruhsat projeleri, mimarlık ofisine ait; yalnız araştırma/geliştirme içi kullanım, repoya ve hiçbir yayına girmez.
-- **Dönüşüm:** LibreDWG dwg2dxf, 15/15 başarılı (0 hata); DXF'ler `data/dataset/src02/dxf/src02-NN.dxf`, ham DWG'ler `src02/raw/`.
+- **Dönüşüm:** LibreDWG dwg2dxf, 15/15 başarılı (0 hata); DXF'ler `data/dataset/src02/dxf/src02-NN.dxf`, ham DWG'ler `data/src02_raw/` (2026-09-09'da triage kökünün dışına taşındı: triage `data/dataset` altındaki her DWG'yi gerçek adıyla `_dxf/`'e çeviriyordu; 15 gerçek adlı DXF silindi).
 - **Revizyon çifti:** src02-09 (430-35, 1 Eylül) eval ve holdout'ta; src02-10 (430-35, 2 Temmuz) `consistency_pair`, yalnız tutarlılık karşılaştırması.
   - **Karşılaştırma (2026-09-08, src02-09 GT sonrası, koşu a187050):** src02-09 tahmini çatı katını seçiyor (12 etiketli küme; 13 oda / 3 kapı / 12 pencere / 182 duvar, upm 99,8 doors, fam02) → GT 16 oda / 12 kapı / 2 pencere ile oda F1 0.759. src02-10 tahmini ise **giriş katını** seçiyor (WC ×4, APT. GİRİŞ HOLÜ, KAT HOLÜ; 6 oda / 3 kapı / 8 pencere / 413 duvar, upm 108,5, fam10; kümeler [6,12,12,13] vs [6,12,12,15,5]). İki sürüm aynı planın farklı katına düştüğü için kat düzeyinde tutarlılık ölçülemedi; plan seçiminin revizyona duyarlılığı (2 Temmuz sürümünde 15 etiketli çatı kümesi yok ya da bölünmüş) gözlem olarak DECISIONS'a yazıldı. Tutarlılık ölçümü için src02-10'da çatı katının `hitl_floor` ile seçilmesi gerekir (kod yok, ileride).
 - **Holdout (config/holdout.yaml, değişmez):** src02-03, src02-06, src02-09, src02-13 (ada göre sıralı, src02-10 hariç, her üçüncü).
@@ -163,6 +165,10 @@ Yeni triage koşusunda aile indeksleri kayabilir; eşleşme parmak izi → yapı
 | 30 | 1 | fam30 | tip-7_mimari |
 | 31 | 1 | fam31 | tip-8_mimari |
 | 33 | 1 | fam04 | input-2-clean |
+
+## Triage / koşu seti (2026-09-09)
+
+Triage kökü `data/dataset`: 93 dosya, 75 ADAY = 60 eski kaynak + 15 src02 (src02 artık ana triage ve `output/baseline` koşusunda; ayrı `output/src02` koşusu gerekmiyor). fam00 10 dosya `_excluded_fam00/` altında, sette yok. Eski "50 ADAY" sayımı 2026-09-04 tarihli bayat triage'dandı.
 
 ## Ground truth (`data/ground_truth/`)
 

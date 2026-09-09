@@ -46,3 +46,50 @@ fam00 (10 dosya) ve fam02 (6 dosya) GT'siz → veri seti görevi: fam00'dan 2–
 | 2026-09-08 | 126d98f | **src02-12 GT** (assisted; 8 daire, evaluate --pred output/src02, koşu a187050) | 0.577 | 0.912 | 0.748 | 0.0 | 0.918 | 0.582 | 3 / 15 | GT: 83 oda (56 daire içi, 15 dış, 10 ortak, 2 teknik), 82 kapı (49 menteşeli, 29 sürgülü, 4 asansör), 32 pencere. Tahmin 73 oda/49 kapı/78 pencere: hol-banyo-e.banyo-balkon poligonları bozuk (kullanıcı 35 odayı yeniden çizdi), çekirdek (kat holü, 3 merdiven, 4 asansör) yok; menteşeli kapılar hepsi doğru, sürgülü/e.banyo/asansör kapıları yok; pencerelerin çoğu kapı ya da boş. src02 toplam (3 GT): oda 0.617/IoU 0.909, kapı 0.788/0.003 m/0.956, pencere 0.648; kapsama 74/207 (0.36). Issue 78, 1.07/oda |
 | 2026-09-08 | 2c70338 | **src02-09 GT** (blind, **holdout**; çatı katı; evaluate --pred output/src02, koşu a187050) | 0.759 | 0.818 | 0.400 | 0.0 | 0.333 | 0.286 | 4 / 15 | GT: 16 oda (9 daire içi, 4 ortak, 2 teknik, 3 dış), 12 kapı (8 menteşeli: 3 yay + 5 Single_Door_12 bloğu; 3 sürgülü '210 SK'; 1 asansör), 2 pencere (60x60). Tahmin 13 oda/3 kapı/12 pencere: oda TP 11 (kat holü 0.22, iki HOL 0.47/0.35 IoU ile kaçtı; su deposu ve makine dairesi etiketsiz → yok; 2 FP: bölünmüş KAT HOLÜ parçası, 'gemici merdiveni' notu oda sayılmış), 3 yay kapısı konumu tam (0.0 m) ama oda ataması 1/3 doğru; blok kapıların (5 menteşeli, 3 sürgülü, asansör) hiçbiri yok; 12 'pencere'nin 10'u sahte (kapı kasası/blok). Holdout satırı ilk kez dolu. src02 toplam (4 GT): oda 0.633/IoU 0.886, kapı 0.760/0.002 m/0.8, pencere 0.625; kapsama 87/238 (0.37); geliştirme (3 GT) 0.617/0.788/0.648. Issue 19, 1.46/oda. Revizyon çifti: src02-10 tahmini farklı katı (giriş katı: WC/APT. GİRİŞ HOLÜ) seçmiş → kat düzeyinde karşılaştırılamaz, DATASET |
 | 2026-09-08 | 738f448 | **GT-7 revizyonu** (kind alanı + 8 eksik mahal; tam 50 dosya koşusu, kod e19455b4fc03 = src02 koşusuyla aynı) | 0.853 | 0.885 | 0.951 | 0.006 | 0.904 | 0.817 | 7 / 50 | GT değişti, kod değişmedi: kapı ve pencere satırları a187050 ile birebir aynı (0.951/0.006/0.904/0.817), oda TP 64 aynı; oda FN 7→15 = eklenen 8 mahal (KAYAPINAR ASANSÖR/MERDİVEN/KAT HOLÜ/HAVALANDIRMA ŞAFTI, tip-1 ŞAFT, tip-2 ŞAFT+GİRİŞ VERANDA, hafif_celik GİRİŞ SAHANLIĞI) tahminde yok → oda F1 0.901→0.853 (bilinçli: GT artık çekirdek/dış mahalleri kapsıyor). Dosya bazında oda F1: KAYAPINAR 0.5 (14→18 oda, 4 FN + eski 2 bölünmüş), tip-2 0.9, hafif 0.933, tip-1 0.952, tip-4/tip-6 0.957, input-2 1.0. Holdout (tip-6) 0.957/0.947/0.828; geliştirme (6) 0.835/0.951/0.815. Kapsama 26/65 (0.40): room_fn 2/15 (etiketsiz mahaller issue üretmiyor — etiketsiz kapalı bölge sinyali adayı). Issue 84, issue/oda medyan 1.11, ≤0.5: 0/7. kind dağılımı 7 dosya: 64 daire içi, 5 ortak, 3 teknik, 7 dış |
+
+### Adım 9 öncesi taban (2026-09-09, commit 24e86c0, kod e19455b4fc03; 11 GT dosyası, 55 dosyalık koşu)
+
+Koşu seti: fam00 (10 dosya) `status: excluded` (dosya sorunu, 2026-09-09) → ADAY 40 eski kaynak + 15 src02 = 55; src02 artık ana
+koşuda (`output/baseline`), ayrı src02 koşusu yok. GT: GT-7 revizyonu (6fcf5b8) + src02-02/07/09/12. Holdout: tip-6, src02-09.
+**Blok-kapı değişikliği (src02-13 `unknown_block`) yapılmadı** — yalnız DECISIONS adayı (2026-09-05/06); bu tabanda kod aynı.
+
+| Grup | Dosya | Oda F1 | Oda TP/FP/FN | IoU | Kapı F1 | Pencere F1 | Kapsama | Issue/oda |
+|---|---:|---:|---|---:|---:|---:|---:|---:|
+| ABM (fam04) | 2 | 0.667 | 16/6/10 | 0.831 | 0.971 | 0.923 | 12/22 (0.55) | 1.64 |
+| tip (fam01) | 4 | 0.943 | 41/1/4 | 0.922 | 0.946 | 0.845 | 10/30 (0.33) | 1.02 |
+| src02 aile A (fam10) | 2 | 0.704 | 25/7/14 | 0.908 | 0.871 | 0.720 | 15/58 (0.26) | 1.31 |
+| src02 aile B (fam02) | 2 | 0.605 | 56/30/43 | 0.865 | 0.712 | 0.548 | 72/180 (0.40) | 1.13 |
+| diğer (fam06) | 1 | 0.933 | 7/0/1 | 0.845 | 0.923 | 0.267 | 4/13 (0.31) | 0.71 |
+| **geliştirme** | 9 | 0.695 | 123/42/66 | 0.890 | 0.845 | 0.713 | 99/264 (0.38) | 1.19 |
+| **holdout** (src02-09, tip-6_mimari) | 2 | 0.846 | 22/2/6 | 0.865 | 0.706 | 0.651 | 14/39 (0.36) | 1.12 |
+| **toplam** | 11 | 0.714 | 145/44/72 | 0.886 | 0.830 | 0.706 | 113/303 (0.37) | 1.18 |
+
+Kapsama tip başına (kapsanan/toplam): room_fp 41/44, room_fn 37/72, door_fn 12/54, door_fp 0/2, window_fp 7/99, window_fn 7/15,
+room_name 0/4, door_connect 9/13 → toplam 113/303 (0.37). Issue dağılımı (11 dosya, 223): area_mismatch 72, room_no_door 40,
+window_missing 36, door_side_ambiguous 31, unknown_layer 27, conflicting_layer 8, room_merged 3, ambiguous_opening 3, open_room 2,
+unit_suspect 1. Issue/oda medyan 1.11, typical ≤0.5: 0/11.
+
+### Adım 9 — duvar grafından bağımsız oda tespiti (2026-09-09, ec8f616; 55 dosya, 11 GT)
+
+| Grup | Dosya | Oda F1 | Oda TP/FP/FN | IoU | Kapı F1 | Pencere F1 | Kapsama | Issue/oda |
+|---|---:|---:|---|---:|---:|---:|---:|---:|
+| ABM (fam04) | 2 | 0.692 | 18/8/8 | 0.841 | 0.971 | 0.923 | 12/24 (0.50) | 2.23 |
+| tip (fam01) | 4 | 0.943 | 41/1/4 | 0.922 | 0.946 | 0.845 | 12/30 (0.40) | 1.19 |
+| src02 aile A (fam10) | 2 | 0.759 | 30/10/9 | 0.885 | 0.871 | 0.720 | 17/61 (0.28) | 1.57 |
+| src02 aile B (fam02) | 2 | 0.657 | 69/42/30 | 0.855 | 0.712 | 0.548 | 73/193 (0.38) | 1.39 |
+| diğer (fam06) | 1 | 0.933 | 7/0/1 | 0.845 | 0.923 | 0.267 | 5/13 (0.38) | 1.14 |
+| **geliştirme** | 9 | 0.728 | 142/59/47 | 0.884 | 0.845 | 0.713 | 104/282 (0.37) | 1.50 |
+| **holdout** (src02-09, tip-6_mimari) | 2 | 0.868 | 23/2/5 | 0.871 | 0.706 | 0.651 | 15/39 (0.38) | 1.24 |
+| **toplam** | 11 | 0.745 | 165/61/52 | 0.881 | 0.830 | 0.706 | 119/321 (0.37) | 1.47 |
+
+**Öncesi → sonrası (11 GT):** oda F1 0,714 → **0,745** (TP 145→165, FP 44→61, FN 72→52; recall 0,668→0,760, precision
+0,767→0,730), oda IoU 0,886 → 0,881 (adayların poligonu kabaca), ad doğruluğu 0,967 → 0,894 (etiketsiz adaylar TP olunca ad boş).
+**Kapı ve pencere birebir aynı** (137/2/54 ve 137/99/15; konum 0,005 m, bağlantı 0,866). Geliştirme 0,695 → 0,728; holdout
+(tip-6, src02-09) 0,846 → 0,868. Kapsama 113/303 (0,37) → 119/321 (0,37): room_fn 37/72 → 36/52 (0,69), room_name 0/4 → 0/25
+(yeni: adsız adaylar), room_fp 41/44 → 43/61. Issue 223 → 333: open_room 2 → 75 ("duvar grafında boşluk" notu, flood odası grafta
+yüz bulamayınca), unlabeled_region 37 (yeni), diğerleri aynı; issue/oda medyan 1,11 → 1,33 (toplam 1,18 → 1,47).
+**Uzlaşma (55 dosya):** 681 yüz; 418 mahal iki yöntemde, 370 yalnız flood-fill, 135 yalnız graf (aday). 11 GT: 122 / 71 / 37.
+**Sorunlu dosyalar:** KAYAPINAR 4/14 eşleşme (bariyer katmanında olmayan duvar parçaları, 1 m boşluklar; F1 0,50→0,556),
+input-2 0/8 (tek çizgili referans; 8 open_room notu, F1 1,0 korundu), src02-12 24 aday / 40 FP (parçalı oda poligonları,
+F1 0,577→0,633), src02-07 15/24. Koşu süresi: AVİDA 74 s, src02-03 69 s; ilk denemede GEOS gönye tamponu detayli-villa/deniz-evi'nde
+askıda kaldı (DECISIONS). Kabul ölçütü: recall ↑ ✓, F1 ↑ ✓, IoU −0,005 (adaylardan; bilinçli).

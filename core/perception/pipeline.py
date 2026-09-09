@@ -38,8 +38,8 @@ from core.perception.validate import validate_building_v2
 from core.perception.openings import _cluster_doors, _door_barriers, _seg_dist, _swing_dirs
 from core.perception.polygons import _mask_polygon
 from core.perception.raster import _Raster
-from core.perception.rooms import _floor_bbox, _segment_rooms
-from core.perception.walls import _wall_lines, _wall_segments
+from core.perception.rooms import _floor_bbox, _segment_rooms, graph_faces, reconcile_rooms
+from core.perception.walls import _wall_lines, _wall_segments, barrier_segments, build_wall_graph, passage_closures, stair_footprints
 from core.perception.windows import _window_segments
 
 
@@ -116,6 +116,22 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
         amin, amax = door_arc_radius
         swing = _swing_dirs(msp, bbox, amin, amax, big_blocks=big, names=names)
         barriers = _door_barriers(swing, floor.walls)
+        # Adım 9 (5a/5c): yüz çiftleri → merkez hattı grafı (uç-uç snap ≈ kalınlık/2) → kapı/geçiş kapatma →
+        # polygonize yüzler. Flood-fill ile uzlaştırma oda poligonlarından sonra (aşağıda).
+        GG = T("graph")
+        _upm = units_per_meter or T("base_upm")
+        _thk = [t for t in w_thick if t is not None]
+        t_units = (modes[0] * units_per_meter) if (modes and units_per_meter) else (sorted(_thk)[len(_thk) // 2] if _thk else 0.0)
+        wg = build_wall_graph(floor.walls, t_units, _upm, GG, door_leaves=barriers, windows=floor.windows,
+                              barrier_segs=barrier_segments(msp, bbox, names))
+        if wg.face_edges:
+            wg.closures += passage_closures(wg.face_edges, GG, _upm)
+            wg.stats["passage_closures"] = len(wg.closures) - wg.stats.get("door_closures", 0)
+        stair_polys = stair_footprints(msp, bbox, names, GG["stair_buffer_m"] * _upm, GG["min_room_area_m2"] * _upm * _upm,
+                                       big_blocks=big) if wg.face_edges else []
+        floor.wall_graph = wg
+        floor.graph_faces = graph_faces(wg, _upm, GG, stair_polys, seal_units=GG["seal_m"] * _upm) if wg.face_edges else []
+        wg.stats["faces"] = len(floor.graph_faces); wg.stats["stair_footprints"] = len(stair_polys)
         extra = floor.walls + floor.windows + barriers
         seal_small = (max(TR["seal_small_min_px"], int(round(TR["seal_small_m"] * units_per_meter / res)))
                       if units_per_meter else max(TR["seal_small_min_px"], seal // TR["seal_fallback_div"]))
@@ -160,10 +176,27 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
             room.center = (cx, cy)
             room.polygon = _mask_polygon(mask, raster, wall_xs, wall_ys, angled_walls)
 
+        # Adım 9 uzlaştırma: flood-fill odası ↔ polygonize yüzü IoU ≥ graph.iou_match → aynı mahal (graph_face=1,
+        # güven ↑, evidence iki yöntemi de taşır); yüz yoksa graph_face=0 (validate: open_room 'duvar grafında boşluk').
+        matched, unmatched, new_faces = reconcile_rooms(floor.rooms, floor.graph_faces, GG["iou_match"], GG["overlap_ambiguous"]) \
+            if floor.graph_faces else ({}, [], [])
+        if floor.graph_faces:
+            for room in floor.rooms:
+                if not room.polygon:
+                    continue
+                hit = matched.get(id(room))
+                sig = dict(flood_outcome(room.source)); sig["graph_face"] = 1.0 if hit else 0.0
+                room.confidence, ev = score("room", sig, f"flood:{room.source}"); room.signals = ev.signals
+                room.signals["graph_face"] = round(0.0 if not hit else ev.signals.get("graph_face", 0.0), 4)
+                if hit:
+                    room.signals["graph_iou"] = hit[1]
+        wg.stats.update({"matched": len(matched), "flood_only": len(unmatched), "graph_only": len(new_faces)})
+
         # Kapı adayları ve sinyaller (Adım 6): block_class / arc_signature / layer_class / vlm, kapı (gate)
         # sinyalleri wall_gap ve room_boundary. Adaylar: kapı BLOKLARI + kapı-genişliği YAYLARI; ikisi de
         # yeterince yoksa ham kapı-katmanı kümelemesine (layer_raw) düşülür. Güven scoring.score'dan.
         from shapely.geometry import Polygon as _P
+        from shapely.ops import unary_union
         room_polys = [(r, _P(r.polygon).buffer(0))
                       for r in floor.rooms if r.polygon]
         swing_arcs = [(x, y) for (x, y, rr) in raster.arcs if amin <= rr <= amax]
@@ -235,6 +268,28 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
                 sigs["swing_margin"] = sig["swing_margin"]
             floor.doors.append(Door(xy=(dx, dy), source=src, room_name=room.raw_name if room else None,
                                     strike_xy=strike, confidence=conf, signals=sigs))
+
+        # Adım 9: yalnız duvar grafının bulduğu yüzler → etiketsiz mahal adayı (raw_name boş, source 'graph';
+        # validate: unlabeled_region). Kapı bağlamadan SONRA eklenir (kapı-oda ataması değişmez; aday bağlama ileride).
+        # Aday kapısı: yüz, etiketli flood odaları birleşiminin dışbükey zarfı (−candidate_hull_buffer_m) içinde olmalı —
+        # bina dışı cepler/saçak altı bölgeler aday olmaz (11 GT: FP 73→59, TP 168→165; dış teras/balkon adayları kaybı bilinçli).
+        _flood = [_P(r.polygon).buffer(0) for r in floor.rooms if r.polygon and r.raw_name]
+        _hull = unary_union(_flood).convex_hull.buffer(-GG["candidate_hull_buffer_m"] * _upm) if _flood else None
+        for k in new_faces:
+            f, meta = floor.graph_faces[k]
+            if _hull is None or not _hull.contains(f.representative_point()) or f.intersection(_hull).area < GG["candidate_hull_min_frac"] * f.area:
+                wg.stats["graph_only"] = wg.stats.get("graph_only", 1) - 1
+                continue
+            c = f.representative_point()
+            sig = {"graph_only": 1.0, "stair_footprint": 1.0 if meta.get("stair") else None}
+            scored = score("room", sig, "graph")
+            if scored is None:
+                continue
+            conf, ev = scored
+            floor.rooms.append(Room(raw_name="", label_xy=(c.x, c.y), center=(c.x, c.y),
+                                    polygon=[(float(x), float(y)) for x, y in list(f.exterior.coords)[:-1]],
+                                    geometry_ok=True, source="graph", confidence=conf,
+                                    signals={**ev.signals, "stair_footprint": 1.0 if meta.get("stair") else 0.0}))
 
     return building
 
@@ -414,6 +469,10 @@ def run_selected(dxf_path: str, sel: PlanSelection, *, max_cells: int = MAX_CELL
     fparams.units_confidence = float(sel.stats.get("units_confidence", 1.0))
     fparams.res = p["res"]                                                    # hücre sınırı düzeltmesi dahil
     fparams.wall_thickness_modes = list(getattr(f, "wall_thickness_modes", []) or [])
+    _wg = getattr(f, "wall_graph", None)
+    if _wg is not None:                                                        # Adım 9: snap toleransı + graf istatistiği
+        fparams.extra["graph_snap_tol"] = round(_wg.snap_tol, 3)
+        fparams.extra["graph"] = dict(_wg.stats)
     b2 = to_v2(b, units_per_meter=upm, units_source=sel.stats.get("upm_source", "labels"),
                fingerprint=fp, file_params=fparams)
     b2.validation = validate_building_v2(b2, sel.names, sel.layer_counts)      # Adım 7 issue üretimi

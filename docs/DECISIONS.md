@@ -523,3 +523,44 @@ sayım anlamını yitirir. src02-12 ve src02-09 düzeltilmiş araçla yapılacak
   "--faces" seçeneği olarak eklenebilir (deterministik, LLM yok) ve perception'da "kapı kapatmalı polygonize" oda sinyali adayıdır.
 - **Birim doğrulama:** 541_3 prior 100 (güven 0.4) doğru çıktı; INSUNITS=5 (cm) başlığı + kapı yayı yarıçapı ~100 birim.
   Aday: `$INSUNITS` başlığı units sinyali olarak (INSUNITS 4=mm, 5=cm, 6=m) — kalibrasyonda şu an kullanılmıyor.
+
+## 2026-09-09 — Adım 9: duvar grafından bağımsız oda tespiti (5a/5c)
+
+**Ne:** `walls.build_wall_graph` (5a) ve `rooms.graph_faces` + `rooms.reconcile_rooms` (5c); flood-fill odalarıyla uzlaştırma
+`pipeline.run_floor` içinde; `unlabeled_region` issue tipi ve `open_room` "duvar grafında boşluk" notu `validate.py`'de.
+Eşikler `thresholds.yaml graph.*`, ağırlıklar `weights.yaml room.graph_face / graph_only / stair_footprint`.
+
+**Kararlar ve gerekçeleri (kullanıcı direktifinden sapmalar dahil):**
+- **WallGraph iki kenar kümesi taşır.** `edges` = merkez hatları (paralel yüz çiftleri → orta hat → doğrultudaş birleştirme →
+  uç-uç snap ≈ kalınlık/2, `FileParams.extra.graph_snap_tol`); topoloji/graph_connectivity için. `face_edges` = duvar YÜZ
+  parçaları + bariyer sınıfı katman çizgileri (HATCH sınırı dahil) + pencere camları + kapı kapatmaları; polygonize bunlarla.
+  Neden: merkez hatları gerçek dosyalarda çok parçalı ve eksik (tip-1'de 400 parça, 44 sarkan uç; dış duvar 3–6 paralel çizgi,
+  kalınlık modu 15 cm iken dış duvar 25–38 cm) → kapalı yüz 0. Yüz çizgileri raster bariyerinin vektör eşdeğeri; oda poligonu
+  bitmiş yüzeyde (GT gibi), içe çekme gerekmez. Direktifteki "merkez hattı grafı" korunuyor ama odalar yüzlerden.
+- **Mühür (seal) polygonize.** Yüz kenarları `graph.seal_m` (0,12 m) kadar şişirilir, şişmiş bandın sınırı polygonize edilir,
+  banda ait olmayan sınırlı yüzler oda adayı ve mühür kadar geri büyütülür — raster flood-fill'in (`seal_small_m` 0,25) vektör
+  karşılığı. Denemeler (9 GT dosyası, 108 flood odası): salt snap/uzatma polygonize 70 eşleşme; mühür 0,25 → 67 (ince holler
+  yutuluyor), 0,12 → 70, 0,06 → 69. Geçiş kapatması (sarkan↔sarkan doğrultudaş uç, 0,5–1,6 m) açık/kapalı fark: 70/70; düğüme
+  kapatma (T-birleşimden devam eden boşluk) odaları böldü (KAYAPINAR 4→2) → geri alındı. Kalan açıklar: KAYAPINAR 4/14 (bariyer
+  katmanında olmayan duvar parçaları, 1 m boşluklar), input-2 0/8 (tek çizgili referans dosyası), src02-07 15/24.
+- **Kapı kapatması = kapalı kanat + dik kapaklar.** `openings._door_barriers` kanadı (menteşe→kilit ucu) iki uçtan uzatılır ve
+  uçlarına duvar kalınlığı boyunca dik kapak eklenir; raster mühürsüz vektörde kanat tek başına iki yüzü kesmiyordu.
+- **Adaylar kapı bağlamadan SONRA eklenir.** Yalnız grafın bulduğu yüzler `raw_name=""`, `source="graph"`, güven
+  `graph_only` 0,45 ile `floor.rooms`'a kapı-oda ataması bittikten sonra girer → GT-7 kapı/pencere ve bağlantı değişmez.
+  Aday bağlama (kapı → etiketsiz mahal) ileride, unlabeled_region cevabıyla.
+- **Uzlaştırma sinyali.** IoU ≥ 0,7 → `graph_face=1` (ağırlık 0,80) + `agreement_bonus` 0,05 → flood_exclusive 0,85 → 0,90;
+  evidence `graph_iou` taşır. Yüz yok → `graph_face=0` (evidence'ta, çelişki notu) → `open_room` "duvar grafında boşluk".
+  Yüz oda birleşimiyle ≥ 0,5 örtüşüyor ama IoU < 0,7 → belirsiz, aday değil (çift sayım önlenir).
+- **Merdiven ayak izi:** stair sınıfı katman çizgileri tampon birleşimi → dışbükey zarf; içinde bulunduğu yüzden çıkarılır, ayrı
+  yüz (`stair_footprint` bilgi sinyali, unlabeled_region "merdiven çizgileri içeriyor"). src02-07'de çekirdek merdiveni böyle çıktı.
+- **Yeni issue tipi kuralı:** 2026-09-05 kararı ("room_merged'den sonra yeni tip yok") kullanıcının Adım 9 direktifiyle
+  (unlabeled_region) bilinçli olarak aşıldı; başka tip eklenmedi.
+- **Ölçüm öncesi düzeltmeler (kod değil):** triage `data/dataset` altındaki her DWG'yi gerçek adıyla `_dxf/`'e çeviriyordu
+  (src02/raw → 15 gerçek adlı DXF; fam00 `_excluded_fam00/dwg` yeniden dönüştü) → raw ve dışlananlar kök dışına taşındı
+  (`data/src02_raw/`, `data/excluded_fam00/`). Aday: triage'a `--exclude-dir` / `.triageignore`.
+- **Aday kapısı (dışbükey zarf):** yalnız-graf yüzü, etiketli flood odaları birleşiminin dışbükey zarfının (−0,3 m) içinde
+  değilse aday olmaz (`graph.candidate_hull_buffer_m/min_frac`). 11 GT: oda TP/FP/FN 168/73/49 → 165/59/52 (F1 0,734 → 0,748);
+  kaybedilen 3 TP dış teras/balkon (src02-02, src02-12) — bilinçli; holdout FP'leri (tip-6 2, src02-09 2) elendi.
+- **GEOS askıda kalma:** birleşik çizgi kümesinin gönye (mitre) tamponu detayli-villa ve deniz-evi'nde 180 s'yi aştı (ilk tam
+  koşuda 2 zaman aşımı); çizgiler tek tek düz uçlu/yuvarlak birleşimli tamponlanıp birleştirildi → 6–8 s. src02-12 38 s
+  (1716 yüz kenarı, 305 geçiş kapatması) — geçiş kapatması O(n²) Python; aday: uzamsal indeks (STRtree).

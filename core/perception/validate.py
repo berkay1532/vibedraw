@@ -2,8 +2,8 @@
 """Perception doğrulama (Adım 7): v2 BuildingIR → ValidationReport (issue listesi, HITL soruları).
 
 Issue tipleri (ARCHITECTURE §7 + kullanıcı kararı 2026-09-04): unknown_layer, conflicting_layer,
-unit_suspect, open_room, room_no_door, ambiguous_opening, area_mismatch. Henüz yok: unlabeled_region
-(duvar grafı, Adım 9), unit_split (Adım 5d). Eşikler config/thresholds.yaml `validate.*`.
+unit_suspect, open_room, room_no_door, ambiguous_opening, area_mismatch; Adım 9: unlabeled_region (duvar grafı yüzü,
+etiket yok) ve open_room 'duvar grafında boşluk' notu. Henüz yok: unit_split (Adım 5d). Eşikler config/thresholds.yaml `validate.*`.
 Sıralama: etkisi en yüksek önce (PRIORITY). Eski v1 sözleşme kontrolü `validate_building` kaldı."""
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from core.perception.ir_v1 import BuildingIR as BuildingIRv1
 from core.perception.names import EMPTY, LayerClass, NameMap
 from core.perception.vocab import EXEMPT_ROOM_WORDS, WINDOW_EXPECTED_ROOM_WORDS, WINDOW_EXPECTED_SHORT, fold, has_word
 
-PRIORITY = ("unknown_layer", "conflicting_layer", "unit_suspect", "open_room", "room_merged", "room_no_door", "window_missing",
+PRIORITY = ("unknown_layer", "conflicting_layer", "unit_suspect", "open_room", "unlabeled_region", "room_merged", "room_no_door", "window_missing",
             "door_side_ambiguous", "ambiguous_opening", "area_mismatch")
 LAYER_OPTIONS = ["duvar", "kapı", "pencere", "mobilya", "yazı", "yoksay"]
 # conflicting_layer yalnız bu sınıf oylarında (kullanıcı kararı 2026-09-05): bariyer sınıfları (wall/beam/column/
@@ -115,12 +115,25 @@ def issues_for_floor(fl: Floor, names: NameMap = EMPTY, layer_counts: Optional[d
     conv = ratios[len(ratios) // 2] if ratios else None
     fl.params.area_convention = round(conv, 3) if conv else None
     door_rooms = {op.rooms[0] for op in fl.openings if op.kind == "door" and op.rooms and op.rooms[0]}
+    UNLABELED_OPTIONS = ["merdiven", "asansör", "aydınlık", "şaft", "balkon", "oda", "yoksay"]
     for r in fl.rooms:
         if not r.polygon:
             if on("open_room"):
                 out.append(Issue("open_room", r.id, f"'{r.raw_name}' odasının poligonu kapanmıyor (sızma/boşluk). Boşluk ne?",
                              ["kapı", "geçiş", "pencere", "duvar eksik", "yoksay"], {"name": r.raw_name}))
             continue
+        sig = r.evidence.signals or {}
+        if not r.raw_name and (r.evidence.source or "") == "graph":           # Adım 9: yalnız duvar grafı buldu
+            if on("unlabeled_region"):
+                stair = bool(sig.get("stair_footprint"))
+                out.append(Issue("unlabeled_region", r.id,
+                                 f"Etiketsiz kapalı bölge ({r.area_m2_geom} m²)" + (", merdiven çizgileri içeriyor" if stair else "") + ". Bu alan?",
+                                 UNLABELED_OPTIONS, {"area_m2": r.area_m2_geom, "stair_hint": stair, "confidence": r.confidence}))
+            continue                                                            # diğer oda kontrolleri etiketli odalar için
+        if on("open_room") and sig.get("graph_face") == 0.0:                   # flood-fill buldu, duvar grafında kapalı yüz yok
+            out.append(Issue("open_room", r.id,
+                             f"'{r.raw_name}' odası duvar grafında kapalı yüz oluşturmuyor (duvar grafında boşluk). Boşluk ne?",
+                             ["kapı", "geçiş", "pencere", "duvar eksik", "yoksay"], {"name": r.raw_name, "note": "duvar grafında boşluk"}))
         if on("room_merged") and r.aliases and (r.evidence.source or "").endswith("alias_merge"):
             out.append(Issue("room_merged", r.id,
                              f"'{r.raw_name}' ile {', '.join(repr(a) for a in r.aliases)} etiketleri tek bölgeye düştü (takma ad birleşmesi, HITL #8). Aynı oda mı?",

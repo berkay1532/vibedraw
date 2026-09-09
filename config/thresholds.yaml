@@ -49,6 +49,30 @@ door:
   doors_vs_labels_max_dev: 1.0      # kapı upm'i etiket upm'inden 2 kattan fazla sapıyorsa birim şüpheli (etiket kestirimi sistematik ~%35 düşük; 0.3 tüm dosyaları işaretliyordu)
   hypothesis_strong_arcs: 10        # (a) etiket-öncülü kümelerinde kapı kanıtı bu kadardan azsa hipotez yolu tetiklenir; (b) hipotez içinde kat seçimi: küme yayı bu kadarsa o küme, değilse pick_plan_floor
   hypothesis_refine_accept: [0.7, 1.4]   # hipotez (standart öncül) seçildiyse kapı düzeltmesi yalnız bu bantta kabul (183/100 gibi büyük yaylar reddedilir)
+graph:                             # Adım 9: duvar grafı (walls.build_wall_graph) + polygonize odalar (rooms.graph_faces)
+  pair_thickness_m: [0.06, 0.45]   # merkez hattı için yüz çifti kalınlığı aralığı (wall.thickness_m ile aynı; dış duvar dahil)
+  pair_ang_tol_deg: 8.0
+  min_overlap_m: 0.18
+  snap_tol_frac: 0.5               # uç-uç birleştirme toleransı = kalınlık × bu (FileParams.extra.graph_snap_tol)
+  extend_tol_m: 0.6                # sarkan ucu yakın hatta uzatma toleransı (en dar açıklıktan kısa boşluk = duvar)
+  merge_perp_frac: 1.0             # doğrultudaş merkez hatlarını birleştirme dik toleransı = kalınlık × bu
+  face_merge_perp_frac: 0.2        # yüz kenarlarını birleştirme dik toleransı = kalınlık × bu (yüzler ayrı kalmalı)
+  face_merge_ang_tol_deg: 3.0
+  cavity_overlap_max: 0.6          # yüzün bu oranından fazlası duvar boşluğuysa oda değil
+  door_closure_extend_frac: 0.5    # kapı kapatma kenarını iki uçtan kalınlık × bu kadar uzat
+  door_cap_frac: 1.0               # kanat uçlarındaki dik kapak yarı uzunluğu = kalınlık × bu
+  passage_min_m: 0.5               # geçiş açıklığı (kapısız) kapatma aralığı
+  passage_max_m: 1.6
+  passage_ang_tol_deg: 15.0
+  seal_m: 0.12                     # yüz kenarı mühürü (raster seal_small_m'nin yarısı; 0.25 ince holleri yutuyor)
+  min_room_area_m2: 1.0            # bundan küçük yüz oda değil
+  thin_min_m: 0.45                 # 2·alan/çevre bunun altındaysa yüz ince (duvar boşluğu, koridor artığı)
+  hole_area_max_frac: 0.5          # delik alanı bu oranı aşan yüz (bina çevresi halkası) elenir
+  stair_buffer_m: 0.15             # merdiven çizgileri tamponu → ayak izi
+  iou_match: 0.7                   # flood-fill odası ↔ yüz aynı mahal
+  overlap_ambiguous: 0.5           # yüz, oda birleşimiyle bu orandan çok örtüşüyorsa aday değil (belirsiz)
+  candidate_hull_buffer_m: 0.3     # aday yüz, etiketli odaların dışbükey zarfının (−bu) içinde olmalı (bina dışı cep elenir)
+  candidate_hull_min_frac: 0.8
 swing:                             # binding._room_by_swing
   cos_min: 0.2
   dist_penalty: 0.4

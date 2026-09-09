@@ -59,7 +59,7 @@ def to_v2(b1, units_per_meter: float = 100.0, units_source: str = "labels",
             ev = _ev(f"flood:{src}", conf)
             if getattr(r, "confidence", None) is not None:          # Adım 6: scoring.score (weights.yaml room)
                 conf = float(r.confidence)
-                ev = Evidence(signals=dict(getattr(r, "signals", None) or {}), source=f"flood:{src}")
+                ev = Evidence(signals=dict(getattr(r, "signals", None) or {}), source=("graph" if src == "graph" else f"flood:{src}"))
             poly = [(float(x), float(y)) for x, y in (r.polygon or [])]
             geom = _poly_area(poly) / (units_per_meter ** 2) if poly else None
             fl.rooms.append(Room(
