@@ -176,8 +176,9 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
             room.center = (cx, cy)
             room.polygon = _mask_polygon(mask, raster, wall_xs, wall_ys, angled_walls)
 
-        # Adım 9 uzlaştırma: flood-fill odası ↔ polygonize yüzü IoU ≥ graph.iou_match → aynı mahal (graph_face=1,
-        # güven ↑, evidence iki yöntemi de taşır); yüz yoksa graph_face=0 (validate: open_room 'duvar grafında boşluk').
+        # Adım 9 uzlaştırma: flood-fill odası ↔ polygonize yüzü IoU ≥ graph.iou_match → aynı mahal (graph_match=1,
+        # güven ↑, evidence iki yöntemi de taşır); yüz yoksa graph_match=0 yalnız evidence'ta kalır, issue üretmez
+        # (open_room eski semantiğinde: flood-fill kapanmıyor/sızıyor).
         matched, unmatched, new_faces = reconcile_rooms(floor.rooms, floor.graph_faces, GG["iou_match"], GG["overlap_ambiguous"]) \
             if floor.graph_faces else ({}, [], [])
         if floor.graph_faces:
@@ -185,9 +186,9 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
                 if not room.polygon:
                     continue
                 hit = matched.get(id(room))
-                sig = dict(flood_outcome(room.source)); sig["graph_face"] = 1.0 if hit else 0.0
+                sig = dict(flood_outcome(room.source)); sig["graph_match"] = 1.0 if hit else 0.0
                 room.confidence, ev = score("room", sig, f"flood:{room.source}"); room.signals = ev.signals
-                room.signals["graph_face"] = round(0.0 if not hit else ev.signals.get("graph_face", 0.0), 4)
+                room.signals["graph_match"] = round(0.0 if not hit else ev.signals.get("graph_match", 0.0), 4)
                 if hit:
                     room.signals["graph_iou"] = hit[1]
         wg.stats.update({"matched": len(matched), "flood_only": len(unmatched), "graph_only": len(new_faces)})

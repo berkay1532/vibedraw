@@ -93,3 +93,25 @@ yüz bulamayınca), unlabeled_region 37 (yeni), diğerleri aynı; issue/oda medy
 input-2 0/8 (tek çizgili referans; 8 open_room notu, F1 1,0 korundu), src02-12 24 aday / 40 FP (parçalı oda poligonları,
 F1 0,577→0,633), src02-07 15/24. Koşu süresi: AVİDA 74 s, src02-03 69 s; ilk denemede GEOS gönye tamponu detayli-villa/deniz-evi'nde
 askıda kaldı (DECISIONS). Kabul ölçütü: recall ↑ ✓, F1 ↑ ✓, IoU −0,005 (adaylardan; bilinçli).
+
+### Adım 9 düzeltmeleri — open_room eski semantiği, graph_match, ad/kind ölçümü (2026-09-12; 55 dosya, 11 GT)
+
+| Varlık | TP/FP/FN | F1 | Ek |
+|---|---|---:|---|
+| rooms | 165/61/52 | 0.745 | IoU 0.881; ad doğruluğu (etiketli, n=144) 0.972; kind doğruluğu (etiketsiz) n=0 |
+| doors | 137/2/54 | 0.830 | konum 0.005 m, bağlantı 0.866 |
+| windows | 137/99/15 | 0.706 | |
+
+Geometri ve F1 Adım 9 satırıyla **birebir aynı** (rooms/doors/windows, IoU, aile ve holdout tabloları: holdout 0.868 / 0.706 / 0.651,
+geliştirme 0.728 / 0.845 / 0.713). Değişen yalnız issue'lar ve ad ölçümü:
+- **open_room** 75 → 2 (graf boşluğu notu kaldırıldı; yalnız poligonu kapanmayan odalar). Issue toplamı 333 → **260**:
+  area_mismatch 72, room_no_door 40, unlabeled_region 37, window_missing 36, door_side_ambiguous 31, unknown_layer 27,
+  conflicting_layer 8, room_merged 3, ambiguous_opening 3, open_room 2, unit_suspect 1. Issue/oda medyan 1.33 → **1.11**
+  (toplam 1.47 → 1.15); typical ≤0.5: 0/11. Dosya bazında: KAYAPINAR 1.72, tip-1 1.50, src02-09 1.43, src02-07 1.32,
+  input-2 1.12, tip-2 1.11, src02-12 1.05, src02-02 1.00, tip-4 0.83, tip-6 0.73, hafif_celik 0.71.
+- **Ad doğruluğu** artık yalnız etiketli tahminlerde ve n-ağırlıklı: 0.972 (n=144). Adım 9 satırındaki 0.894 dosya ortalamasıydı
+  ve adsız adayları hata sayıyordu → kıyaslanmaz; Adım 9 öncesi 0.967 ile aynı tabanda. Etiketsiz adaylarda kind doğruluğu
+  n=0 (tahmin kind vermiyor).
+- **Kapsama** 119/321 → 112/300 (0.37): room_name 0/25 → 0/4 (yalnız etiketli), room_kind 0/0 (yeni), room_fp 43/61 → 42/61
+  (bir FP'yi yalnız open_room graf notu işaret ediyordu), room_fn 36/52 → 35/52; kapı/pencere aynı.
+- FP analizi (src02-12 15, src02-07 8; kod yok) ve KAYAPINAR/input-2 duvar boşlukları → DECISIONS 2026-09-12.

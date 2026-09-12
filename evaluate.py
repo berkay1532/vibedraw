@@ -61,7 +61,7 @@ def main(argv=None) -> int:
             print("  - " + pr, file=sys.stderr)
         return 2
     rows, agg = [], {"rooms": [0, 0, 0], "doors": [0, 0, 0], "windows": [0, 0, 0]}
-    ious, names, derr, conn = [], [], [], []
+    ious, names, kinds_acc, derr, conn = [], [], [], [], []
     cal = {"rooms": [], "doors": [], "windows": []}
     cal_src = {"rooms": [], "doors": [], "windows": []}
     pair_acc = []
@@ -97,7 +97,8 @@ def main(argv=None) -> int:
         for k in agg:
             agg[k][0] += r[k]["tp"]; agg[k][1] += r[k]["fp"]; agg[k][2] += r[k]["fn"]
         if r["rooms"]["mean_iou"] is not None: ious.append(r["rooms"]["mean_iou"])
-        if r["rooms"]["name_acc"] is not None: names.append(r["rooms"]["name_acc"])
+        if r["rooms"]["name_acc"] is not None: names.append((r["rooms"]["name_acc"], r["rooms"].get("name_n", 0)))
+        if r["rooms"].get("kind_acc") is not None: kinds_acc.append((r["rooms"]["kind_acc"], r["rooms"].get("kind_n", 0)))
         if r["doors"]["mean_err_m"] is not None: derr.append(r["doors"]["mean_err_m"])
         if r["doors"]["connect_acc"] is not None: conn.append(r["doors"]["connect_acc"])
 
@@ -114,7 +115,10 @@ def main(argv=None) -> int:
     L.append("| Varlık | TP | FP | FN | Precision | Recall | F1 | Ek |")
     L.append("|---|---:|---:|---:|---:|---:|---:|---|")
     mean = lambda xs: (round(sum(xs) / len(xs), 3) if xs else "-")
-    extras = {"rooms": f"IoU={mean(ious)}, ad doğruluğu={mean(names)}",
+    wmean = lambda xs: (round(sum(a * n for a, n in xs) / sum(n for _, n in xs), 3) if xs and sum(n for _, n in xs) else "-")
+    # Ad doğruluğu yalnız etiketli tahminlerde; etiketsiz adaylarda kind doğruluğu (tahmin kind verene kadar n=0). 2026-09-12
+    extras = {"rooms": f"IoU={mean(ious)}, ad doğruluğu (etiketli)={wmean(names)} (n={sum(n for _, n in names)}), "
+                       f"kind doğruluğu (etiketsiz)={wmean(kinds_acc)} (n={sum(n for _, n in kinds_acc)})",
               "doors": f"konum hatası={mean(derr)} m, bağlantı doğruluğu={mean(conn)}", "windows": ""}
     for k, (tp, fp, fn) in agg.items():
         p, rc, f1 = prf(tp, fp, fn)
@@ -209,7 +213,7 @@ def main(argv=None) -> int:
     L.append("\n## Issue kapsama (hatalı varlık → onu işaret eden issue)\n")
     L.append("| Hata tipi | Kapsanan / toplam | Oran |")
     L.append("|---|---:|---:|")
-    for k in ("room_fp", "room_fn", "door_fp", "door_fn", "window_fp", "window_fn", "room_name", "door_connect"):
+    for k in ("room_fp", "room_fn", "door_fp", "door_fn", "window_fp", "window_fn", "room_name", "room_kind", "door_connect"):
         c, t = cov_tot.get(k, (0, 0))
         L.append(f"| {k} | {c} / {t} | {(c / t if t else 0):.2f} |")
     ca, ta = sum(c for c, _ in cov_tot.values()), sum(t for _, t in cov_tot.values())

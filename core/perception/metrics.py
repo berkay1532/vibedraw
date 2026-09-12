@@ -58,7 +58,10 @@ class Match:
     fp: int = 0
     fn: int = 0
     pairs: list = field(default_factory=list)      # (gt_idx, pred_idx, score)
-    name_acc: float | None = None
+    name_acc: float | None = None      # etiketli tahminlerde (raw_name dolu) ad doğruluğu
+    name_n: int = 0
+    kind_acc: float | None = None      # etiketsiz adaylarda (raw_name boş) kind doğruluğu; tahmin kind vermiyorsa n=0
+    kind_n: int = 0
     mean_iou: float | None = None
     mean_err: float | None = None
 
@@ -99,9 +102,18 @@ def match_rooms(gt_rooms, pred_rooms, iou_thr=0.5) -> Match:
     m = Match(tp=len(pairs), fp=len(pred_rooms) - len(pairs), fn=len(gt_rooms) - len(pairs), pairs=pairs)
     if pairs:
         m.mean_iou = sum(s for _, _, s in pairs) / len(pairs)
-        ok = sum(1 for gi, pj, _ in pairs
-                 if _tr_fold(gt_rooms[gi].get("name")) == _tr_fold(pred_rooms[pj].get("raw_name")))
-        m.name_acc = ok / len(pairs)
+        # Ad doğruluğu yalnız etiketli tahminlerde (raw_name dolu); etiketsiz adaylarda (Adım 9, raw_name boş) kind
+        # doğruluğu, yalnız tahmin kind veriyorsa (şimdilik vermiyor → n=0). (2026-09-12)
+        lab = [(gi, pj) for gi, pj, _ in pairs if pred_rooms[pj].get("raw_name")]
+        m.name_n = len(lab)
+        if lab:
+            ok = sum(1 for gi, pj in lab if _tr_fold(gt_rooms[gi].get("name")) == _tr_fold(pred_rooms[pj].get("raw_name")))
+            m.name_acc = ok / len(lab)
+        unl = [(gi, pj) for gi, pj, _ in pairs if not pred_rooms[pj].get("raw_name") and pred_rooms[pj].get("kind")]
+        m.kind_n = len(unl)
+        if unl:
+            ok = sum(1 for gi, pj in unl if _tr_fold(gt_rooms[gi].get("kind")) == _tr_fold(pred_rooms[pj].get("kind")))
+            m.kind_acc = ok / len(unl)
     return m
 
 
@@ -186,7 +198,10 @@ def evaluate_floor(gt: dict, pred: dict, iou_thr=0.5, door_tol_m=0.5, window_tol
     errors = {
         "room_fp": [j for j in range(len(pr_rooms)) if j not in {pj for _, pj, _ in rm.pairs}],
         "room_fn": [i for i in range(len(gt_rooms)) if i not in {gi for gi, _, _ in rm.pairs}],
-        "room_name": [pj for gi, pj, _ in rm.pairs if _tr_fold(gt_rooms[gi].get("name")) != _tr_fold(pr_rooms[pj].get("raw_name"))],
+        "room_name": [pj for gi, pj, _ in rm.pairs if pr_rooms[pj].get("raw_name")
+                      and _tr_fold(gt_rooms[gi].get("name")) != _tr_fold(pr_rooms[pj].get("raw_name"))],
+        "room_kind": [pj for gi, pj, _ in rm.pairs if not pr_rooms[pj].get("raw_name") and pr_rooms[pj].get("kind")
+                      and _tr_fold(gt_rooms[gi].get("kind")) != _tr_fold(pr_rooms[pj].get("kind"))],
         "door_fp": [j for j in range(len(pr_doors)) if j not in {pj for _, pj, _ in dm.pairs}],
         "door_fn": [i for i in range(len(gt_doors)) if i not in {gi for gi, _, _ in dm.pairs}],
         "door_connect": [pj for gi, pj, _ in dm.pairs
@@ -197,7 +212,8 @@ def evaluate_floor(gt: dict, pred: dict, iou_thr=0.5, door_tol_m=0.5, window_tol
     return {
         "errors": errors,
         "rooms": block(rm, mean_iou=(round(rm.mean_iou, 3) if rm.mean_iou is not None else None),
-                       name_acc=(round(rm.name_acc, 3) if rm.name_acc is not None else None)),
+                       name_acc=(round(rm.name_acc, 3) if rm.name_acc is not None else None), name_n=rm.name_n,
+                       kind_acc=(round(rm.kind_acc, 3) if rm.kind_acc is not None else None), kind_n=rm.kind_n),
         "doors": block(dm, mean_err_m=(round(dm.mean_err / upm, 3) if dm.mean_err is not None else None),
                        connect_acc=(round(connect_acc, 3) if connect_acc is not None else None),
                        pair_acc=(round(pair_acc, 3) if pair_acc is not None else None), pair_n=pair_n),
@@ -270,6 +286,8 @@ def issue_coverage(gt: dict, pred: dict, issues: list, errors: dict) -> dict:
         add("window_fn", bool(r and tg.get(r.get("id"), set()) & {"ambiguous_opening", "open_room", "window_missing"}))
     for j in errors["room_name"]:
         add("room_name", False)
+    for j in errors.get("room_kind", []):
+        add("room_kind", "unlabeled_region" in tg.get(pr_rooms[j].get("id"), set()))
     for j in errors["door_connect"]:
         add("door_connect", "door_side_ambiguous" in tg.get(pr_doors[j].get("id"), set()))
     return cov

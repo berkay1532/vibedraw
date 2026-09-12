@@ -564,3 +564,42 @@ Eşikler `thresholds.yaml graph.*`, ağırlıklar `weights.yaml room.graph_face 
 - **GEOS askıda kalma:** birleşik çizgi kümesinin gönye (mitre) tamponu detayli-villa ve deniz-evi'nde 180 s'yi aştı (ilk tam
   koşuda 2 zaman aşımı); çizgiler tek tek düz uçlu/yuvarlak birleşimli tamponlanıp birleştirildi → 6–8 s. src02-12 38 s
   (1716 yüz kenarı, 305 geçiş kapatması) — geçiş kapatması O(n²) Python; aday: uzamsal indeks (STRtree).
+
+## 2026-09-12 — Adım 9 sonrası düzeltmeler: open_room eski semantiğine dönüş, ad/kind ölçümü, FP analizi
+
+**Ne (kullanıcı kararı, 2026-09-09 direktifi):**
+- **open_room eski semantiğine döndü:** yalnız flood-fill poligonu kapanmayan/sızan odalar (`polygon` yok). Duvar grafında
+  kapalı yüz bulunamaması artık issue değil; graf uzlaşması yalnız `evidence.signals.graph_match` (1 / 0; eski adı
+  `graph_face`, `weights.yaml room.graph_match` 0,80). Gerekçe: Adım 9 koşusunda open_room 2 → 75'e çıktı; input-2 gibi tek
+  çizgili referanslarda ve KAYAPINAR'da grafın boşluğu dosya sorunu, oda sorunu değil → HITL'e soru olarak taşımak bütçeyi
+  şişiriyor, bilgi evidence'ta zaten var.
+- **Ad doğruluğu ikiye ayrıldı (`metrics.match_rooms`):** `name_acc` yalnız etiketli tahminlerde (`raw_name` dolu, `name_n`);
+  etiketsiz adaylarda (`raw_name` boş) `kind_acc` = tahmin `kind` vs GT `kind` (`kind_n`; tahmin henüz kind vermiyor → n=0).
+  evaluate toplamı dosya ortalaması yerine n-ağırlıklı (önceki satırlarla birebir kıyaslanmaz; EVAL_HISTORY'de not).
+  Kapsama tablosuna `room_kind` (unlabeled_region işaret ediyorsa kapsanmış) eklendi; `room_name` yalnız etiketli çiftler.
+- **KAYAPINAR ve input-2 duvar boşlukları → walls.py ağırlık-turu maddesi:** KAYAPINAR'da 14 odadan 4'ü grafla eşleşiyor
+  (duvar parçaları bariyer sınıfı dışındaki katmanlarda, ~1 m boşluklar; `seal_m` 0,12 kapatmıyor, büyütmek odaları böldü —
+  bkz. 2026-09-09 maddesi), input-2'de 0/8 (tek çizgili referans; yüz çifti yok → `face_edges` boş). Ağırlık turunda:
+  (a) `parallel_pair` bulunamayan tek çizgilere `layer_class` + uzunluk/hizalanma sinyaliyle "tek çizgili duvar" güveni,
+  (b) graf snap toleransını kalınlık yerine dosya boşluk histogramından türetme (FileParams), (c) bariyer dışı katmandaki
+  duvar-benzeri çizgiler için `stats_class` kademesinin `face_edges`'e katkısı. Tek dosya kuralı yok; iki dosya + src02-07 (15/24)
+  aynı desen → sinyal adayı.
+
+**FP analizi (kod değişikliği yok; Adım 9 çıktısı, `output/fp_analysis/*_fp15.png`, script scratchpad `fp_analysis.py`):**
+- **src02-12 (40 FP / 97 tahmin, 24 etiketsiz aday) en büyük 15:** bölünmüş oda 9 (etiketli HOL parçaları r28/r22/r42 ve graf
+  dilimleri r91/r93/r92 — GT KAT HOLÜ/HOL tek mahal, tahmin SIVA/_TEFRİŞ çizgileriyle 3–8 m² parçalara bölünmüş; r75 yangın
+  merdiveni sahanlığı ayrı yüz), balkon kısa poligon 5 (r57/r58/r69/r60/r66: korkuluk katmanı bariyer sayıldığından tahmin
+  balkonun yalnız bir bölümünü alıyor, GT'nin %84–100'ü tahminin içinde ama IoU < 0,5), sızma 1 (r71 KAT HOLÜ 16,8 m²:
+  flood-fill komşu etiketsiz alanlara taştı, GT payı %55), birleşik 1 (r97: iki asansör tek graf yüzü, 14 m²),
+  mobilya cebi 1 (r77: ÇOCUK ODASI içinde dolap şeridi, yalnız SIVA çizgileri). GT dışı gerçek mahal: 0.
+- **src02-07 (8 FP / 31 tahmin, 7 aday), hepsi:** sızma/dış 1 (r13 BALKON 89,7 m², alias_merge: balkon etiketleri binanın
+  dış halkasına sızdı), niş/mobilya cebi 2 (r27/r26: SALON+MUTFAK içinde 3,4 m² mutfak cebi, DUVAR+SIVA ile kapalı),
+  merdiven ayak izi 1 (r25: GT'de KAT HOLÜ içinde, ayrı mahal değil), bölünmüş oda 4 (r18/r21/r17/r16 HOL/KAT HOLÜ 0,9–2,2 m²
+  parçalar; KİRİŞ İZD ve SIVA çizgileri bölüyor).
+- **Sonuç:** FP'lerin ~%70'i tek kök neden: ince çizgi katmanları (SIVA, KİRİŞ İZD, _TEFRİŞ, korkuluk) bariyer/yüz kenarı olarak
+  odayı bölüyor. Aday sinyaller (ağırlık turu, sinyal olarak, `if` değil): (1) yüz/oda birleştirme — komşu iki parçayı ayıran
+  kenarın katman sınıfı `hatch/furniture/unknown` ve kenar uzunluğu ortak sınırın ≥ %80'i ise `split_by_thin_line` sinyali,
+  etiketli parça ile etiketsiz komşu birleştirilir; (2) balkon için korkuluk (`railing`) katmanı sınıfı — `LayerClass`'a girmez,
+  profil/keyword ile `furniture` gibi ekleyici-olmayan sınıfa; (3) sızma için mevcut `flood_outcome` ile GT payı < 0,6 örnekleri
+  (r71, r13) zaten düşük güven taşımalı → `alias_merge` + alan/etiket-alanı oranı sinyali. Bu üçü `docs/HITL_QUESTIONS.md` #8/#22
+  ile ilişkili; hiçbiri tek dosya değil (src02-07, src02-12, KAYAPINAR).

@@ -125,8 +125,9 @@ taşınır, mantık değişmez. `reconstruct` yalnızca sıralayan bir orkestrat
       `face_edges` yüz/bariyer kenarları — bkz. DECISIONS 2026-09-09 Adım 9).
 - [x] `rooms.py`'de shapely `polygonize` ile kapalı bölgeler (kapı kanadı + dik kapak, pencere, geçiş kapatmaları; mühürlü
       polygonize `graph.seal_m`; merdiven ayak izi ayrı yüz).
-- [x] Flood-fill ve polygonize sonuçlarını eşleştir; ikisi örtüşüyorsa güven ↑ (`graph_face`, agreement_bonus),
-      yalnız biri buluyorsa issue (`unlabeled_region` / `open_room` "duvar grafında boşluk").
+- [x] Flood-fill ve polygonize sonuçlarını eşleştir; ikisi örtüşüyorsa güven ↑ (`graph_match`, agreement_bonus),
+      yalnız graf buluyorsa issue (`unlabeled_region`); yalnız flood-fill buluyorsa issue yok, `graph_match=0` evidence'ta
+      (2026-09-12: open_room eski semantiğine döndü).
 
 **Kabul:** oda recall artar ya da issue sayısı düşer; IoU düşmez.
 

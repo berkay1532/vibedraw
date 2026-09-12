@@ -3,7 +3,8 @@
 
 Issue tipleri (ARCHITECTURE §7 + kullanıcı kararı 2026-09-04): unknown_layer, conflicting_layer,
 unit_suspect, open_room, room_no_door, ambiguous_opening, area_mismatch; Adım 9: unlabeled_region (duvar grafı yüzü,
-etiket yok) ve open_room 'duvar grafında boşluk' notu. Henüz yok: unit_split (Adım 5d). Eşikler config/thresholds.yaml `validate.*`.
+etiket yok). open_room eski semantiğinde kalır (flood-fill kapanmıyor/sızıyor); graf eşleşmesi yalnız
+`evidence.signals.graph_match`, issue üretmez (2026-09-12). Henüz yok: unit_split (Adım 5d). Eşikler config/thresholds.yaml `validate.*`.
 Sıralama: etkisi en yüksek önce (PRIORITY). Eski v1 sözleşme kontrolü `validate_building` kaldı."""
 from __future__ import annotations
 
@@ -130,10 +131,6 @@ def issues_for_floor(fl: Floor, names: NameMap = EMPTY, layer_counts: Optional[d
                                  f"Etiketsiz kapalı bölge ({r.area_m2_geom} m²)" + (", merdiven çizgileri içeriyor" if stair else "") + ". Bu alan?",
                                  UNLABELED_OPTIONS, {"area_m2": r.area_m2_geom, "stair_hint": stair, "confidence": r.confidence}))
             continue                                                            # diğer oda kontrolleri etiketli odalar için
-        if on("open_room") and sig.get("graph_face") == 0.0:                   # flood-fill buldu, duvar grafında kapalı yüz yok
-            out.append(Issue("open_room", r.id,
-                             f"'{r.raw_name}' odası duvar grafında kapalı yüz oluşturmuyor (duvar grafında boşluk). Boşluk ne?",
-                             ["kapı", "geçiş", "pencere", "duvar eksik", "yoksay"], {"name": r.raw_name, "note": "duvar grafında boşluk"}))
         if on("room_merged") and r.aliases and (r.evidence.source or "").endswith("alias_merge"):
             out.append(Issue("room_merged", r.id,
                              f"'{r.raw_name}' ile {', '.join(repr(a) for a in r.aliases)} etiketleri tek bölgeye düştü (takma ad birleşmesi, HITL #8). Aynı oda mı?",
