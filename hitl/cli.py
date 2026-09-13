@@ -180,6 +180,7 @@ def main(argv=None) -> int:
     ap.add_argument("--issue", type=int, default=None); ap.add_argument("--answer", default=None)
     ap.add_argument("--png", default=None, help="crop PNG yolu (varsayılan output/hitl/<ad>/<i>_<tip>.png)")
     ap.add_argument("--no-write", action="store_true", help="IR JSON'u ve learning log'u yazma")
+    ap.add_argument("--answered-by", default="human", choices=("human", "gt"), help="cevabın kaynağı (learning log answered_by)")
     ap.add_argument("--offset", type=int, default=0, help="--list: bu sıradan itibaren göster (etki sıralı, sayfa thresholds validate.cli_page)")
     ap.add_argument("--all", action="store_true", help="--list: hepsini göster")
     a = ap.parse_args(argv)
@@ -209,7 +210,7 @@ def main(argv=None) -> int:
     predicted = apply_answer(pred, it, ans)
     rec = {"file": stem, "fingerprint": pred.get("source_fingerprint", ""), "issue": it["kind"], "target_id": it.get("target_id"),
            "signals": (_find(pred["floors"][0], it.get("target_id") or "")[1] or {}).get("evidence", {}).get("signals", {}),
-           "predicted": predicted, "answer": ans, "answered_by": "human", "skipped": False}
+           "predicted": predicted, "answer": ans, "answered_by": a.answered_by, "skipped": False}
     if not a.no_write:
         p = learning_log.append(rec)
         Path(a.pred).write_text(json.dumps(pred, ensure_ascii=False, indent=1), encoding="utf-8")

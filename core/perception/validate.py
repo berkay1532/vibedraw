@@ -72,9 +72,12 @@ def issues_for_floor(fl: Floor, names: NameMap = EMPTY, layer_counts: Optional[d
     on = (lambda k: enabled is None or k in enabled)
     # --- unknown_layer: sınıfı bilinmeyen kalabalık katmanlar; entity × duvar-benzeri geometri oranına göre ilk N
     from core.perception.names import wall_like_ratio
+    from core.perception.vocab import is_non_semantic_layer
     cands = []
     for layer, n in (layer_counts or {}).items():
-        if on("unknown_layer") and n >= V["unknown_layer_min_entities"] and names.cls(layer) is LayerClass.unknown:
+        # anlamsız ad (kalem/çizgi tipi/sayı): sınıf yalnız içerik istatistiğinden, soru sorulmaz (2026-09-14)
+        if on("unknown_layer") and n >= V["unknown_layer_min_entities"] and names.cls(layer) is LayerClass.unknown \
+                and not is_non_semantic_layer(layer):
             st = (names.stats or {}).get(layer, {})
             ratio = wall_like_ratio(st) if st else 0.0
             cands.append((n * ratio, n, ratio, layer))

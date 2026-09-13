@@ -21,7 +21,7 @@ from typing import Optional
 
 import yaml
 
-from core.perception.vocab import LAYER_WORDS, fold, has_word
+from core.perception.vocab import LAYER_WORDS, fold, has_word, is_non_semantic_layer
 
 ROOT = Path(__file__).resolve().parents[2]
 PROFILE_DIR = ROOT / "source_profiles"
@@ -171,7 +171,10 @@ def classify_layers(layer_names, profile: Optional[SourceProfile], match: str = 
             nm.classes[name] = (profile.layers[name], PROFILE_CONF, "profile")
             continue
         c, conf = keyword_class(name)
-        nm.classes[name] = (c, conf, "keyword" if conf else "none")
+        # anlamsız ad (kalem kalınlığı / çizgi tipi / sayı): işaret 'non_semantic'; sınıf yalnız içerik istatistiğinden
+        # (refine_with_stats), unknown_layer sorusu yok (validate). 2026-09-14
+        src = "keyword" if conf else ("non_semantic" if is_non_semantic_layer(name) else "none")
+        nm.classes[name] = (c, conf, src)
     return nm
 
 

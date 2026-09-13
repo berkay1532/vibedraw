@@ -10,8 +10,13 @@ ROOT = Path(__file__).resolve().parents[1]
 LOG_DIR = ROOT / "output" / "learning"
 
 
+ANSWERED_BY = ("human", "gt", "auto")     # human: çizime bakan kişi; gt: GT dosyasından türetilen cevap; auto: kalibrasyon/kural
+
+
 def append(record: dict, log_dir: Path | None = None) -> Path:
-    """Kaydı günün dosyasına ekler; `ts` yoksa ekler. Dönen değer dosya yolu. log_dir None → LOG_DIR (çağrı anında)."""
+    """Kaydı günün dosyasına ekler; `ts` yoksa ekler. `answered_by` zorunlu (ANSWERED_BY). Dönen değer dosya yolu."""
+    if record.get("answered_by") not in ANSWERED_BY:
+        raise ValueError(f"answered_by {ANSWERED_BY} olmalı: {record.get('answered_by')!r}")
     log_dir = Path(log_dir or LOG_DIR); log_dir.mkdir(parents=True, exist_ok=True)
     rec = {"ts": datetime.now(timezone.utc).isoformat(timespec="seconds"), **record}
     path = log_dir / f"{rec['ts'][:10]}.jsonl"

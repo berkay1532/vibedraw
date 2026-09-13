@@ -308,7 +308,7 @@ Validator issue tipleri (`perception/validate.py`, Adım 7; eşikler `config/thr
 
 | tip | tetik | HITL sorusu | durum |
 |---|---|---|---|
-| `unknown_layer` | LayerClass=unknown ve ≥ 50 entity | "Bu katman ne?" [duvar/kapı/pencere/mobilya/yazı/yoksay] | var |
+| `unknown_layer` | LayerClass=unknown ve ≥ 50 entity; anlamsız adlar (kalem/çizgi tipi/sayı: `vocab.is_non_semantic_layer`) hariç, onların sınıfı yalnız içerik istatistiğinden | "Bu katman ne?" [duvar/kapı/pencere/mobilya/yazı/yoksay] | var |
 | `conflicting_layer` | dosya × katman: çelişkili duvar segment oranı ≥ 0,3 ve sayı ≥ 20 (segment bayrağı evidence'ta kalır) | "Bu çizgiler ne?" [duvar/açıklama-yazı/mobilya/yoksay] | var |
 | `unit_suspect` | upm standart değerlerden (1/10/100/1000) ±%25 uzak | "Çizim birimi ne?" [m/dm/cm/mm/inç] | var |
 | `open_room` | poligon kapanmıyor (sızma → fallback) | "Bu boşluk?" [kapı/geçiş/pencere/duvar eksik/yoksay] | var |

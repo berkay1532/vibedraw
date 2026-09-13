@@ -107,6 +107,26 @@ LAYER_WORDS = {
 }
 
 
+# --- Anlamsız (kalem kalınlığı / çizgi tipi / varsayılan) katman adları --------------------------
+# Ad, içerik hakkında bilgi taşımaz: sınıf yalnız içerik istatistiğinden (names.refine_with_stats) gelir, unknown_layer
+# sorusu üretilmez (2026-09-14). Desenler genel (ofise özgü değil): AA-0.20 (kalem), ÇİZ KALIN / ÇİZ İNCE (çizgi kalınlığı),
+# PEN-3, saf sayı/nokta adlar (0, 1, 0.5, 2.25).
+import re as _re
+NON_SEMANTIC_LAYER_PATTERNS = (
+    r"^[a-z]{1,2}-\d+(\.\d+)?$",          # AA-0.20, A-5
+    r"^(çiz|ciz|çizgi|cizgi)\b.*$",       # ÇİZ KALIN, ÇİZ İNCE, ÇİZGİ 2
+    r"^pen[-_ ]?\d+.*$",                    # PEN-3, PEN_05
+    r"^\d+([.,]\d+)?$",                    # 0, 1, 0.5, 2,25
+)
+_NON_SEMANTIC_RE = tuple(_re.compile(p) for p in NON_SEMANTIC_LAYER_PATTERNS)
+
+
+def is_non_semantic_layer(name: str) -> bool:
+    """Katman adı kalem kalınlığı / çizgi tipi / saf sayı deseninde mi (anlam taşımıyor)?"""
+    f = str(name or "").strip()
+    return any(r.match(f.lower()) or r.match(fold(f)) for r in _NON_SEMANTIC_RE)
+
+
 # --- Elektrik çizimi tespiti (triage) ----------------------------------------------------
 # Katman adı ve blok adı ipuçları; bir dosyada toplam ELECTRICAL_MIN ve üstü isabet → verdict ELEKTRİK
 # (mimari altlık değil; girdi-çıktı çifti adayı olarak raporlanır).

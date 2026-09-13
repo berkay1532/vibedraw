@@ -130,3 +130,18 @@ def test_room_merged_issue_and_no_budget_truncation():
     fl.params.extra["heavy"] = True
     many = issues_for_floor(fl, NameMap(), {f"L{k}": 100 for k in range(12)})
     assert len(many) >= 1 and not any("budget_dropped" in i.data for i in many)     # üretim sınırı yok
+
+
+def test_non_semantic_layer_no_unknown_layer_issue():
+    """Kalem/çizgi tipi/sayı adlı katmanlar: sınıf istatistikten, unknown_layer sorusu yok; anlamlı bilinmeyen ad sorulur."""
+    from core.perception.vocab import is_non_semantic_layer
+    from core.perception.names import NameMap, classify_layers
+    from core.perception.ir import Floor, FileParams
+    from core.perception.validate import issues_for_floor
+    assert all(is_non_semantic_layer(n) for n in ("0", "AA-0.20", "ÇİZ KALIN", "PEN-3", "0.5", "2,25"))
+    assert not any(is_non_semantic_layer(n) for n in ("DUVAR", "MERİZD", "Defpoints", "A_WALL_BIMS", "..taramam"))
+    nm = classify_layers(["AA-0.20", "XYZQ"], None)
+    assert nm.classes["AA-0.20"][2] == "non_semantic" and nm.classes["XYZQ"][2] == "none"
+    fl = Floor(index=0, name="t", params=FileParams(units_per_meter=100.0))
+    iss = issues_for_floor(fl, nm, {"AA-0.20": 500, "XYZQ": 500}, enabled={"unknown_layer"})
+    assert [i.target_id for i in iss] == ["layer:XYZQ"]

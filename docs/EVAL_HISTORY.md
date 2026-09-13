@@ -193,3 +193,13 @@ c_as_sag1 / MERDİVEN c_merd_sag_ust geri gelmedi:** çekirdek duvarları hatch-
 asansör çarpısı; hatch çiftlerini kenar yapma deneyi 69/16/14 → 53/36/30 (geri alındı). Ayrıntı DECISIONS 2026-09-13 (2).
 Merdiven istatistiği (55 dosya): basamak bulunan dosyada kenar üreten çizgi az (src02-12: 18 basamak, 1 kenar); çoğu dosyada
 fallback (src02-07, src02-02, KAYAPINAR: basamak çizgisi yok ya da < 1 m²).
+
+### Anlamsız katman adları (non_semantic) — unknown_layer sorusu yok (2026-09-14; 55 dosya, 11 GT)
+
+`vocab.is_non_semantic_layer` (AA-0.20, ÇİZ KALIN, PEN-3, saf sayı/nokta): sınıf yalnız içerik istatistiğinden, unknown_layer
+sorusu üretilmez; learning log `answered_by` zorunlu. **11 GT eval birebir aynı** (oda 182/34/35 F1 0,841, IoU 0,888; kapı 0,830;
+pencere 0,706; holdout aynı; kapsama 78/256). Yalnız soru sayısı: unknown_layer 26 → 18 (11 GT), 186 → 151 (55 dosya);
+issue/oda medyan 1,03 → 0,97. src02-07 30 → 28 (0 / AA-0.20 / ÇİZ KALIN düştü; sıradaki aday MERİZD sorulur), src02-04 10 → 8
+(AA-0.05 / AA-0.15 düştü, MERİZD kaldı), src02-15 49 → 48 (AA-* üçü düştü, MERİZD ve KESİT sıraya girdi — sıralama ilk 3'ü
+doldurur). Gözlem: src02-07'de AA-0.20 ve ÇİZ KALIN'ın seçilen kat kutusu içinde HİÇ entity'si yok (596 / 117 entity başka
+pafta/kesitte); unknown_layer sayımı dosya geneli (`layer_counts`) → aday: sayım seçilen kat kutusuyla sınırlansın.

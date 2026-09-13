@@ -682,3 +682,15 @@ src02-12'de 15 basamak, 1 ayak izi (6,7 m²), 12 kenar.
   "hangi issue tipi bunu yakalamalıydı" analizi (unlabeled_region / open_room / room_merged / area_mismatch / yeni tip yok),
   dosya × tip tablosu; issue üretmeyen FN desenleri (hatch-only çekirdek, etiketli parça ⊂ yüz ama yazı alanı yok, bina dışı
   teras) için mevcut tiplerin tetiğine sinyal eklenir, yeni issue tipi açılmaz (2026-09-05 kuralı).
+
+## 2026-09-14 — Anlamsız katman adları (non_semantic) ve learning log `answered_by`
+
+**Ne:** `vocab.NON_SEMANTIC_LAYER_PATTERNS` / `is_non_semantic_layer`: kalem kalınlığı (AA-0.20, A-5), çizgi tipi (ÇİZ KALIN,
+ÇİZGİ 2), PEN-3, saf sayı/nokta (0, 1, 0.5, 2,25) desenleri. Bu adlar içerik hakkında bilgi taşımaz: `classify_layers` kaynağı
+`non_semantic` (sınıf unknown, güven 0), sınıf yalnız `refine_with_stats` içerik istatistiğinden; `validate` unknown_layer
+sorusu üretmez. Sınıflandırma sonucu değişmez (stats kademesi zaten bilinmeyenlere uygulanıyordu), yalnız soru sayısı düşer.
+Desenler genel (ofise özgü değil), vocab.py'de; ofise özgü adlar profilde kalır.
+**C turu (src02-07 HITL) için:** cevaplar GT'den türetilecek → `learning/log.append` `answered_by` ∈ {human, gt, auto} zorunlu;
+`hitl/cli.py --answered-by gt`. İnsan cevabı yalnız çizime bakılarak verilen (görsel soru) cevaplar için `human`.
+**Aday:** src02 ailesinde AA-* katmanları kalem kalınlığına göre bölünmüş (AA-0.05/0.09/0.15/0.20 = farklı içerik: ince mobilya
+çizgisi ↔ kalın duvar); içerik istatistiği kademesinin bu katmanlarda ne verdiği ağırlık turunda ölçülecek (`stats.conf` 0,4).
