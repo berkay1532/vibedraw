@@ -92,6 +92,9 @@ class NameMap:
     stats: dict = field(default_factory=dict)   # layer_stats (unknown_layer sıralaması için)
     profile_units: dict = field(default_factory=dict)   # eşleşen profilin units kaydı (pipeline: hipotez öncülü)
 
+    def source(self, layer: str) -> str:
+        return self.classes.get(layer, (LayerClass.unknown, 0.0, "none"))[2]
+
     def cls(self, layer: str) -> LayerClass:
         return self.classes.get(layer, (LayerClass.unknown, 0.0, "none"))[0]
 
@@ -171,7 +174,10 @@ def classify_layers(layer_names, profile: Optional[SourceProfile], match: str = 
     nm.profile_units = dict(profile.units) if profile else {}
     for name in layer_names:
         if profile and name in profile.layers:
-            nm.classes[name] = (profile.layers[name], PROFILE_CONF, "profile")
+            # kaynak: 'profile' (hardcode'dan taşınan) ya da 'profile:hitl' (learning/to_profile: insan/GT cevabı) —
+            # ikincisi için validate conflicting_layer üretmez (cevap zaten verildi). 2026-09-14
+            src = "profile:hitl" if str(profile.notes.get(name, "")).startswith("hitl") else "profile"
+            nm.classes[name] = (profile.layers[name], PROFILE_CONF, src)
             continue
         c, conf = keyword_class(name)
         # anlamsız ad (kalem kalınlığı / çizgi tipi / sayı): işaret 'non_semantic'; sınıf yalnız içerik istatistiğinden

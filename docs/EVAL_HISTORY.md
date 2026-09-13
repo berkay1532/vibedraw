@@ -245,3 +245,9 @@ değişti (oda 44 → 47; unlabeled_region 12 → 15, open_room 5 → 11, area_m
 src02-02 6 → 5 (unlabeled_region 1 → 0, o aday TP idi). unknown_layer + conflicting_layer (fam10 4 dosya): 5 → 2
 (kalan: src02-07 conflicting Tefriş sayısal olarak hâlâ üretiliyor — profil sınıfı furniture ama geometri oyu duvar; src02-15
 unknown KESİT). 11 GT toplam issue 229 → 224; issue/oda medyan 0,97 → 0,92.
+
+### conflicting_layer: insan/GT cevaplı katman sınıfı için soru yok (2026-09-14; 55 dosya, 11 GT)
+
+`NameMap.source(layer)` ∈ {hitl, profile:hitl} (dosya cevabı ya da learning/to_profile ile profile giren sınıf) → conflicting_layer
+üretilmez. 11 GT eval birebir aynı (182/33/35; kapı/pencere aynı; holdout aynı); src02-07 24 → 23 issue (Tefriş çelişkisi düştü),
+conflicting_layer 11 GT 8 → 7.

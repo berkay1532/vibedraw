@@ -96,6 +96,8 @@ def issues_for_floor(fl: Floor, names: NameMap = EMPTY, layer_counts: Optional[d
         vote = names.cls(lay).value if lay != "?" else "unknown"
         if vote not in CONFLICT_VOTES:          # kolon/kiriş/pencere/baca zaten paralel çift çizer; tarama/merdiven de çelişki değil
             continue
+        if names.source(lay) in ("hitl", "profile:hitl"):   # sınıf insan/GT cevabı (dosya ya da profil): çelişki sorusu tekrar sorulmaz
+            continue
         if on("conflicting_layer") and con >= V["conflicting_layer_min_count"] and ratio >= V["conflicting_layer_min_ratio"]:
             out.append(Issue("conflicting_layer", f"layer:{lay}",
                              f"'{lay}' katmanı: geometri {con}/{tot} segmentte duvar çifti diyor, katman sınıfı '{vote}' diyor. Bu çizgiler ne?",

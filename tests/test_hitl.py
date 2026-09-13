@@ -170,3 +170,13 @@ def test_to_profile_transfers_only_layer_and_unit_answers(tmp_path):
     import pytest
     with pytest.raises(ValueError):
         L.append(dict(file="f1", issue="x", answer="y"), logd)
+
+
+def test_profile_hitl_layer_no_conflicting_issue(tmp_path):
+    """Profil kaynağı insan/GT (notes 'hitl ...') olan katman sınıfı için conflicting_layer üretilmez."""
+    from core.perception.names import SourceProfile, LayerClass, classify_layers, apply_overrides
+    prof = SourceProfile(family_id="famT", layers={"Tefriş": LayerClass.furniture, "ince": LayerClass.furniture},
+                         notes={"Tefriş": "hitl f1 (human)"})
+    nm = classify_layers(["Tefriş", "ince"], prof, "fingerprint", 1.0)
+    assert nm.source("Tefriş") == "profile:hitl" and nm.source("ince") == "profile"
+    apply_overrides(nm, {"X": "furniture"}); assert nm.source("X") == "hitl"
