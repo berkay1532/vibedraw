@@ -554,23 +554,26 @@ def passage_closures(edges, G, upm):
     return out
 
 
-def stair_footprints(msp, bbox, names, buffer_units, min_area_units, big_blocks=False):
-    """Merdiven sınıfı katmanlardaki çizgilerden ayak izi poligonları (birleşik tampon → dışbükey zarf)."""
-    from shapely.geometry import LineString as _LS
-    from shapely.ops import unary_union as _uu
+def stair_segments(msp, bbox, names, big_blocks=False):
+    """Merdiven sınıfı katmanlardaki çizgi parçaları. Döner (line_segs, block_segs): line_segs = modelspace'teki
+    LINE/LWPOLYLINE (kova çevre duvarı, şaft çizgisi, çizgi basamak); block_segs = merdiven katmanındaki INSERT'lerin
+    (ve büyük blok modunda diğer INSERT'lerin merdiven katmanlı parçalarının) içindeki çizgiler (blok basamaklar) —
+    yalnız basamak/ayak izi tespiti için, kenar üretmez."""
     from core.perception.names import LayerClass as _LC
-    segs = []
+    lines, blocks = [], []
     x0, y0, x1, y1 = bbox
     for e in msp:
         try:
             lay = e.dxf.layer
         except Exception:
             continue
-        ents = [e]
-        if e.dxftype() == "INSERT":
-            if not big_blocks:
+        is_ins = e.dxftype() == "INSERT"
+        if is_ins:
+            if not big_blocks and not names.has(lay, {_LC.stair}, 0.0):
                 continue
             ents = list(_explode(e))
+        else:
+            ents = [e]
         for ve in ents:
             try:
                 vl = ve.dxf.layer
@@ -583,12 +586,49 @@ def stair_footprints(msp, bbox, names, buffer_units, min_area_units, big_blocks=
             ss, _ = _entity_segments(ve)
             for a, b in ss:
                 if x0 <= a[0] <= x1 and y0 <= a[1] <= y1:
-                    segs.append(_LS([a, b]))
+                    (blocks if is_ins else lines).append(((a[0], a[1]), (b[0], b[1])))
+    return lines, blocks
+
+
+def split_stair_segments(segs, step_min, step_max, min_neighbors=3):
+    """Merdiven çizgilerini basamak (≥ min_neighbors paralel komşu, step_min..step_max dik aralık: _ladder_filter) ve
+    diğer (kova çevre duvarı, şaft çizgisi, korkuluk) olarak ayırır. Döner (step_segs, other_segs)."""
+    other = _ladder_filter(segs, step_min, step_max, min_neighbors=min_neighbors)
+    other_ids = {id(x) for x in other}
+    step = [x for x in segs if id(x) not in other_ids]
+    return step, other
+
+
+def stair_footprints(segs, buffer_units, min_area_units):
+    """Basamak çizgilerinden ayak izi poligonları (birleşik tampon → dışbükey zarf). (2026-09-13: yalnız basamak çizgileri;
+    önce tüm merdiven katmanı çizgileri → komşu asansör şaftı da ayak izine giriyordu.)"""
+    from shapely.geometry import LineString as _LS
+    from shapely.ops import unary_union as _uu
     if not segs:
         return []
-    u = _uu([s.buffer(buffer_units) for s in segs])
+    u = _uu([_LS([a, b]).buffer(buffer_units) for a, b in segs])
     polys = list(u.geoms) if u.geom_type == "MultiPolygon" else [u]
     return [p.convex_hull for p in polys if p.area >= min_area_units]
+
+
+def stair_edge_segments(other_segs, footprints, ang_tol_deg=None, shrink=0.0):
+    """Merdiven sınıfının kenar üreten çizgileri: basamak olmayan ve orta noktası hiçbir ayak izinin içinde olmayanlar
+    (merdiven kovası çevre duvarı, şaft duvarı). Basamak ve ayak izi içi çizgiler kenar üretmez. ang_tol_deg verilirse
+    eksenlere (0/90°) bu toleranstan uzak çizgiler de kenar değildir (asansör çarpısı, ok/yön işaretleri). shrink: ayak izi
+    tamponu kadar geri çekilerek test edilir (kova çevre duvarı ayak izinin hemen dışında kalır)."""
+    from shapely.geometry import Point
+    fps = [fp.buffer(-shrink) for fp in footprints] if shrink else list(footprints)
+    out = []
+    for a, b in other_segs:
+        if ang_tol_deg is not None:
+            ang = math.degrees(math.atan2(b[1] - a[1], b[0] - a[0])) % 90.0
+            if min(ang, 90.0 - ang) > ang_tol_deg:
+                continue
+        m = Point((a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0)
+        if any(fp.contains(m) for fp in fps):
+            continue
+        out.append((a, b))
+    return out
 
 
 def barrier_segments(msp, bbox, names, classes=BARRIER_CLASSES):

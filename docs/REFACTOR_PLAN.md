@@ -130,6 +130,8 @@ taşınır, mantık değişmez. `reconstruct` yalnızca sıralayan bir orkestrat
       (2026-09-12: open_room eski semantiğine döndü).
 - [x] FP kök nedeni (2026-09-13): kenar kümesi `GRAPH_EDGE_CLASSES` (+railing), pencere mühürü, aday örtüşme kapısı 0,3,
       ince çizgi birleştirme (`rooms.merge_split_faces`); oda F1 0,745 → 0,769, FP 61 → 52, kapı/pencere aynı.
+- [x] Merdiven sınıfı ayrımı (basamak → ayak izi; diğer çizgiler kenar) + örtüşme kapısı istisnası (flood parçası ⊂ yüz →
+      oda poligonu yüz ∪ oda, kapı bağlamadan sonra) (2026-09-13); oda F1 0,769 → 0,841, FN 49 → 35, FP 52 → 34, kapı/pencere aynı.
 
 **Kabul:** oda recall artar ya da issue sayısı düşer; IoU düşmez.
 

@@ -146,3 +146,18 @@ def test_graph_edge_classes_and_railing():
     G = T("graph")
     wg = build_wall_graph(segs, t, UPM, G, windows=[((100, 0), (200, 0))], face_walls=[])
     assert wg.stats["window_closures"] == 1 and wg.stats["faces_in"] == 0 and len(wg.closures) == 1
+
+
+def test_stair_split_footprint_and_edges():
+    """Basamak çizgileri (ladder) → ayak izi; kova çevre çizgisi kenar; ayak izi içi ve çapraz (asansör çarpısı) çizgiler kenar değil."""
+    from core.perception.walls import split_stair_segments, stair_edge_segments, stair_footprints
+    steps = [((0, y), (200, y)) for y in range(0, 300, 25)]                      # 12 basamak, 25 birim aralık, 2 m kol
+    perim = [((-5, -5), (205, -5)), ((205, -5), (205, 305)), ((205, 305), (-5, 305)), ((-5, 305), (-5, -5))]
+    inner = [((100, 0), (100, 300))]                                            # ayak izi içinde (korkuluk hattı)
+    cross = [((400, 0), (500, 100)), ((400, 100), (500, 0))]                    # asansör çarpısı
+    st, ot = split_stair_segments(steps + perim + inner + cross, 15, 60, min_neighbors=2)
+    assert set(steps) <= set(st) and not (set(cross) | set(inner)) & set(st)   # basamaklara paralel uç duvarlar da basamak sayılabilir
+    fps = stair_footprints(st, 15.0, 1.0)                                     # tampon ≥ aralık/2 → tek ayak izi
+    assert len(fps) == 1 and fps[0].contains(__import__("shapely.geometry", fromlist=["Point"]).Point(100, 150))
+    edges = stair_edge_segments(ot, fps, ang_tol_deg=10.0, shrink=15.0)
+    assert set(edges) == {perim[1], perim[3]}                                   # yalnız kova yan duvarları; çarpı ve iç çizgi değil

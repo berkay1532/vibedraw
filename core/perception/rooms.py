@@ -311,11 +311,13 @@ def merge_split_faces(faces, rooms, cavities, thin_cavity_max_frac, eps, max_lab
     return out, merged
 
 
-def reconcile_rooms(rooms, faces, iou_thr, overlap_ambiguous):
+def reconcile_rooms(rooms, faces, iou_thr, overlap_ambiguous, absorb_min_frac=None):
     """Flood-fill odaları ↔ polygonize yüzleri. Döner (matched, unmatched_rooms, new_faces):
     matched: {id(room): (face_idx, iou)}; unmatched_rooms: poligonlu ama yüz bulamayan odalar;
     new_faces: hiçbir odayla eşleşmeyen ve mevcut flood-fill odaları birleşimiyle < overlap_ambiguous (graph.candidate_max_overlap)
-    örtüşen yüz indeksleri."""
+    örtüşen yüz indeksleri. absorb_min_frac verilirse dördüncü değer absorb: [(face_idx, room)] — örtüşme kapısına takılan
+    ama tam bir flood odasını kapsayan (oda ∩ yüz ≥ absorb_min_frac × oda alanı, yüzde başka etiketli oda yok) yüzler; oda ve
+    yüz tek mahal olarak birleşir (pipeline, kapı bağlamadan sonra)."""
     from shapely.geometry import Polygon
     from shapely.ops import unary_union
     polys = []
@@ -341,10 +343,19 @@ def reconcile_rooms(rooms, faces, iou_thr, overlap_ambiguous):
     unmatched = [r for r, _ in polys if id(r) not in matched]
     union = unary_union([P for _, P in polys]) if polys else None
     new = []
+    absorb = []
     for k, (f, _) in enumerate(faces):
         if k in used:
             continue
         ov = (f.intersection(union).area / f.area) if (union is not None and f.area > 0) else 0.0
         if ov < overlap_ambiguous:
             new.append(k)
+        elif absorb_min_frac is not None:
+            # istisna (2026-09-13): yüz, örtüştüğü flood odasını kapsıyorsa (flood parçası ⊂ yüz) elenmez, odayla birleşir
+            covered = [r for r, P in polys if r.raw_name and P.area > 0 and f.intersection(P).area >= absorb_min_frac * P.area]
+            touched = [r for r, P in polys if r.raw_name and f.intersection(P).area > 0.05 * P.area]
+            if len(covered) == 1 and len(touched) == 1:
+                absorb.append((k, covered[0]))
+    if absorb_min_frac is not None:
+        return matched, unmatched, new, absorb
     return matched, unmatched, new

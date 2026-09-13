@@ -640,3 +640,34 @@ TP artar). src02-12'de 2 FN, src02-07'de HOL parçaları (r16–r18) bu desende.
 **Kod dışı gözlem:** raster flood-fill'in parçalanması aynı kök nedenden (`extra_segs` katman bağımsız çiftler: SIVA/KİRİŞ İZD
 çiftleri bariyer). Bu turda dokunulmadı (kapı/pencere değişmesin); ağırlık turunda `_wall_segments` çiftlerine katman sınıfı
 sinyali ile bariyer güveni.
+
+## 2026-09-13 (2) — merdiven sınıfı kenarları ve örtüşme kapısı istisnası (flood parçası ⊂ yüz)
+
+**Ne (kullanıcı direktifi, tek commit):**
+1. **Merdiven sınıfı ayrımı (`walls.stair_segments / split_stair_segments / stair_footprints / stair_edge_segments`):**
+   merdiven katmanı çizgileri basamak (ladder: `stair_step_m` [0,15, 0,6] dik aralıkta ≥ `stair_step_min_neighbors` 2 paralel
+   komşu; blok basamaklar için merdiven katmanındaki INSERT'ler açılır) ve diğer olarak ayrılır. Ayak izi = basamak çizgilerinin
+   tamponlu dışbükey zarfı (önce tüm merdiven çizgileri → komşu asansör şaftı da ayak izine giriyordu). Basamak olmayan, ayak
+   izinin (tampon kadar geri çekilmiş) dışındaki, eksene yakın (`stair_edge_ang_tol_deg` 10; asansör çarpısı 45° → değil)
+   modelspace çizgileri kenar üretir (kova çevre duvarı, şaft duvarı). Basamak bulunamazsa (kısa kol, yalnız çevre çizgisi)
+   eski davranış: tüm merdiven çizgileri ayak izi, kenar yok (`stats.stair_fallback`). `_staircase_polygon` (polygons.py) raster
+   maskesinden dik-açılı poligon yardımcıdır, merdivenle ilgisi yok; ayrım ayak izi poligonuyla yapıldı.
+2. **Örtüşme kapısı istisnası (`rooms.reconcile_rooms(absorb_min_frac)`):** aday kapısına (> `candidate_max_overlap`) takılan yüz,
+   tam olarak bir etiketli flood odasını kapsıyorsa (oda ∩ yüz ≥ `absorb_min_room_frac` 0,9 × oda alanı) ve başka etiketli odaya
+   %5'ten fazla değmiyorsa ve etiket alan yazısı varsa yüz/yazı oranı [0,5, 2] içindeyse (`absorb_area_ratio_max`; area_mismatch
+   mutlak kuralıyla aynı — ±%30 toleransı denendi, KAT HOLÜ/BANYO kayıpları verdi) elenmez; oda poligonu yüz ∪ oda olur
+   (`signals.graph_absorb`), tek mahal. Kapı bağlamadan SONRA
+   uygulanır → kapı-oda ataması ve pencere değişmez. `graph_extends` (eşleşen/eşleşmeyen tüm yüzler için genişletme) ağırlık
+   turunda kalır; bu istisna yalnız kapıya takılan yüzler içindir.
+
+**Beklenti ve gerçekleşme:** src02-12'de HOL r16/r6 deseni (2) ile geri geldi (absorb 16; TP 58 → 71, FP 30 → 13, FN 25 → 12).
+İlk denemede BANYO r14 (4,4 m²) 14,4 m² yüze yutuldu → yazı alanı oran kuralı eklendi. Sol çekirdek ASANSÖR ×2 ve KULLANILMAYAN
+ALAN ×2 yeni FN: önce tüm-çizgi ayak izi zarfı asansör çarpısını kapsayıp şaftla çakışıyordu (rastlantısal TP), basamak tabanlı
+ayak izi bunu yapmaz; şaft duvarları hatch-only (aşağıdaki kök neden).
+**ASANSÖR c_as_sag1 ve MERDİVEN c_merd_sag_ust geri GELMEDİ:** kök neden merdiven sınıfı değil — bu dosyada çekirdek duvarları
+yalnız `..taramam` (hatch sınıfı) HATCH sınırlarıyla çizili, DUVAR çizgisi tek yüz (295 birim); MERDIVEN katmanındaki 712 birim
+asansör çarpısıdır (kenar olmamalı). Deney: hatch sınıfı ÇİFTLERİ kenar kümesine alınca src02-12 69/16/14 → 53/36/30 (hatch
+çiftleri odaları bölüyor) → geri alındı. Aday (ağırlık turu): hatch çifti kalınlığı dosya duvar kalınlığı moduna eşitse ve
+başka duvar-sınıfı çizgiyle çakışmıyorsa `hatch_wall` sinyali (yalnız o çiftler kenar).
+Basamak tespiti src02-07'de (72 çizgi, blok basamak yok, KOTBLK08 kot blokları merdiven katmanında) ayak izi < 1 m² → fallback;
+src02-12'de 15 basamak, 1 ayak izi (6,7 m²), 12 kenar.

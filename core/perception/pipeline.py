@@ -39,8 +39,8 @@ from core.perception.openings import _cluster_doors, _door_barriers, _seg_dist, 
 from core.perception.polygons import _mask_polygon
 from core.perception.raster import _Raster
 from core.perception.rooms import _floor_bbox, _segment_rooms, graph_faces, merge_split_faces, reconcile_rooms
-from core.perception.walls import (_wall_lines, _wall_segments, barrier_segments, build_wall_graph, passage_closures, stair_footprints,
-                                   wall_cavities)
+from core.perception.walls import (_wall_lines, _wall_segments, barrier_segments, build_wall_graph, passage_closures,
+                                   split_stair_segments, stair_edge_segments, stair_footprints, stair_segments, wall_cavities)
 from core.perception.windows import _window_segments
 
 
@@ -127,13 +127,28 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
         # pencere açıklıkları kapı gibi mühürlenir; hatch/stair/furniture/text/dim/unknown kenar üretmez (FP kök nedeni:
         # ince çizgi katmanları odayı bölüyordu). Merkez hatları (topoloji) katman bağımsız kalır.
         face_walls = [w for w, lay in zip(floor.walls, floor.wall_layers) if names.has(lay, GRAPH_EDGE_CLASSES)]
+        # Merdiven sınıfı (2026-09-13): basamak çizgileri (ladder) → ayak izi; basamak olmayan ve ayak izi dışındaki çizgiler
+        # (kova çevre duvarı, asansör şaftı) kenar üretir. Basamaklar ve ayak izi içi çizgiler kenar üretmez.
+        _st_lines, _st_blocks = stair_segments(msp, bbox, names, big_blocks=big)
+        _st_step, _st_other = split_stair_segments(_st_lines + _st_blocks, GG["stair_step_m"][0] * _upm,
+                                                   GG["stair_step_m"][1] * _upm, min_neighbors=GG["stair_step_min_neighbors"])
+        stair_polys = stair_footprints(_st_step, GG["stair_buffer_m"] * _upm, GG["min_room_area_m2"] * _upm * _upm)
+        if not stair_polys:                    # basamak bulunamadı (çizgi/blok değil ya da kısa kol) → eski davranış: tüm çizgiler
+            stair_polys = stair_footprints(_st_lines + _st_blocks, GG["stair_buffer_m"] * _upm, GG["min_room_area_m2"] * _upm * _upm)
+            wg_stair_fallback = True
+        else:
+            wg_stair_fallback = False
+        _blk = {id(x) for x in _st_blocks}
+        stair_edges = stair_edge_segments([x for x in _st_other if id(x) not in _blk], stair_polys,
+                                          GG["stair_edge_ang_tol_deg"], shrink=GG["stair_buffer_m"] * _upm)   # blok/çarpı çizgisi kenar değil
         wg = build_wall_graph(floor.walls, t_units, _upm, GG, door_leaves=barriers, windows=floor.windows,
-                              barrier_segs=barrier_segments(msp, bbox, names, GRAPH_EDGE_CLASSES), face_walls=face_walls)
+                              barrier_segs=barrier_segments(msp, bbox, names, GRAPH_EDGE_CLASSES) + stair_edges,
+                              face_walls=face_walls)
+        wg.stats["stair_step_segs"] = len(_st_step); wg.stats["stair_edge_segs"] = len(stair_edges)
+        wg.stats["stair_fallback"] = wg_stair_fallback
         if wg.face_edges:
             wg.closures += passage_closures(wg.face_edges, GG, _upm)
             wg.stats["passage_closures"] = len(wg.closures) - wg.stats.get("door_closures", 0)
-        stair_polys = stair_footprints(msp, bbox, names, GG["stair_buffer_m"] * _upm, GG["min_room_area_m2"] * _upm * _upm,
-                                       big_blocks=big) if wg.face_edges else []
         floor.wall_graph = wg
         floor.graph_faces = graph_faces(wg, _upm, GG, stair_polys, seal_units=GG["seal_m"] * _upm) if wg.face_edges else []
         wg.stats["faces"] = len(floor.graph_faces); wg.stats["stair_footprints"] = len(stair_polys)
@@ -199,8 +214,9 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
                                                             GG["merge_max_labels"], gap_max=GG["merge_gap_max_m"] * _upm,
                                                             min_shared=GG["merge_min_shared_m"] * _upm)
             wg.stats["faces_merged"] = n_merged; wg.stats["faces"] = len(floor.graph_faces)
-        matched, unmatched, new_faces = reconcile_rooms(floor.rooms, floor.graph_faces, GG["iou_match"], GG["candidate_max_overlap"]) \
-            if floor.graph_faces else ({}, [], [])
+        matched, unmatched, new_faces, absorb = reconcile_rooms(floor.rooms, floor.graph_faces, GG["iou_match"],
+                                                                GG["candidate_max_overlap"], GG["absorb_min_room_frac"]) \
+            if floor.graph_faces else ({}, [], [], [])
         if floor.graph_faces:
             for room in floor.rooms:
                 if not room.polygon:
@@ -211,7 +227,7 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
                 room.signals["graph_match"] = round(0.0 if not hit else ev.signals.get("graph_match", 0.0), 4)
                 if hit:
                     room.signals["graph_iou"] = hit[1]
-        wg.stats.update({"matched": len(matched), "flood_only": len(unmatched), "graph_only": len(new_faces)})
+        wg.stats.update({"matched": len(matched), "flood_only": len(unmatched), "graph_only": len(new_faces), "absorb": len(absorb)})
 
         # Kapı adayları ve sinyaller (Adım 6): block_class / arc_signature / layer_class / vlm, kapı (gate)
         # sinyalleri wall_gap ve room_boundary. Adaylar: kapı BLOKLARI + kapı-genişliği YAYLARI; ikisi de
@@ -311,6 +327,28 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
                                     polygon=[(float(x), float(y)) for x, y in list(f.exterior.coords)[:-1]],
                                     geometry_ok=True, source="graph", confidence=conf,
                                     signals={**ev.signals, "stair_footprint": 1.0 if meta.get("stair") else 0.0}))
+        # Örtüşme kapısı istisnası (2026-09-13): yüz bir flood odasını kapsıyorsa (flood parçası ⊂ yüz, HOL r16/r6 deseni)
+        # oda poligonu yüz ∪ oda olur — tek mahal. Kapı bağlamadan SONRA (kapı-oda ataması ve pencere değişmez).
+        for k, room in absorb:
+            f, _meta = floor.graph_faces[k]
+            # yazı alanı kanıtı: etiket alan yazısı varsa yüz/yazı oranı [1/absorb_area_ratio_max, absorb_area_ratio_max] içinde
+            # olmalı (validate area_mismatch mutlak kuralıyla aynı: BANYO 4,4 m² yazı → 14,4 m² yüz reddedilir; HOL 3,1 m²
+            # parça → 7,6 m² yüz, yazı 7,4 → kabul)
+            _ratio = (f.area / (_upm * _upm) / room.area_m2) if room.area_m2 else 1.0
+            if not (1.0 / GG["absorb_area_ratio_max"] <= _ratio <= GG["absorb_area_ratio_max"]):
+                wg.stats["absorb"] = wg.stats.get("absorb", 1) - 1
+                continue
+            try:
+                u = unary_union([f, _P(room.polygon).buffer(0)])
+            except Exception:
+                continue
+            if u.geom_type == "MultiPolygon":
+                u = max(u.geoms, key=lambda g: g.area)
+            if u.is_empty or u.geom_type != "Polygon":
+                continue
+            room.polygon = [(float(x), float(y)) for x, y in list(u.exterior.coords)[:-1]]
+            c = u.representative_point(); room.center = (c.x, c.y)
+            room.signals["graph_absorb"] = 1.0
 
     return building
 

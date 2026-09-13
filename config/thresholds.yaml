@@ -68,12 +68,17 @@ graph:                             # Adım 9: duvar grafı (walls.build_wall_gra
   min_room_area_m2: 1.0            # bundan küçük yüz oda değil
   thin_min_m: 0.45                 # 2·alan/çevre bunun altındaysa yüz ince (duvar boşluğu, koridor artığı)
   hole_area_max_frac: 0.5          # delik alanı bu oranı aşan yüz (bina çevresi halkası) elenir
-  stair_buffer_m: 0.15             # merdiven çizgileri tamponu → ayak izi
+  stair_buffer_m: 0.15             # basamak çizgileri tamponu → ayak izi
+  stair_step_m: [0.15, 0.6]        # basamak çizgisi: bu dik aralıkta (iki basamağa kadar; uç basamak da sayılsın) ≥ stair_step_min_neighbors paralel komşu (_ladder_filter)
+  stair_step_min_neighbors: 2      # (kısa kollar 3–4 basamak; blok basamaklar INSERT açılarak sayılır)
+  stair_edge_ang_tol_deg: 10.0     # merdiven kenar çizgisi eksenlere bu kadar yakın olmalı (asansör çarpısı 45° → kenar değil)
   iou_match: 0.7                   # flood-fill odası ↔ yüz aynı mahal
   candidate_max_overlap: 0.3       # yüz, mevcut flood-fill odaları birleşimiyle bu orandan çok örtüşüyorsa aday değil (2026-09-13; eski overlap_ambiguous 0.5)
   merge_max_labels: 1              # ince-komşuluk bileşeni en fazla bu kadar oda etiketi içeriyorsa birleştirilir (2+ → ayrı odalar)
   merge_thin_cavity_max_frac: 0.3  # komşu iki yüzün ortak sınırının bu orandan azı duvar boşluğundaysa ayıran çizgi ince → birleştir
   merge_eps_m: 0.02                # ortak sınır/birleştirme toleransı
+  absorb_min_room_frac: 0.9        # örtüşme kapısı istisnası: yüz, flood odasının bu oranını kapsıyorsa (ve başka odaya değmiyorsa) odayla birleşir
+  absorb_area_ratio_max: 2.0       # ... ve etiket alan yazısı varsa yüz/yazı alan oranı [1/bu, bu] içinde (area_mismatch mutlak kuralı)
   merge_gap_max_m: 0.35            # iki yüz arasındaki ince çizgi bandı en çok bu kadar (kiriş izdüşümü genişliği ~0.25)
   merge_min_shared_m: 0.5          # ortak sınır en az bu kadar (köşe teması birleştirmez)
   candidate_hull_buffer_m: 0.3     # aday yüz, etiketli odaların dışbükey zarfının (−bu) içinde olmalı (bina dışı cep elenir)

@@ -152,3 +152,44 @@ Uzlaşma (55 dosya): faces_in 863 → 467 (src02-07; AA-*/'0' katmanı çiftleri
 HOL r6 → (3) birleştirdi, (2) eledi; ASANSÖR ve MERDİVEN → (1) [şaft duvarları MERDIVEN katmanında; stair kenar üretmiyor].
 Ayrıntı ve adaylar (flood parçası ⊂ yüz → poligon değişimi; stair çizgileri ayak izi dışında kenar) DECISIONS 2026-09-13.
 Korkuluk sert-çizgi kuralının 11 GT'de ölçülebilir etkisi yok (run1 = run2), semantik gerekçeyle tutuldu.
+
+### Merdiven sınıfı kenarları + örtüşme kapısı istisnası (flood parçası ⊂ yüz) (2026-09-13; 55 dosya, 11 GT)
+
+Tek commit: (1) merdiven katmanı çizgileri basamak (ladder, blok basamaklar açılır) / diğer olarak ayrılır; ayak izi yalnız
+basamaklardan; basamak olmayan, ayak izi dışı, eksene yakın çizgiler kenar üretir; basamak yoksa eski davranış (fallback).
+(2) aday kapısına takılan yüz, tam bir flood odasını kapsıyorsa (≥ 0,9 oda alanı, başka odaya değmiyor, yazı alanı oranı
+0,5–2) oda poligonu yüz ∪ oda olur (kapı bağlamadan sonra). Eşikler `thresholds.yaml graph.stair_* / absorb_*`.
+Kabul: FN 49 → **35** ✓, FP 52 → **34** ✓ (artmadı), kapı/pencere birebir aynı ✓, IoU 0,880 → 0,888.
+
+| Küme | Dosya | Oda F1 | TP/FP/FN | IoU | Kapı F1 | Pencere F1 | Kapsama | Issue/oda medyan |
+|---|---:|---|---|---|---|---|---|---|
+| geliştirme | 9 | 0.754 → 0.836 | 144/49/45 → 158/31/31 | 0.884 → 0.894 | 0.845 → 0.845 | 0.713 → 0.713 | 96/250 (0.38) → 64/218 (0.29) | 1.11 → 1.03 |
+| holdout | 2 | 0.873 → 0.873 | 24/3/4 → 24/3/4 | 0.86 → 0.86 | 0.706 → 0.706 | 0.651 → 0.651 | 14/38 (0.37) → 14/38 (0.37) | 1.38 → 1.38 |
+| toplam | 11 | 0.769 → 0.841 | 168/52/49 → 182/34/35 | 0.88 → 0.888 | 0.83 → 0.83 | 0.706 → 0.706 | 110/288 (0.38) → 78/256 (0.30) | 1.11 → 1.03 |
+
+| Dosya | Küme | Oda TP/FP/FN önce → sonra | Oda F1 | Kapı F1 | Pencere F1 | Issue/oda | FN farkı |
+|---|---|---|---|---|---|---|---|
+| KAYAPINAR_2892_ADA_8_PARSEL_ | gel. | 11/10/7 → 11/10/7 | 0.564 → 0.564 | 1.0 → 1.0 | 1.0 → 1.0 | 1.62 → 1.62 |  |
+| hafif_celik_tip_koy_konutu_7 | gel. | 7/0/1 → 7/0/1 | 0.933 → 0.933 | 0.923 → 0.923 | 0.267 → 0.267 | 0.71 → 0.71 |  |
+| input-2-clean | gel. | 8/0/0 → 8/0/0 | 1.0 → 1.0 | 0.909 → 0.909 | 0.857 → 0.857 | 1.12 → 1.12 |  |
+| src02-02 | gel. | 7/2/3 → 8/1/2 | 0.737 → 0.842 | 0.7 → 0.7 | 0.0 → 0.0 | 1.00 → 0.89 |  −BANYO |
+| src02-07 | gel. | 23/6/6 → 23/6/6 | 0.793 → 0.793 | 0.952 → 0.952 | 0.774 → 0.774 | 1.34 → 1.03 |  |
+| src02-09 | holdout | 13/3/3 → 13/3/3 | 0.812 → 0.812 | 0.4 → 0.4 | 0.286 → 0.286 | 1.38 → 1.38 |  |
+| src02-12 | gel. | 58/30/25 → 71/13/12 | 0.678 → 0.85 | 0.748 → 0.748 | 0.582 → 0.582 | 1.06 → 0.93 | +KULLANILMAYAN ALAN,KULLANILMAYAN ALAN −BANYO,BANYO,BANYO,KAT HOLÜ,BANYO |
+| tip-1_mimari | gel. | 10/0/1 → 10/0/1 | 0.952 → 0.952 | 0.857 → 0.857 | 0.333 → 0.333 | 1.50 → 1.50 |  |
+| tip-2_mimari | gel. | 9/0/2 → 9/0/2 | 0.9 → 0.9 | 0.947 → 0.947 | 0.824 → 0.824 | 1.11 → 1.11 |  |
+| tip-4_mimari | gel. | 11/1/0 → 11/1/0 | 0.957 → 0.957 | 1.0 → 1.0 | 1.0 → 1.0 | 0.83 → 0.83 |  |
+| tip-6_mimari | holdout | 11/0/1 → 11/0/1 | 0.957 → 0.957 | 0.947 → 0.947 | 0.828 → 0.828 | 0.73 → 0.73 |  |
+
+Issue tipi (11 GT) önce → sonra: {'area_mismatch': '72→52', 'room_no_door': '40→40', 'window_missing': '36→35', 'door_side_ambiguous': '31→31', 'unlabeled_region': '31→27', 'unknown_layer': '26→26', 'conflicting_layer': '8→8', 'ambiguous_opening': '4→4', 'room_merged': '3→3', 'open_room': '2→2', 'unit_suspect': '1→1'}
+
+Aile: src02 aile B (fam02) 0,702 → 0,844; src02 aile A (fam10) 0,769 → 0,826; ABM (fam04) 0,706 → 0,691 (KAYAPINAR aynı,
+input-2 aynı; fark yuvarlama/ağırlık); tip 0,943 aynı. Issue 254 → 229 (area_mismatch 72 → 52: yutulan parçalar yazı alanına
+yaklaştı; unlabeled_region 31 → 27); issue/oda medyan 1,11 → 1,03. Kapsama 0,38 → 0,30 (hatalı varlık 288 → 256; kapsanan 110 → 78:
+issue'su olan FP/FN'ler düzeldi, kalanlar issue'suz — çoğu src02-12 çekirdek/hatch-only).
+**src02-12:** absorb 16 (HOL r1/r6/r16/r22/r28, BANYO ×4, E.BANYO ×5, BALKON ×2, KAT HOLÜ); yeni FN: sol çekirdek ASANSÖR ×2 ve
+KULLANILMAYAN ALAN ×2 (önceki TP rastlantısaldı: tüm-çizgi ayak izi zarfı asansör çarpısını kapsıyordu). **Beklenen ASANSÖR
+c_as_sag1 / MERDİVEN c_merd_sag_ust geri gelmedi:** çekirdek duvarları hatch-only (`..taramam`), MERDIVEN katmanındaki çizgiler
+asansör çarpısı; hatch çiftlerini kenar yapma deneyi 69/16/14 → 53/36/30 (geri alındı). Ayrıntı DECISIONS 2026-09-13 (2).
+Merdiven istatistiği (55 dosya): basamak bulunan dosyada kenar üreten çizgi az (src02-12: 18 basamak, 1 kenar); çoğu dosyada
+fallback (src02-07, src02-02, KAYAPINAR: basamak çizgisi yok ya da < 1 m²).
