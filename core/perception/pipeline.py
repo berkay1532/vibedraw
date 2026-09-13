@@ -441,7 +441,11 @@ def select_plan(dxf_path: str, doc=None, overrides: dict | None = None) -> PlanS
         # öncülü şüpheli. Etiket öncülü + standart öncüllerle (cm, mm, m, dm) yeniden kümele; toplam kapı yayı en
         # yüksek hipotezi seç (eşitlikte etiket öncülü). Kat = yayı güçlü (≥ strong) küme, yoksa pick_plan_floor.
         best = None
-        for prior in [upm] + list(TD["standard_priors"]):
+        # Profil birimi (learning/to_profile: aile HITL cevabı) standart öncüllerin önünde aday; eşitlikte önce gelen kazanır.
+        # Dosyanın kendi kapı kestirimi (aşağıda, upm_doors) yine önceliklidir → yalnız zayıf kanıtlı dosyalarda etkili.
+        _pu = float((getattr(names, "profile_units", None) or {}).get("upm") or 0)
+        _priors = ([_pu] if _pu else []) + [p for p in TD["standard_priors"] if p != _pu]
+        for prior in [upm] + _priors:
             fl_p = [f for f in cluster_floors_2d(rooms, gap=TL["cluster_gap_m"] * prior) if len(f.rooms) >= TL["min_rooms"]]
             arcs = []
             for f in sorted(fl_p, key=lambda f: -len(f.rooms))[:TL["door_evidence_top"]]:

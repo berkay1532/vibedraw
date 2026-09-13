@@ -68,6 +68,7 @@ class SourceProfile:
     notes: dict = field(default_factory=dict)
     learned_from: list = field(default_factory=list)
     layer_union: list = field(default_factory=list)  # aile katman birleşimi; yan dosya unions/<fam>.json (Jaccard için)
+    units: dict = field(default_factory=dict)        # {upm, answer, source}: ofis çizim birimi (HITL/learning; hipotez öncülü)
 
     @classmethod
     def from_yaml(cls, path: Path) -> "SourceProfile":
@@ -78,7 +79,7 @@ class SourceProfile:
                    fingerprints=list(d.get("fingerprints") or []),
                    layers={str(k): LayerClass(v) for k, v in (d.get("layers") or {}).items()},
                    notes=dict(d.get("notes") or {}), learned_from=list(d.get("learned_from") or []),
-                   layer_union=[str(x) for x in union])
+                   layer_union=[str(x) for x in union], units=dict(d.get("units") or {}))
 
 
 @dataclass
@@ -89,6 +90,7 @@ class NameMap:
     match: str = "none"            # fingerprint | structural | jaccard | none
     match_score: float = 0.0
     stats: dict = field(default_factory=dict)   # layer_stats (unknown_layer sıralaması için)
+    profile_units: dict = field(default_factory=dict)   # eşleşen profilin units kaydı (pipeline: hipotez öncülü)
 
     def cls(self, layer: str) -> LayerClass:
         return self.classes.get(layer, (LayerClass.unknown, 0.0, "none"))[0]
@@ -166,6 +168,7 @@ def keyword_class(layer: str):
 
 def classify_layers(layer_names, profile: Optional[SourceProfile], match: str = "none", score: float = 0.0) -> NameMap:
     nm = NameMap(family_id=profile.family_id if profile else "unknown", match=match, match_score=score)
+    nm.profile_units = dict(profile.units) if profile else {}
     for name in layer_names:
         if profile and name in profile.layers:
             nm.classes[name] = (profile.layers[name], PROFILE_CONF, "profile")

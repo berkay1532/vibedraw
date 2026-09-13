@@ -145,3 +145,28 @@ def test_non_semantic_layer_no_unknown_layer_issue():
     fl = Floor(index=0, name="t", params=FileParams(units_per_meter=100.0))
     iss = issues_for_floor(fl, nm, {"AA-0.20": 500, "XYZQ": 500}, enabled={"unknown_layer"})
     assert [i.target_id for i in iss] == ["layer:XYZQ"]
+
+
+def test_to_profile_transfers_only_layer_and_unit_answers(tmp_path):
+    """learning/to_profile: katman ve birim cevapları profile yazılır; geometri cevapları (area_mismatch...) yazılmaz."""
+    import json, yaml
+    from learning import log as L
+    from learning.to_profile import plan, apply
+    pred = tmp_path / "pred"; pred.mkdir()
+    (pred / "f1.json").write_text(json.dumps({"source_fingerprint": "abcd1234", "floors": [{"params": {"extra": {"family_id": "famT"}}}]}), encoding="utf-8")
+    logd = tmp_path / "log"
+    for rec in [dict(file="f1", issue="unknown_layer", target_id="layer:MERİZD", answer="merdiven", answered_by="human"),
+                dict(file="f1", issue="conflicting_layer", target_id="layer:Tefriş", answer="mobilya", answered_by="human"),
+                dict(file="f1", issue="unit_suspect", target_id="file", answer="cm", answered_by="gt"),
+                dict(file="f1", issue="area_mismatch", target_id="r3", answer="yazı", answered_by="gt")]:
+        L.append(rec, logd)
+    p = plan(L.read(logd), pred)
+    prof = tmp_path / "profiles"; prof.mkdir()
+    apply(p, prof, dry_run=False)
+    d = yaml.safe_load((prof / "famT.yaml").read_text(encoding="utf-8"))
+    assert d["layers"] == {"MERİZD": "stair", "Tefriş": "furniture"} and d["units"]["upm"] == 100.0
+    assert d["learned_from"] == ["f1"] and d["fingerprints"] == ["abcd1234"] and "r3" not in json.dumps(d)
+    # answered_by zorunlu
+    import pytest
+    with pytest.raises(ValueError):
+        L.append(dict(file="f1", issue="x", answer="y"), logd)

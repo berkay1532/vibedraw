@@ -203,3 +203,45 @@ issue/oda medyan 1,03 → 0,97. src02-07 30 → 28 (0 / AA-0.20 / ÇİZ KALIN d�
 (AA-0.05 / AA-0.15 düştü, MERİZD kaldı), src02-15 49 → 48 (AA-* üçü düştü, MERİZD ve KESİT sıraya girdi — sıralama ilk 3'ü
 doldurur). Gözlem: src02-07'de AA-0.20 ve ÇİZ KALIN'ın seçilen kat kutusu içinde HİÇ entity'si yok (596 / 117 entity başka
 pafta/kesitte); unknown_layer sayımı dosya geneli (`layer_counts`) → aday: sayım seçilen kat kutusuyla sınırlansın.
+
+### C turu — src02-07 HITL cevapları → fam10 profili (learning/to_profile.py) (2026-09-14; 55 dosya, 11 GT)
+
+28 cevap (2 insan, 26 GT): MERİZD → stair, Tefriş → furniture, birim cm → `source_profiles/fam10.yaml` (layers, units,
+learned_from, fingerprints); 25 geometri cevabı yalnız IR + learning log. src02-07 kendi `hitl_units` (100) ve katman
+cevaplarıyla yeniden koştu (politika g); fam10'daki diğer dosyalar (src02-02, 04, 15) profil üzerinden etkilendi.
+
+| Küme | Dosya | Oda F1 | TP/FP/FN | IoU | Kapı F1 | Pencere F1 | Kapsama | Issue/oda medyan |
+|---|---:|---|---|---|---|---|---|---|
+| geliştirme | 9 | 0.836 → 0.838 | 158/31/31 → 158/30/31 | 0.894 → 0.896 | 0.845 → 0.845 | 0.713 → 0.713 | 64/218 (0.29) → 63/217 (0.29) | 0.97 → 0.92 |
+| holdout | 2 | 0.873 → 0.873 | 24/3/4 → 24/3/4 | 0.86 → 0.86 | 0.706 → 0.706 | 0.651 → 0.651 | 14/38 (0.37) → 14/38 (0.37) | 1.31 → 1.31 |
+| toplam | 11 | 0.841 → 0.843 | 182/34/35 → 182/33/35 | 0.888 → 0.89 | 0.83 → 0.83 | 0.706 → 0.706 | 78/256 (0.30) → 77/255 (0.30) | 0.97 → 0.92 |
+
+| Dosya | Küme | Oda TP/FP/FN önce → sonra | Oda F1 | Kapı F1 | Pencere F1 | Issue/oda | FN farkı |
+|---|---|---|---|---|---|---|---|
+| KAYAPINAR_2892_ADA_8_PARSEL_ | gel. | 11/10/7 → 11/10/7 | 0.564 → 0.564 | 1.0 → 1.0 | 1.0 → 1.0 | 1.62 → 1.62 |  |
+| hafif_celik_tip_koy_konutu_7 | gel. | 7/0/1 → 7/0/1 | 0.933 → 0.933 | 0.923 → 0.923 | 0.267 → 0.267 | 0.57 → 0.57 |  |
+| input-2-clean | gel. | 8/0/0 → 8/0/0 | 1.0 → 1.0 | 0.909 → 0.909 | 0.857 → 0.857 | 1.00 → 1.00 |  |
+| src02-02 | gel. | 8/1/2 → 7/1/3 | 0.842 → 0.778 | 0.7 → 0.7 | 0.0 → 0.0 | 0.67 → 0.62 | +MAKİNE DAİRESİZ ASANSÖR |
+| src02-07 | gel. | 23/6/6 → 24/5/5 | 0.793 → 0.828 | 0.952 → 0.952 | 0.774 → 0.774 | 0.97 → 0.83 |  |
+| src02-09 | holdout | 13/3/3 → 13/3/3 | 0.812 → 0.812 | 0.4 → 0.4 | 0.286 → 0.286 | 1.31 → 1.31 |  |
+| src02-12 | gel. | 71/13/12 → 71/13/12 | 0.85 → 0.85 | 0.748 → 0.748 | 0.582 → 0.582 | 0.92 → 0.92 |  |
+| tip-1_mimari | gel. | 10/0/1 → 10/0/1 | 0.952 → 0.952 | 0.857 → 0.857 | 0.333 → 0.333 | 1.50 → 1.50 |  |
+| tip-2_mimari | gel. | 9/0/2 → 9/0/2 | 0.9 → 0.9 | 0.947 → 0.947 | 0.824 → 0.824 | 1.11 → 1.11 |  |
+| tip-4_mimari | gel. | 11/1/0 → 11/1/0 | 0.957 → 0.957 | 1.0 → 1.0 | 1.0 → 1.0 | 0.83 → 0.83 |  |
+| tip-6_mimari | holdout | 11/0/1 → 11/0/1 | 0.957 → 0.957 | 0.947 → 0.947 | 0.828 → 0.828 | 0.73 → 0.73 |  |
+
+Issue tipi (11 GT) önce → sonra: {'area_mismatch': '52→50', 'room_no_door': '40→40', 'window_missing': '35→35', 'door_side_ambiguous': '31→31', 'unlabeled_region': '27→26', 'unknown_layer': '18→17', 'conflicting_layer': '8→8', 'ambiguous_opening': '4→4', 'room_merged': '3→3', 'open_room': '2→2', 'unit_suspect': '1→0'}
+
+**Kapı/pencere 11 GT'de birebir aynı** (137/2/54; 137/99/15). Oda toplamı 182/34/35 → 182/33/35 (F1 0,841 → 0,843) ama iki fam10
+GT dosyasında geometri DEĞİŞTİ: src02-07 23/6/6 → 24/5/5 (birim 115,2 → 100: dosya düzeyi HITL cevabı, profil etkisi değil);
+src02-02 8/1/2 → 7/1/3 (−1 TP: MAKİNE DAİRESİZ ASANSÖR; önceki TP rastlantısaldı — tüm-çizgi merdiven ayak izi zarfı asansörle
+çakışıyordu, MERİZD stair olunca zarf değişti). "Yalnız issue düşsün" şartı katman sınıfı cevaplarında tutmaz: stair/furniture
+sınıfı kapılı tüketicilere (duvar taraması hariç tutma, merdiven ayak izi, graf kenarı) girer; bu, profil cevabının tasarım gereği
+sonucudur (Adım 5 kapılı varyant). Holdout birebir aynı.
+**Issue öncesi/sonrası (fam10):** src02-07 28 → 24 (unknown_layer 1 → 0, unit_suspect 1 → 0, area_mismatch 12 → 10 — birim
+düzelince); src02-04 8 → 7 (unknown_layer MERİZD 1 → 0; geometri aynı: 11 oda, 9 kapı, 15 pencere); src02-15 48 → 47 ama dağılım
+değişti (oda 44 → 47; unlabeled_region 12 → 15, open_room 5 → 11, area_mismatch 12 → 8, window_missing 6 → 1; unknown_layer
+2 → 1; kapı 20 / pencere 20 aynı) — MERİZD'in stair olması duvar taramasını ve ayak izini değiştirdi; GT yok, ölçülemedi;
+src02-02 6 → 5 (unlabeled_region 1 → 0, o aday TP idi). unknown_layer + conflicting_layer (fam10 4 dosya): 5 → 2
+(kalan: src02-07 conflicting Tefriş sayısal olarak hâlâ üretiliyor — profil sınıfı furniture ama geometri oyu duvar; src02-15
+unknown KESİT). 11 GT toplam issue 229 → 224; issue/oda medyan 0,97 → 0,92.

@@ -24,7 +24,8 @@ from core.perception.validate import PRIORITY  # noqa: E402
 from learning import log as learning_log  # noqa: E402
 
 CLASS_BY_ANSWER = {"duvar": "wall", "kapı": "door", "pencere": "window", "mobilya": "furniture", "yazı": "text",
-                   "açıklama-yazı": "text", "yoksay": "ignore"}
+                   "açıklama-yazı": "text", "yoksay": "ignore", "merdiven": "stair", "kiriş": "beam", "kolon": "column",
+                   "korkuluk": "railing"}
 UPM_BY_ANSWER = {"m": 1.0, "dm": 10.0, "cm": 100.0, "mm": 1000.0, "inç": 39.37}
 
 

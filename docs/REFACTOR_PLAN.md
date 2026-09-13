@@ -136,8 +136,8 @@ taşınır, mantık değişmez. `reconstruct` yalnızca sıralayan bir orkestrat
 **Kabul:** oda recall artar ya da issue sayısı düşer; IoU düşmez.
 
 ## Adım 10 — Learning log tüketicileri
-- [ ] `learning/to_profile.py`, `learning/to_gt.py`, `learning/calibrate.py` (basit
-      lojistik regresyon, ≥200 kayıt olunca çalışır).
+- [x] `learning/to_profile.py` (2026-09-14: katman sınıfı + birim cevapları → profil; geometri cevapları aktarılmaz)
+- [ ] `learning/to_gt.py`, `learning/calibrate.py` (basit lojistik regresyon, ≥200 kayıt olunca çalışır).
 
 ---
 

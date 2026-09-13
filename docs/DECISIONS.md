@@ -694,3 +694,31 @@ Desenler genel (ofise özgü değil), vocab.py'de; ofise özgü adlar profilde k
 `hitl/cli.py --answered-by gt`. İnsan cevabı yalnız çizime bakılarak verilen (görsel soru) cevaplar için `human`.
 **Aday:** src02 ailesinde AA-* katmanları kalem kalınlığına göre bölünmüş (AA-0.05/0.09/0.15/0.20 = farklı içerik: ince mobilya
 çizgisi ↔ kalın duvar); içerik istatistiği kademesinin bu katmanlarda ne verdiği ağırlık turunda ölçülecek (`stats.conf` 0,4).
+
+## 2026-09-14 — C turu (src02-07 HITL): cevaplar, aktarılabilirlik, learning/to_profile.py
+
+**Cevaplar:** 28 issue; 2 görsel (insan): MERİZD → stair (döner merdiven basamak izdüşümü, radyal çizgiler), Tefriş → furniture
+(duşakabin + şaft/çamaşır makinesi kutuları; ikili hat duvar çifti gibi eşleşiyordu). 26 GT'den türetildi (`answered_by: gt`):
+unit cm; unlabeled_region 5 (aydınlık ×2, asansör, merdiven, 1 yoksay = kat holü parçası); room_merged → ayrı odalar;
+room_no_door 2 → kapı eksik (GT'de HOL 5, KAT HOLÜ 4 kapı); window_missing → pencere var; door_side 3 doğru / 1 diğer oda
+(op14: giriş kapısı ÇOCUK O.'ya atanmış); area_mismatch 12 → 10 "yazı", 2 "ikisi de yanlış" (KAT HOLÜ, BALKON r13 iki balkonu
+yutmuş). Türetme kuralları scratch `gt_answers.py` (GT poligon kapsaması ≥ 0,5 → çekirdek tipi; GT alanına %20 içinde olan taraf;
+door side = GT menteşe noktasına en yakın bağlı mahal).
+
+**Aktarılabilirlik (learning/to_profile.py, Adım 10):**
+- Aktarılabilir → `source_profiles/<fam>.yaml`: unknown_layer / conflicting_layer (katman adı → sınıf; ad ofise özgü, sınıf aile
+  geneli), unit_suspect (profile.units = ofis çizim birimi; pipeline'da yalnız hipotez yolunda standart öncüllerin önünde aday —
+  dosyanın kendi kapı kestirimi öncelikli, o yüzden 11 GT geometrisi değişmez), blok cevabı (henüz issue tipi yok; unknown_block
+  gelince profile.blocks). Profilde farklı sınıf varsa mevcut korunur + uyarı; learned_from ve fingerprints güncellenir.
+- Aktarılamayan (yalnız o dosyanın IR'ı + learning log; HITL yükünün kalıcı kısmı): unlabeled_region, room_merged, room_no_door,
+  window_missing, door_side_ambiguous, area_mismatch, open_room, ambiguous_opening. src02-07'de 28 cevabın 25'i bu sınıfta
+  (%89); kalıcı yük ≈ 25/29 oda = 0,86 issue/oda. Bunları azaltmanın yolu profil değil, algılama (ağırlık turu).
+- Dosya düzeyi birim cevabı (`hitl_units`) src02-07'nin kendi yeniden koşusunda uygulanır (politika g) → src02-07 geometrisi
+  115,2 → 100 birim/m ile DEĞİŞİR; bu profil etkisi değil, dosyanın kendi HITL cevabı. Ölçüm EVAL_HISTORY'de ayrı satır.
+
+**Ağırlık turu maddesi — raster flood-fill daralması:** area_mismatch cevaplarının 10/12'si "yazı doğru" (geometri %40–86
+küçük): fam10'da flood-fill poligonları sistematik daralıyor. Neden graf tarafında çözülen kök nedenin raster karşılığı:
+`_Raster(extra_segs=floor.walls)` katman bağımsız paralel çiftleri (SIVA, KİRİŞ İZD, _TEFRİŞ ikili hatları) bariyer olarak
+çiziyor, oda ince çizgilerle parçalanıyor (SALON+MUTFAK 19 m² → 10,8; HOL 5,4 → 2,2; KAT HOLÜ 14,1 → 2,0). Aday: raster
+extra_segs'e yalnız `layer_class`/`thickness_mode` sinyali yüksek çiftler (GRAPH_EDGE_CLASSES ile aynı küme + kalınlık modu),
+ya da flood poligonunu graf yüzüyle değiştirme (`graph_extends`). Kapı/pencere tarafı etkilenmesin diye ayrı ölçüm.

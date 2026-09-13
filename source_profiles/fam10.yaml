@@ -1,14 +1,24 @@
-# Kaynak profili (Adım 5). 'layers' yalnızca eski hardcode kümelerden taşınan ofise özgü adlar;
+# Kaynak profili (Adım 5). 'layers' ofise özgü adlar: eski hardcode kümelerinden taşınanlar + HITL cevapları (learning/to_profile.py, notes'ta kaynak);
 # sınıf → tüketici eşlemesi kodda (core/perception/names.py). Katman birleşimi unions/<fam>.json yan dosyasında (Jaccard eşleşmesi için).
 family_id: fam10
 label: aile 10 — 536_2
 triage_family_index: 10
 fingerprints:
 - cf52eb95
+- 453ee501
 learned_from:
 - 536_2_Mimari__16.06.2026
+- src02-07
 layers:
   BACA: chimney
   KOLON: column
   YAZI: text
-notes: {}
+  MERİZD: stair
+  Tefriş: furniture
+notes:
+  MERİZD: hitl src02-07 (human)
+  Tefriş: hitl src02-07 (human)
+units:
+  upm: 100.0
+  answer: cm
+  source: hitl src02-07 (gt)
