@@ -254,9 +254,11 @@ notes:
 Aile katman birleşimi (Jaccard eşleşmesi için) yaml'da değil, `source_profiles/unions/<family_id>.json` yan dosyasındadır.
 
 `LayerClass`: wall, beam, column, chimney, door, window, furniture, text, dim, grid, stair, hatch,
-revision, ignore, unknown. **Sınıf → tüketici eşlemesi kodda** (`names.py`): raster bariyeri
-{wall, beam, column, chimney, window}, duvar taraması {wall}, duvar taramasından hariç
-{door, text, stair, beam}, kapı {door}, pencere {window}.
+revision, ignore, unknown, railing (korkuluk/parapet; sözlük kademesi). **Sınıf → tüketici eşlemesi kodda**
+(`names.py`): raster bariyeri {wall, beam, column, chimney, window}, duvar taraması {wall}, duvar taramasından
+hariç {door, text, stair, beam}, kapı {door}, pencere {window}, duvar grafı polygonize kenarı
+{wall, beam, column, chimney, railing} (pencere açıklığı kapı gibi mühürlenir; hatch/stair/furniture/text/dim/unknown
+kenar üretmez), ince çizgi birleştirmede boşluk sayılmayan çiftler {beam}.
 
 Aile eşleştirme üç kademeli: (1) dosyanın parmak izi bir profilde kayıtlıysa o; (2) profilin kayıtlı
 yapısal adlarının ≥ %50'si dosyada varsa; (3) tam katman kümesi Jaccard ≥ 0.5; hiçbiri tutmazsa boş

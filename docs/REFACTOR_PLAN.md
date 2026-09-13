@@ -128,6 +128,8 @@ taşınır, mantık değişmez. `reconstruct` yalnızca sıralayan bir orkestrat
 - [x] Flood-fill ve polygonize sonuçlarını eşleştir; ikisi örtüşüyorsa güven ↑ (`graph_match`, agreement_bonus),
       yalnız graf buluyorsa issue (`unlabeled_region`); yalnız flood-fill buluyorsa issue yok, `graph_match=0` evidence'ta
       (2026-09-12: open_room eski semantiğine döndü).
+- [x] FP kök nedeni (2026-09-13): kenar kümesi `GRAPH_EDGE_CLASSES` (+railing), pencere mühürü, aday örtüşme kapısı 0,3,
+      ince çizgi birleştirme (`rooms.merge_split_faces`); oda F1 0,745 → 0,769, FP 61 → 52, kapı/pencere aynı.
 
 **Kabul:** oda recall artar ya da issue sayısı düşer; IoU düşmez.
 

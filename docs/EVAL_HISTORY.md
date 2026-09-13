@@ -115,3 +115,40 @@ geliştirme 0.728 / 0.845 / 0.713). Değişen yalnız issue'lar ve ad ölçümü
 - **Kapsama** 119/321 → 112/300 (0.37): room_name 0/25 → 0/4 (yalnız etiketli), room_kind 0/0 (yeni), room_fp 43/61 → 42/61
   (bir FP'yi yalnız open_room graf notu işaret ediyordu), room_fn 36/52 → 35/52; kapı/pencere aynı.
 - FP analizi (src02-12 15, src02-07 8; kod yok) ve KAYAPINAR/input-2 duvar boşlukları → DECISIONS 2026-09-12.
+
+### FP kök nedeni — graf kenar sınıfları, aday örtüşme kapısı, ince çizgi birleştirme (2026-09-13; 55 dosya, 11 GT)
+
+Tek commit: (1) polygonize kenar kümesi yalnız {wall, beam, column, chimney, railing}, pencere kapı gibi mühürlenir; sözlüğe
+`railing` (korkuluk/railing/parapet); (2) aday yüz flood odalarıyla > 0,3 örtüşürse elenir (`candidate_max_overlap`);
+(3) ince çizgiyle ayrılmış komşu yüzler (bileşen ≤ 1 etiket, kiriş çiftleri boşluk sayılmaz, korkuluk sert) birleştirilir.
+Eşikler `thresholds.yaml graph.*`. Kabul: FP 61 → **52** ✓, FN 52 → **49** ✓ (artmadı), kapı/pencere birebir aynı ✓, IoU −0,001.
+
+| Küme | Dosya | Oda F1 | TP/FP/FN | IoU | Kapı F1 | Pencere F1 | Kapsama | Issue/oda medyan |
+|---|---:|---|---|---|---|---|---|---|
+| geliştirme | 9 | 0.728 → 0.754 | 142/59/47 → 144/49/45 | 0.884 → 0.884 | 0.845 → 0.845 | 0.713 → 0.713 | 98/262 (0.37) → 96/250 (0.38) | 1.11 → 1.11 |
+| holdout | 2 | 0.868 → 0.873 | 23/2/5 → 24/3/4 | 0.871 → 0.86 | 0.706 → 0.706 | 0.651 → 0.651 | 14/38 (0.37) → 14/38 (0.37) | 1.43 → 1.38 |
+| toplam | 11 | 0.745 → 0.769 | 165/61/52 → 168/52/49 | 0.881 → 0.88 | 0.83 → 0.83 | 0.706 → 0.706 | 112/300 (0.37) → 110/288 (0.38) | 1.11 → 1.11 |
+
+| Dosya | Küme | Oda TP/FP/FN önce → sonra | Oda F1 | Kapı F1 | Pencere F1 | Issue/oda | FN farkı |
+|---|---|---|---|---|---|---|---|
+| KAYAPINAR_2892_ADA_8_PARSEL_ | gel. | 10/8/8 → 11/10/7 | 0.556 → 0.564 | 1.0 → 1.0 | 1.0 → 1.0 | 1.72 → 1.62 |  −KAT HOLÜ |
+| hafif_celik_tip_koy_konutu_7 | gel. | 7/0/1 → 7/0/1 | 0.933 → 0.933 | 0.923 → 0.923 | 0.267 → 0.267 | 0.71 → 0.71 |  |
+| input-2-clean | gel. | 8/0/0 → 8/0/0 | 1.0 → 1.0 | 0.909 → 0.909 | 0.857 → 0.857 | 1.12 → 1.12 |  |
+| src02-02 | gel. | 7/2/3 → 7/2/3 | 0.737 → 0.737 | 0.7 → 0.7 | 0.0 → 0.0 | 1.00 → 1.00 |  |
+| src02-07 | gel. | 23/8/6 → 23/6/6 | 0.767 → 0.793 | 0.952 → 0.952 | 0.774 → 0.774 | 1.32 → 1.34 |  |
+| src02-09 | holdout | 12/2/4 → 13/3/3 | 0.8 → 0.812 | 0.4 → 0.4 | 0.286 → 0.286 | 1.43 → 1.38 |  −KAT HOLÜ |
+| src02-12 | gel. | 57/40/26 → 58/30/25 | 0.633 → 0.678 | 0.748 → 0.748 | 0.582 → 0.582 | 1.05 → 1.06 | +ASANSÖR |
+| tip-1_mimari | gel. | 10/0/1 → 10/0/1 | 0.952 → 0.952 | 0.857 → 0.857 | 0.333 → 0.333 | 1.50 → 1.50 |  |
+| tip-2_mimari | gel. | 9/0/2 → 9/0/2 | 0.9 → 0.9 | 0.947 → 0.947 | 0.824 → 0.824 | 1.11 → 1.11 |  |
+| tip-4_mimari | gel. | 11/1/0 → 11/1/0 | 0.957 → 0.957 | 1.0 → 1.0 | 1.0 → 1.0 | 0.83 → 0.83 |  |
+| tip-6_mimari | holdout | 11/0/1 → 11/0/1 | 0.957 → 0.957 | 0.947 → 0.947 | 0.828 → 0.828 | 0.73 → 0.73 |  |
+
+Issue tipi (11 GT) önce → sonra: {'area_mismatch': '72→72', 'room_no_door': '40→40', 'window_missing': '36→36', 'unlabeled_region': '37→31', 'door_side_ambiguous': '31→31', 'unknown_layer': '27→26', 'conflicting_layer': '8→8', 'ambiguous_opening': '3→4', 'room_merged': '3→3', 'open_room': '2→2', 'unit_suspect': '1→1'}
+
+Aile: ABM (fam04) 0,692 → 0,706; src02 aile B (fam02) 0,657 → 0,702; src02 aile A (fam10) 0,759 → 0,769; tip 0,943 aynı.
+Issue 260 → 254 (unlabeled_region 37 → 31, unknown_layer 27 → 26, ambiguous_opening 3 → 4); issue/oda medyan 1,11 aynı.
+Uzlaşma (55 dosya): faces_in 863 → 467 (src02-07; AA-*/'0' katmanı çiftleri kenar dışı); src02-12 aday 24 → 15.
+**Dosya bazında FN artışı yalnız src02-12 (+4 / −5):** HOL r16 → kapı (2) [7,6 m² yüz flood parçasıyla 0,40 örtüşme];
+HOL r6 → (3) birleştirdi, (2) eledi; ASANSÖR ve MERDİVEN → (1) [şaft duvarları MERDIVEN katmanında; stair kenar üretmiyor].
+Ayrıntı ve adaylar (flood parçası ⊂ yüz → poligon değişimi; stair çizgileri ayak izi dışında kenar) DECISIONS 2026-09-13.
+Korkuluk sert-çizgi kuralının 11 GT'de ölçülebilir etkisi yok (run1 = run2), semantik gerekçeyle tutuldu.

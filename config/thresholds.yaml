@@ -70,7 +70,12 @@ graph:                             # Adım 9: duvar grafı (walls.build_wall_gra
   hole_area_max_frac: 0.5          # delik alanı bu oranı aşan yüz (bina çevresi halkası) elenir
   stair_buffer_m: 0.15             # merdiven çizgileri tamponu → ayak izi
   iou_match: 0.7                   # flood-fill odası ↔ yüz aynı mahal
-  overlap_ambiguous: 0.5           # yüz, oda birleşimiyle bu orandan çok örtüşüyorsa aday değil (belirsiz)
+  candidate_max_overlap: 0.3       # yüz, mevcut flood-fill odaları birleşimiyle bu orandan çok örtüşüyorsa aday değil (2026-09-13; eski overlap_ambiguous 0.5)
+  merge_max_labels: 1              # ince-komşuluk bileşeni en fazla bu kadar oda etiketi içeriyorsa birleştirilir (2+ → ayrı odalar)
+  merge_thin_cavity_max_frac: 0.3  # komşu iki yüzün ortak sınırının bu orandan azı duvar boşluğundaysa ayıran çizgi ince → birleştir
+  merge_eps_m: 0.02                # ortak sınır/birleştirme toleransı
+  merge_gap_max_m: 0.35            # iki yüz arasındaki ince çizgi bandı en çok bu kadar (kiriş izdüşümü genişliği ~0.25)
+  merge_min_shared_m: 0.5          # ortak sınır en az bu kadar (köşe teması birleştirmez)
   candidate_hull_buffer_m: 0.3     # aday yüz, etiketli odaların dışbükey zarfının (−bu) içinde olmalı (bina dışı cep elenir)
   candidate_hull_min_frac: 0.8
 swing:                             # binding._room_by_swing

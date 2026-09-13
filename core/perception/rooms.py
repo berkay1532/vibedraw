@@ -249,10 +249,73 @@ def graph_faces(graph, upm, G, stair_polys=None, seal_units=0.0):
     return result
 
 
+def merge_split_faces(faces, rooms, cavities, thin_cavity_max_frac, eps, max_labels=1, gap_max=0.0, min_shared=0.0):
+    """İnce çizgiyle ayrılmış komşu yüzleri birleştirir. İki yüz arasındaki şerit (aralık ≤ gap_max; polygonize ince çizgi
+    bandını yüz yapmaz, yüzler çizginin iki yanında kalır) duvar boşluğuyla (cavities: merkez hattı × kalınlık) en fazla
+    thin_cavity_max_frac oranında örtüşüyorsa ayıran şey ince çizgidir (kiriş izdüşümü, tek çizgili alçak duvar, sıva çizgisi)
+    → aynı odanın parçaları. Ortak sınır uzunluğu ≥ min_shared (köşe teması sayılmaz). İnce-komşuluk bileşeni en fazla
+    max_labels oda etiketi (etiketli flood odalarının label_xy'si) içeriyorsa birleştirilir; iki etiketli bileşen ayrı
+    odalardır (açık mutfak/salon), dokunulmaz. Merdiven ayak izi yüzleri birleşmez. Döner: (faces, merged_count)."""
+    from shapely.geometry import Point, Polygon
+    from shapely.ops import unary_union
+    if len(faces) < 2:
+        return faces, 0
+    cav = unary_union(cavities) if cavities else None
+    labels = [Point(r.label_xy) for r in rooms if r.raw_name and r.label_xy]
+    parent = list(range(len(faces)))
+    strips = {}
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]; i = parent[i]
+        return i
+
+    for i in range(len(faces)):
+        fi = faces[i][0]
+        if faces[i][1].get("stair"):                       # merdiven ayak izi ayrı yüzdür, birleşmez
+            continue
+        for j in range(i + 1, len(faces)):
+            fj = faces[j][0]
+            if faces[j][1].get("stair"):
+                continue
+            gap = fi.distance(fj)
+            if gap > gap_max:
+                continue
+            h = gap + eps                                       # şerit kalınlığı = gap + 2·eps
+            strip = fi.buffer(h, cap_style=2).intersection(fj.buffer(h, cap_style=2))
+            if strip.is_empty or strip.area / (gap + 2.0 * eps) < min_shared:
+                continue
+            in_cav = strip.intersection(cav).area if cav is not None else 0.0
+            if in_cav <= thin_cavity_max_frac * strip.area:
+                parent[find(i)] = find(j)
+                strips[(i, j)] = strip
+    groups = {}
+    for k in range(len(faces)):
+        groups.setdefault(find(k), []).append(k)
+    out, merged = [], 0
+    for ks in groups.values():
+        if len(ks) == 1:
+            out.append(faces[ks[0]]); continue
+        ks_set = set(ks)
+        u = unary_union([faces[k][0] for k in ks] + [st for (i, j), st in strips.items() if i in ks_set and j in ks_set])
+        n_lab = sum(1 for p in labels if u.intersects(p))
+        if n_lab > max_labels:
+            out.extend(faces[k] for k in ks); continue
+        u = u.buffer(eps).buffer(-eps)
+        if u.geom_type == "MultiPolygon":
+            u = max(u.geoms, key=lambda g: g.area)
+        if u.is_empty:
+            out.extend(faces[k] for k in ks); continue
+        out.append((Polygon(u.exterior), {"stair": False, "merged": len(ks)}))
+        merged += len(ks) - 1
+    return out, merged
+
+
 def reconcile_rooms(rooms, faces, iou_thr, overlap_ambiguous):
     """Flood-fill odaları ↔ polygonize yüzleri. Döner (matched, unmatched_rooms, new_faces):
     matched: {id(room): (face_idx, iou)}; unmatched_rooms: poligonlu ama yüz bulamayan odalar;
-    new_faces: hiçbir odayla eşleşmeyen ve oda birleşimiyle < overlap_ambiguous örtüşen yüz indeksleri."""
+    new_faces: hiçbir odayla eşleşmeyen ve mevcut flood-fill odaları birleşimiyle < overlap_ambiguous (graph.candidate_max_overlap)
+    örtüşen yüz indeksleri."""
     from shapely.geometry import Polygon
     from shapely.ops import unary_union
     polys = []

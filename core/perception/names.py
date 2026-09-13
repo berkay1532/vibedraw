@@ -40,6 +40,7 @@ class LayerClass(str, Enum):
     wall = "wall"; beam = "beam"; column = "column"; chimney = "chimney"; door = "door"; window = "window"
     furniture = "furniture"; text = "text"; dim = "dim"; grid = "grid"; stair = "stair"; hatch = "hatch"
     revision = "revision"; ignore = "ignore"; unknown = "unknown"
+    railing = "railing"                                            # korkuluk/parapet (2026-09-13): graf kenarı, bariyer değil
 
 
 # Sınıf → tüketici (eski hardcode kümelerin anlamı; DECISIONS Adım 5)
@@ -48,6 +49,13 @@ WALL_SCAN_CLASSES = frozenset({LayerClass.wall})
 WALL_EXCLUDE_CLASSES = frozenset({LayerClass.door, LayerClass.text, LayerClass.stair, LayerClass.beam})
 DOOR_CLASSES = frozenset({LayerClass.door})
 WINDOW_CLASSES = frozenset({LayerClass.window})
+# Duvar grafı polygonize kenar kümesi (Adım 9, 2026-09-13): yalnız bu sınıflar kenar üretir; window kapı gibi mühürlenir
+# (tespit edilen pencere açıklığı geçici kenar), hatch/stair/furniture/text/dim/unknown kenar üretmez.
+GRAPH_EDGE_CLASSES = frozenset({LayerClass.wall, LayerClass.beam, LayerClass.column, LayerClass.chimney, LayerClass.railing})
+# İnce çizgi birleştirme (rooms.merge_split_faces): bu sınıfların yüz çiftleri 'duvar boşluğu' sayılmaz (kiriş izdüşümü).
+MERGE_THIN_EXEMPT_CLASSES = frozenset({LayerClass.beam})
+# İnce çizgi birleştirmede tek çizgi olsa da 'sert' sayılan sınıflar (korkuluk: merdiven/boşluk kenarı, oda bölmez → birleşmez).
+MERGE_HARD_LINE_CLASSES = frozenset({LayerClass.railing})
 _ANNOTATION = frozenset({LayerClass.text, LayerClass.dim, LayerClass.grid, LayerClass.hatch, LayerClass.ignore, LayerClass.revision})
 
 

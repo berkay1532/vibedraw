@@ -27,7 +27,7 @@ from core.perception.triage import HEAVY_BLOCK_ENTITIES, HEAVY_ENTITIES
 from core.perception.scoring import score
 from core.perception.signals.block import block_class, window_source
 from core.perception.calibration import thickness_modes
-from core.perception.names import WALL_SCAN_CLASSES
+from core.perception.names import GRAPH_EDGE_CLASSES, MERGE_HARD_LINE_CLASSES, MERGE_THIN_EXEMPT_CLASSES, WALL_SCAN_CLASSES
 from core.perception.signals.geometry import arc_signature, parallel_pair, thickness_mode, wall_gap
 from core.perception.signals.layer import layer_class_vote, layer_raw
 from core.perception.signals.topology import flood_outcome, graph_connectivity, room_boundary
@@ -38,8 +38,9 @@ from core.perception.validate import validate_building_v2
 from core.perception.openings import _cluster_doors, _door_barriers, _seg_dist, _swing_dirs
 from core.perception.polygons import _mask_polygon
 from core.perception.raster import _Raster
-from core.perception.rooms import _floor_bbox, _segment_rooms, graph_faces, reconcile_rooms
-from core.perception.walls import _wall_lines, _wall_segments, barrier_segments, build_wall_graph, passage_closures, stair_footprints
+from core.perception.rooms import _floor_bbox, _segment_rooms, graph_faces, merge_split_faces, reconcile_rooms
+from core.perception.walls import (_wall_lines, _wall_segments, barrier_segments, build_wall_graph, passage_closures, stair_footprints,
+                                   wall_cavities)
 from core.perception.windows import _window_segments
 
 
@@ -122,8 +123,12 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
         _upm = units_per_meter or T("base_upm")
         _thk = [t for t in w_thick if t is not None]
         t_units = (modes[0] * units_per_meter) if (modes and units_per_meter) else (sorted(_thk)[len(_thk) // 2] if _thk else 0.0)
+        # Kenar kümesi (2026-09-13): yalnız GRAPH_EDGE_CLASSES katmanındaki yüz parçaları + o katmanların çizgileri;
+        # pencere açıklıkları kapı gibi mühürlenir; hatch/stair/furniture/text/dim/unknown kenar üretmez (FP kök nedeni:
+        # ince çizgi katmanları odayı bölüyordu). Merkez hatları (topoloji) katman bağımsız kalır.
+        face_walls = [w for w, lay in zip(floor.walls, floor.wall_layers) if names.has(lay, GRAPH_EDGE_CLASSES)]
         wg = build_wall_graph(floor.walls, t_units, _upm, GG, door_leaves=barriers, windows=floor.windows,
-                              barrier_segs=barrier_segments(msp, bbox, names))
+                              barrier_segs=barrier_segments(msp, bbox, names, GRAPH_EDGE_CLASSES), face_walls=face_walls)
         if wg.face_edges:
             wg.closures += passage_closures(wg.face_edges, GG, _upm)
             wg.stats["passage_closures"] = len(wg.closures) - wg.stats.get("door_closures", 0)
@@ -179,7 +184,22 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
         # Adım 9 uzlaştırma: flood-fill odası ↔ polygonize yüzü IoU ≥ graph.iou_match → aynı mahal (graph_match=1,
         # güven ↑, evidence iki yöntemi de taşır); yüz yoksa graph_match=0 yalnız evidence'ta kalır, issue üretmez
         # (open_room eski semantiğinde: flood-fill kapanmıyor/sızıyor).
-        matched, unmatched, new_faces = reconcile_rooms(floor.rooms, floor.graph_faces, GG["iou_match"], GG["overlap_ambiguous"]) \
+        # (3) İnce çizgiyle (duvar boşluğu yok) ayrılmış komşu yüzler, bileşen ≤ merge_max_labels etiket taşıyorsa aynı
+        # odanın parçaları → birleştirilir; (2) mevcut flood-fill odalarıyla > candidate_max_overlap örtüşen yüz aday olmaz.
+        if floor.graph_faces:
+            # kalınlık testi: kiriş sınıfı çiftler (kiriş izdüşümü iki çizgi) boşluk sayılmaz → odayı bölen kiriş ince çizgidir
+            merge_cav = wall_cavities([w for w, lay in zip(floor.walls, floor.wall_layers)
+                                       if not names.has(lay, MERGE_THIN_EXEMPT_CLASSES)], t_units, _upm, GG)
+            # korkuluk çizgisi tek çizgi ama sert sınır (merdiven/boşluk kenarı): şeritte varsa birleştirme yok
+            from shapely.geometry import LineString as _LS
+            merge_cav += [_LS(s).buffer(GG["merge_eps_m"] * _upm, cap_style=2)
+                          for s in barrier_segments(msp, bbox, names, MERGE_HARD_LINE_CLASSES)]
+            floor.graph_faces, n_merged = merge_split_faces(floor.graph_faces, floor.rooms, merge_cav,
+                                                            GG["merge_thin_cavity_max_frac"], GG["merge_eps_m"] * _upm,
+                                                            GG["merge_max_labels"], gap_max=GG["merge_gap_max_m"] * _upm,
+                                                            min_shared=GG["merge_min_shared_m"] * _upm)
+            wg.stats["faces_merged"] = n_merged; wg.stats["faces"] = len(floor.graph_faces)
+        matched, unmatched, new_faces = reconcile_rooms(floor.rooms, floor.graph_faces, GG["iou_match"], GG["candidate_max_overlap"]) \
             if floor.graph_faces else ({}, [], [])
         if floor.graph_faces:
             for room in floor.rooms:

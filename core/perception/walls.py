@@ -9,7 +9,7 @@ import math
 from shapely.geometry import LineString, Point
 
 from core.perception.blocks import _entity_segments, _explode, _is_big_block
-from core.perception.names import (BARRIER_CLASSES, EMPTY, GATED_MIN_CONF, WALL_EXCLUDE_CLASSES,
+from core.perception.names import (BARRIER_CLASSES, EMPTY, GATED_MIN_CONF, GRAPH_EDGE_CLASSES, WALL_EXCLUDE_CLASSES,
                                    WALL_SCAN_CLASSES)
 from core.perception.vocab import ANNO_LAYER_WORDS, fold
 
@@ -450,12 +450,14 @@ def _closure_for(seg, edges, t, ext, cos_tol):
     return ((c[0] + ux * lo, c[1] + uy * lo), (c[0] + ux * hi, c[1] + uy * hi))
 
 
-def build_wall_graph(walls, thickness_units, upm, G, door_leaves=None, windows=None, closures_extra=None, barrier_segs=None):
+def build_wall_graph(walls, thickness_units, upm, G, door_leaves=None, windows=None, closures_extra=None, barrier_segs=None,
+                     face_walls=None):
     """Yüz parçaları → WallGraph. G = thresholds 'graph' bölümü; thickness_units baskın kalınlık (birim).
 
     edges: merkez hatları (paralel yüz çiftleri → orta hat → doğrultudaş birleştirme → uç snap; topoloji).
-    face_edges: duvar yüzleri + bariyer katmanı çizgileri + pencere camları + kapı kapatmaları (snap sonrası) —
-    rooms.graph_faces bunları polygonize eder (flood-fill'in vektör eşdeğeri).
+    face_edges: duvar yüzleri (face_walls: GRAPH_EDGE_CLASSES katmanındaki yüz parçaları; None → walls) + kenar sınıfı
+    katman çizgileri (barrier_segs) + kapı/pencere kapatmaları (snap sonrası) — rooms.graph_faces bunları polygonize eder
+    (flood-fill'in vektör eşdeğeri). Pencereler kapı gibi mühürlenir (geçici kenar), pencere katmanı çizgisi kenar üretmez.
     door_leaves: openings._door_barriers çıktısı (menteşe, kapalı uç); kanat iki uçtan uzatılır ve uçlarına
     duvar kalınlığı boyunca dik kapak eklenir (kanat iki yüzü de keser). closures_extra: ek geçici kenarlar.
     """
@@ -469,7 +471,7 @@ def build_wall_graph(walls, thickness_units, upm, G, door_leaves=None, windows=N
     snap_tol = G["snap_tol_frac"] * t
     lines = _merge_collinear(lines, G["merge_perp_frac"] * t, snap_tol, G["pair_ang_tol_deg"])
     edges = _snap_lines(lines, snap_tol, G["extend_tol_m"] * upm)
-    fsegs = list(walls) + list(windows or []) + list(barrier_segs or [])
+    fsegs = list(walls if face_walls is None else face_walls) + list(barrier_segs or [])
     fl = _merge_collinear(fsegs, G["face_merge_perp_frac"] * t, snap_tol, G["face_merge_ang_tol_deg"])
     closures, n_door = [], 0
     ext = G["door_closure_extend_frac"] * t
@@ -483,13 +485,31 @@ def build_wall_graph(walls, thickness_units, upm, G, door_leaves=None, windows=N
         for q in (hinge, tip):                                        # dik kapaklar: kanat iki yüzü de keser
             closures.append(((q[0] - nx * cap, q[1] - ny * cap), (q[0] + nx * cap, q[1] + ny * cap)))
         n_door += 1
+    for a, b in (windows or []):                                      # pencere açıklığı: kapı gibi mühür (geçici kenar)
+        dx, dy = b[0] - a[0], b[1] - a[1]; L = math.hypot(dx, dy)
+        if L < 1e-6:
+            continue
+        ux, uy = dx / L, dy / L
+        closures.append(((a[0] - ux * ext, a[1] - uy * ext), (b[0] + ux * ext, b[1] + uy * ext)))
     face_edges = _snap_lines(fl + closures, snap_tol, G["extend_tol_m"] * upm)
     cav = [LineString([a, b]).buffer(th / 2.0, cap_style=2) for a, b, th in cl]
     for c in (closures_extra or []):
         closures.append(c)
     return WallGraph(edges=edges, face_edges=face_edges, cavities=cav, closures=closures, thickness=t, snap_tol=snap_tol,
-                     stats={"faces_in": len(walls), "barrier_segs": len(barrier_segs or []), "centerlines": len(cl),
+                     stats={"faces_in": len(walls if face_walls is None else face_walls), "barrier_segs": len(barrier_segs or []),
+                            "window_closures": len(windows or []), "centerlines": len(cl),
                             "merged": len(lines), "edges": len(edges), "face_edges": len(face_edges), "door_closures": n_door})
+
+
+def wall_cavities(segs, thickness_units, upm, G):
+    """Yüz parçaları → merkez hattı × kalınlık boşluk poligonları (build_wall_graph.cavities ile aynı hesap, alt küme için:
+    ince çizgi birleştirme testinde kiriş sınıfı çiftler 'kalın' sayılmaz → kiriş izdüşümü odayı bölmez)."""
+    t = float(thickness_units or 0.0)
+    if t <= 0 or not segs:
+        return []
+    tmin, tmax = G["pair_thickness_m"][0] * upm, G["pair_thickness_m"][1] * upm
+    cl = centerlines(segs, tmin=max(tmin, 1e-3), tmax=tmax, ang_tol_deg=G["pair_ang_tol_deg"], min_overlap=G["min_overlap_m"] * upm)
+    return [LineString([a, b]).buffer(th / 2.0, cap_style=2) for a, b, th in cl]
 
 
 def passage_closures(edges, G, upm):
@@ -571,9 +591,10 @@ def stair_footprints(msp, bbox, names, buffer_units, min_area_units, big_blocks=
     return [p.convex_hull for p in polys if p.area >= min_area_units]
 
 
-def barrier_segments(msp, bbox, names):
-    """Raster bariyerinin vektör eşdeğeri: bariyer sınıfı (wall/beam/column/chimney/window) katmanlardaki LINE/LWPOLYLINE/
-    ARC parçaları (INSERT hariç; blok içi duvarlar _wall_segments(big_blocks) ile gelir)."""
+def barrier_segments(msp, bbox, names, classes=BARRIER_CLASSES):
+    """Raster bariyerinin vektör eşdeğeri: `classes` sınıfı (varsayılan bariyer: wall/beam/column/chimney/window; duvar grafı
+    için GRAPH_EDGE_CLASSES) katmanlardaki LINE/LWPOLYLINE/ARC parçaları (INSERT hariç; blok içi duvarlar
+    _wall_segments(big_blocks) ile gelir)."""
     x0, y0, x1, y1 = bbox
     out = []
     for e in msp:
@@ -583,7 +604,7 @@ def barrier_segments(msp, bbox, names):
             lay = e.dxf.layer
         except Exception:
             continue
-        if not names.has(lay, BARRIER_CLASSES):
+        if not names.has(lay, classes):
             continue
         if e.dxftype() == "HATCH":
             segs = _hatch_segments(e)

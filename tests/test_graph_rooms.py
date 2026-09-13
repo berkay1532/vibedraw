@@ -82,7 +82,7 @@ def test_reconcile_matched_and_new():
     room = Room(raw_name="SALON", label_xy=(150, 200), polygon=[(0, 0), (300, 0), (300, 400), (0, 400)], geometry_ok=True)
     faces = [(Polygon([(2, 2), (298, 2), (298, 398), (2, 398)]), {"stair": False}),
              (Polygon([(700, 0), (900, 0), (900, 200), (700, 200)]), {"stair": True})]
-    matched, unmatched, new = reconcile_rooms([room], faces, G["iou_match"], G["overlap_ambiguous"])
+    matched, unmatched, new = reconcile_rooms([room], faces, G["iou_match"], G["candidate_max_overlap"])
     assert id(room) in matched and matched[id(room)][0] == 0 and matched[id(room)][1] > 0.9
     assert unmatched == [] and new == [1]
 
@@ -96,3 +96,53 @@ def test_pipeline_single_line_walls_unchanged(synthetic_walled_dxf):
     fl = b.floors[0]
     assert {r.raw_name for r in fl.rooms} == {"Salon", "Mutfak"}
     assert getattr(fl, "graph_faces", []) == []
+
+
+def test_merge_split_faces_thin_line_inside_room():
+    """İnce çizgiyle (duvar boşluğu yok) bölünmüş iki yüz birleşir; kalın duvarla ya da iki etiketle ayrılanlar birleşmez."""
+    from shapely.geometry import LineString
+    from core.perception.rooms import merge_split_faces
+    G = T("graph")
+    room = Room(raw_name="HOL", label_xy=(150, 200), polygon=[(0, 0), (300, 0), (300, 400), (0, 400)], geometry_ok=True)
+    thin = [(Polygon([(0, 0), (300, 0), (300, 200), (0, 200)]), {"stair": False}),
+            (Polygon([(0, 200), (300, 200), (300, 400), (0, 400)]), {"stair": False})]
+    kw = dict(gap_max=G["merge_gap_max_m"] * UPM, min_shared=G["merge_min_shared_m"] * UPM)
+    out, n = merge_split_faces(thin, [room], [], G["merge_thin_cavity_max_frac"], G["merge_eps_m"] * UPM, G["merge_max_labels"], **kw)
+    assert n == 1 and len(out) == 1 and abs(out[0][0].area - 300 * 400) < 300 * 400 * 0.01
+    # aynı bölme, ama ortak sınır bir duvar boşluğunun (merkez hattı × 20 birim) içinde → birleşmez
+    cav = [LineString([(0, 200), (300, 200)]).buffer(10, cap_style=2)]
+    out2, n2 = merge_split_faces(thin, [room], cav, G["merge_thin_cavity_max_frac"], G["merge_eps_m"] * UPM, G["merge_max_labels"], **kw)
+    assert n2 == 0 and len(out2) == 2
+    # iki etiketli bileşen (salon + mutfak ince çizgiyle ayrı) → birleşmez
+    room2 = Room(raw_name="MUTFAK", label_xy=(150, 300), polygon=[(0, 200), (300, 200), (300, 400), (0, 400)], geometry_ok=True)
+    room.label_xy = (150, 100)
+    out3, n3 = merge_split_faces(thin, [room, room2], [], G["merge_thin_cavity_max_frac"], G["merge_eps_m"] * UPM, G["merge_max_labels"], **kw)
+    assert n3 == 0 and len(out3) == 2
+    # 25 birimlik kiriş bandıyla ayrık iki yüz (polygonize bandı yüz yapmaz) → aralık ≤ gap_max, boşluk yok → birleşir, şerit dolar
+    apart = [(Polygon([(0, 0), (300, 0), (300, 190), (0, 190)]), {"stair": False}),
+             (Polygon([(0, 215), (300, 215), (300, 400), (0, 400)]), {"stair": False})]
+    out4, n4 = merge_split_faces(apart, [room], [], G["merge_thin_cavity_max_frac"], G["merge_eps_m"] * UPM, G["merge_max_labels"], **kw)
+    assert n4 == 1 and abs(out4[0][0].area - 300 * 400) < 300 * 400 * 0.02
+
+
+def test_candidate_overlap_gate():
+    """Mevcut flood odasıyla > candidate_max_overlap örtüşen yüz aday olmaz."""
+    G = T("graph")
+    room = Room(raw_name="SALON", label_xy=(150, 200), polygon=[(0, 0), (300, 0), (300, 400), (0, 400)], geometry_ok=True)
+    faces = [(Polygon([(200, 0), (500, 0), (500, 400), (200, 400)]), {"stair": False}),    # %33 oda içinde
+             (Polygon([(250, 0), (550, 0), (550, 400), (250, 400)]), {"stair": False})]    # %17 oda içinde
+    _, _, new = reconcile_rooms([room], faces, G["iou_match"], G["candidate_max_overlap"])
+    assert new == [1]
+
+
+def test_graph_edge_classes_and_railing():
+    """hatch/furniture/unknown katman çizgisi kenar üretmez; korkuluk (railing) üretir; pencere kapı gibi mühürlenir."""
+    from core.perception.names import GRAPH_EDGE_CLASSES, LayerClass, NameMap, keyword_class
+    from core.perception.walls import barrier_segments, build_wall_graph
+    assert keyword_class("korkuluk")[0] is LayerClass.railing and keyword_class("Railing-1")[0] is LayerClass.railing
+    assert LayerClass.railing in GRAPH_EDGE_CLASSES and LayerClass.hatch not in GRAPH_EDGE_CLASSES
+    assert LayerClass.window not in GRAPH_EDGE_CLASSES and LayerClass.unknown not in GRAPH_EDGE_CLASSES
+    segs, t = _plan(door_gap=False)
+    G = T("graph")
+    wg = build_wall_graph(segs, t, UPM, G, windows=[((100, 0), (200, 0))], face_walls=[])
+    assert wg.stats["window_closures"] == 1 and wg.stats["faces_in"] == 0 and len(wg.closures) == 1

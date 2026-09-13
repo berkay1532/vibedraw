@@ -603,3 +603,40 @@ Eşikler `thresholds.yaml graph.*`, ağırlıklar `weights.yaml room.graph_face 
   profil/keyword ile `furniture` gibi ekleyici-olmayan sınıfa; (3) sızma için mevcut `flood_outcome` ile GT payı < 0,6 örnekleri
   (r71, r13) zaten düşük güven taşımalı → `alias_merge` + alan/etiket-alanı oranı sinyali. Bu üçü `docs/HITL_QUESTIONS.md` #8/#22
   ile ilişkili; hiçbiri tek dosya değil (src02-07, src02-12, KAYAPINAR).
+
+## 2026-09-13 — FP kök nedeni: duvar grafı kenar kümesi, aday örtüşme kapısı, ince çizgi birleştirme
+
+**Ne (kullanıcı direktifi, tek commit):**
+1. **Polygonize kenar kümesi yalnız `GRAPH_EDGE_CLASSES` = {wall, beam, column, chimney, railing}** (`names.py`, sınıf → tüketici
+   kodda). `floor.walls` içinden yalnız bu sınıflardaki yüz parçaları (`face_walls`) + bu sınıfların çizgileri (`barrier_segments`)
+   kenar olur; hatch/stair/furniture/text/dim/unknown kenar üretmez. **Pencere kapı gibi mühürlenir:** tespit edilen pencere
+   açıklığı (`floor.windows`) geçici kenar (closure, iki uçtan `door_closure_extend_frac` × kalınlık), pencere katmanı çizgisi
+   kenar değil. Merkez hatları (topoloji, `edges`, `cavities`) katman bağımsız kalır (2026-09-05 kararı).
+   Sözlüğe **`railing`** sınıfı (korkuluk / railing / parapet): graf kenarı üretir, raster bariyeri DEĞİL (flood-fill ve
+   kapı/pencere değişmesin diye BARRIER_CLASSES'a girmedi).
+2. **Aday kapısı:** yüz, mevcut flood-fill odaları birleşimiyle > `graph.candidate_max_overlap` (0,3; eski `overlap_ambiguous`
+   0,5) örtüşüyorsa aday olmaz.
+3. **İnce çizgi birleştirme (`rooms.merge_split_faces`):** iki yüz arasındaki şerit (aralık ≤ `merge_gap_max_m` 0,35 — polygonize
+   ince çizgi bandını yüz yapmaz, yüzler bandın iki yanında kalır; ortak sınır ≥ `merge_min_shared_m` 0,5) duvar boşluğuyla
+   ≤ `merge_thin_cavity_max_frac` (0,3) örtüşüyorsa ayıran şey ince çizgidir → aynı oda. **Yorum:** "aynı odanın içinde" =
+   ince-komşuluk bileşeni en fazla `merge_max_labels` (1) oda etiketi taşır; iki etiketli bileşen (salon | mutfak ince çizgiyle)
+   ayrı odalardır, dokunulmaz. Flood odasının içinde olma şartı KULLANILMADI: flood poligonu da aynı ince çizgilerle parçalı
+   (raster `extra_segs` = katman bağımsız çiftler), o yüzden yüzler "flood odasının içinde" çıkmıyordu (src02-07 SALON+MUTFAK 9,8 m²
+   flood / 19,1 m² yazı). Boşluk testi: **kiriş sınıfı çiftler boşluk sayılmaz** (`MERGE_THIN_EXEMPT_CLASSES` = {beam};
+   KİRİŞ İZD iki paralel çizgi → 25 birimlik "duvar" → odayı bölüyordu), **korkuluk çizgisi tek çizgi olsa da sert**
+   (`MERGE_HARD_LINE_CLASSES` = {railing}; merdiven/boşluk kenarı). Merdiven ayak izi yüzleri birleşmez (ilk denemede kat holü
+   ile birleşip MERDİVEN TP'sini düşürdü).
+
+**Sonuç (11 GT, ayrıntı EVAL_HISTORY):** oda FP 61 → 52, FN 52 → 49, TP 165 → 168, F1 0,745 → 0,769; kapı/pencere birebir aynı;
+IoU 0,881 → 0,880. Dosya bazında FN artışı yalnız src02-12'de (+4 / −5), nedenleri:
+- HOL r16 (7,6 m² yüz GT ile IoU 0,64, flood parçası 3,1 m² ile örtüşme 0,40) → **kapı (2)** eledi; önce 0,5 altında aday olup TP idi.
+- HOL r6 → **(3)** 1,9 + 4,1 m² yüzleri 6,0 m²'ye birleştirdi (GT 6,4), sonra **(2)** flood parçasıyla (2,9 m²) %45 örtüşünce eledi.
+- ASANSÖR c_as_sag1 → **(1)**: asansör şaftı duvarları MERDIVEN katmanında (712 birim), stair kenar üretmeyince yüz kayboldu.
+- MERDİVEN c_merd_sag_ust → **(1)**: MERDIVEN çizgileri kenar olmayınca çevre yüz 11,2 → 29,4 m² büyüdü, IoU 0,74 → 0,29.
+İlk ikisi tek desen: **flood parçası ⊂ graf yüzü**. Aday: kapı bağlamadan SONRA, etiketli flood odası bir yüzün içinde kalıyorsa
+(oda ∩ yüz ≥ 0,9 × oda, yüz ≤ 1 etiket) oda poligonu yüzle değiştirilsin (`graph_extends` sinyali; kapı/pencere değişmez, IoU ve
+TP artar). src02-12'de 2 FN, src02-07'de HOL parçaları (r16–r18) bu desende. Son ikisi stair katmanı kararı; aday: stair sınıfı
+çizgiler yalnız merdiven ayak izi dışında kenar üretsin (asansör şaftı çizgileri).
+**Kod dışı gözlem:** raster flood-fill'in parçalanması aynı kök nedenden (`extra_segs` katman bağımsız çiftler: SIVA/KİRİŞ İZD
+çiftleri bariyer). Bu turda dokunulmadı (kapı/pencere değişmesin); ağırlık turunda `_wall_segments` çiftlerine katman sınıfı
+sinyali ile bariyer güveni.

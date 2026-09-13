@@ -97,6 +97,7 @@ LAYER_WORDS = {
     "revision": ("revizyon", "tadilat", "revision"),
     "stair": ("merdiven", "stair", "basamak"),
     "furniture": ("tefris", "tefriş", "mobilya", "furniture", "fur", "fixt", "sanit"),
+    "railing": ("korkuluk", "railing", "parapet"),   # balkon/merdiven korkuluğu: duvar grafında kenar üretir, duvar değil
     "door": ("kapi", "kapı", "door", "porte", "puertas"),
     "window": ("pencere", "window", "cam", "glz", "glaz", "fenetre", "ventana"),
     "column": ("kolon", "column"),
