@@ -671,3 +671,14 @@ asansör çarpısıdır (kenar olmamalı). Deney: hatch sınıfı ÇİFTLERİ ke
 başka duvar-sınıfı çizgiyle çakışmıyorsa `hatch_wall` sinyali (yalnız o çiftler kenar).
 Basamak tespiti src02-07'de (72 çizgi, blok basamak yok, KOTBLK08 kot blokları merdiven katmanında) ayak izi < 1 m² → fallback;
 src02-12'de 15 basamak, 1 ayak izi (6,7 m²), 12 kenar.
+
+## 2026-09-14 — İki not (kullanıcı): genellik şüphesi ve kapsama
+
+- **(a) Genellik:** 2026-09-13'ün iki commit'inin (a5f6c8f FP kök nedeni, d910eb4 merdiven ayrımı + absorb) kazancı büyük ölçüde
+  src02-12'den geldi (oda TP/FP/FN 57/40/26 → 71/13/12); holdout (tip-6, src02-09) sabit kaldı (0,868 → 0,873, ikinci commit'te
+  aynı). Kurallar (kenar sınıfları, aday örtüşme kapısı, ince çizgi birleştirme, absorb) tek dosyaya göre ayarlanmış olabilir;
+  genelliği src02-13 ve src02-06 (holdout, GT yok) GT'leri gelince doğrulanacak. O zamana kadar bu eşiklere dokunulmaz.
+- **(b) Kapsama 0,30:** kalan 35 FN'nin (ve 34 FP'nin) issue üretmemesi ağırlık turunun ayrı maddesi. Yöntem: her FN için
+  "hangi issue tipi bunu yakalamalıydı" analizi (unlabeled_region / open_room / room_merged / area_mismatch / yeni tip yok),
+  dosya × tip tablosu; issue üretmeyen FN desenleri (hatch-only çekirdek, etiketli parça ⊂ yüz ama yazı alanı yok, bina dışı
+  teras) için mevcut tiplerin tetiğine sinyal eklenir, yeni issue tipi açılmaz (2026-09-05 kuralı).
