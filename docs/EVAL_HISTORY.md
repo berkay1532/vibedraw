@@ -282,3 +282,12 @@ Issue tipi (11 GT) önce → sonra: {'room_no_door': '40→40', 'area_mismatch':
 Aile: src02 aile B (fam02) 0,844 → 0,912; ABM (fam04) 0,691 → 0,764; src02 A + diğer 0,826 → 0,857; tip 0,943 aynı (IoU 0,922 → 0,927).
 Issue 224 → 195 (area_mismatch 50 → 37, unlabeled_region 26 → 20, open_room 2 → 0); issue/oda medyan 0,92 → 0,83.
 Kapsama 0,30 → 0,27 (hatalı varlık 255 → 236; kapsanan 77 → 63). Deney kayıtları (r1/r2 vs r3, tip-1 HOL, tip-6 IoU) DECISIONS.
+
+### Ağırlık turu (2) — graph_extends (2026-09-14; 55 dosya, 11 GT)
+
+2026-09-13 örtüşme kapısı istisnasının genellemesi: IoU ile eşleşmeyen HER yüz (örtüşme koşulu kalktı), tam olarak bir etiketli
+flood odasını kapsıyorsa (≥ 0,9 oda alanı, başka odaya değmiyor, yazı alanı oranı 0,5–2) odayı genişletir; yüz aday olmaz.
+Sinyal adı `graph_extends`. **11 GT birebir aynı** (189/20/28, F1 0,887; kapı/pencere/holdout/kapsama aynı): (1) raster
+düzeltmesinden sonra 11 GT'de "flood parçası ⊂ yüz, örtüşme < 0,3" deseni kalmadı. GT'siz 7 dosyada etkisi var (290_10, 505,
+Nihal_Akgöl, src02-01, src02-08, src02-15: 1–2 yüz aday yerine oda genişletmesi; oda sayısı 1–2 düştü). Basitleştirme olarak
+tutuldu; ölçülebilir kazanç yok.

@@ -739,3 +739,9 @@ hatları odaları bölüyordu.
 **Gözlem:** tip ailesinde net-alan (A_ANNO_*) polilineleri oda sınırıyla çakışıyor; "şanslı bariyer". Gerçek açık geçiş
 (HOL–ANTRE, kapısız) raster tarafında yalnız mühürle kapanıyor; graf tarafındaki passage_closures'ın raster karşılığı yok →
 aday (ağırlık turu 5 ile birlikte).
+
+## 2026-09-14 — Ağırlık turu sırası (kullanıcı): (1) raster bariyer ✓, (2) graph_extends, (3) hatch_wall, (7) alan-polyline
+katmanları → `area` sınıfı (ALAN, NET ALAN, MAHAL ALANI, M2, A_ANNO_AREA* deseni): kapalı polyline doğrudan oda adayı (güven
+0,9), içindeki etiketle bağlanır, flood/graf ile uzlaşır; bariyer değil, kaynak — (3)'ten sonra. Sonra (4) pencere güven
+kalibrasyonu (monoton tablo), (5) tek çizgili duvar + snap toleransı, (6) kalan FN'ler için issue kapsama analizi. Her parça
+ayrı commit, 11 GT + holdout kapısı, aynı tablo.

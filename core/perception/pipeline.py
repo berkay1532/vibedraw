@@ -343,7 +343,7 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
                                     polygon=[(float(x), float(y)) for x, y in list(f.exterior.coords)[:-1]],
                                     geometry_ok=True, source="graph", confidence=conf,
                                     signals={**ev.signals, "stair_footprint": 1.0 if meta.get("stair") else 0.0}))
-        # Örtüşme kapısı istisnası (2026-09-13): yüz bir flood odasını kapsıyorsa (flood parçası ⊂ yüz, HOL r16/r6 deseni)
+        # graph_extends (ağırlık turu 2): IoU ile eşleşmeyen yüz bir flood odasını kapsıyorsa (flood parçası ⊂ yüz)
         # oda poligonu yüz ∪ oda olur — tek mahal. Kapı bağlamadan SONRA (kapı-oda ataması ve pencere değişmez).
         for k, room in absorb:
             f, _meta = floor.graph_faces[k]
@@ -364,7 +364,7 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
                 continue
             room.polygon = [(float(x), float(y)) for x, y in list(u.exterior.coords)[:-1]]
             c = u.representative_point(); room.center = (c.x, c.y)
-            room.signals["graph_absorb"] = 1.0
+            room.signals["graph_extends"] = 1.0
 
     return building
 

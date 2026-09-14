@@ -347,15 +347,17 @@ def reconcile_rooms(rooms, faces, iou_thr, overlap_ambiguous, absorb_min_frac=No
     for k, (f, _) in enumerate(faces):
         if k in used:
             continue
-        ov = (f.intersection(union).area / f.area) if (union is not None and f.area > 0) else 0.0
-        if ov < overlap_ambiguous:
-            new.append(k)
-        elif absorb_min_frac is not None:
-            # istisna (2026-09-13): yüz, örtüştüğü flood odasını kapsıyorsa (flood parçası ⊂ yüz) elenmez, odayla birleşir
+        if absorb_min_frac is not None and f.area > 0:
+            # graph_extends (ağırlık turu 2, 2026-09-14; 2026-09-13 örtüşme istisnasının genellemesi): IoU ile eşleşmeyen HER
+            # yüz, tam olarak bir etiketli flood odasını kapsıyorsa (oda ∩ yüz ≥ absorb_min_frac × oda; başka etiketli odaya
+            # %5'ten fazla değmiyor) o odayı genişletir — yüz aday (etiketsiz FP) olmaz, oda poligonu yüz ∪ oda olur.
             covered = [r for r, P in polys if r.raw_name and P.area > 0 and f.intersection(P).area >= absorb_min_frac * P.area]
             touched = [r for r, P in polys if r.raw_name and f.intersection(P).area > 0.05 * P.area]
             if len(covered) == 1 and len(touched) == 1:
-                absorb.append((k, covered[0]))
+                absorb.append((k, covered[0])); continue
+        ov = (f.intersection(union).area / f.area) if (union is not None and f.area > 0) else 0.0
+        if ov < overlap_ambiguous:
+            new.append(k)
     if absorb_min_frac is not None:
         return matched, unmatched, new, absorb
     return matched, unmatched, new
