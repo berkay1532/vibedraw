@@ -808,3 +808,19 @@ dokunulmadı.
 **Karar: 0,3** — geliştirme ve holdout'ta tutarlı (+0,024 / +0,049; yalnız thin_lines elenir, 0/14 doğru). 0,5 holdout'ta en iyi
 (0,765) ama geliştirmede düşüyor (block_geometry 84 aday: %44 doğru ama 37 TP taşıyor) → kural gereği seçilmedi. block_geometry
 adaylarının ayrıştırılması (kaynak içi sinyal: blok adı/boyut/duvar hizası) ağırlık turu sonrası aday.
+
+## 2026-09-15 — Ağırlık turu (5) tek çizgili duvar ve snap toleransı: DENENDİ, GİRMEDİ
+
+**(5b) Snap toleransı:** `graph.snap_tol_frac` 0,5 → 1,0 ve/veya `extend_tol_m` 0,6 → 1,0 (3 varyant, 11 GT hızlı koşu):
+oda/kapı/pencere ve graf uzlaşma sayıları (matched 125 / flood_only 64 / graph_only 20) **birebir aynı** — yüzleri sınırlayan
+uç-uç boşluk değil, mühürlü polygonize bandı (seal_m 0,12) ve kenar kümesi. KAYAPINAR "1 m boşluk" gözlemi (2026-09-09) snap ile
+kapanmıyor. Eşikler geri alındı.
+**(5a) Tek çizgili duvar (deney):** sınıfı bilinmeyen katmanlardaki ≥ 1 m, eksene yakın tek çizgiler graf yüz kenarı
+(`single_line_wall_segments`; raster bariyeri değil). 11 GT: 189/20/28 → 188/19/29; geliştirme −1 TP (KAYAPINAR KAT HOLÜ
+13/8/5 → 12/8/6: '0' katmanı tek çizgileri kat holünü böldü), holdout −1 FP (src02-09 3 → 2); matched 125 → 129. Geliştirme ve
+holdout tutarsız → kural gereği girmedi; kod geri alındı. Öğrenilen: bilinmeyen katman tek çizgileri duvar olduğu kadar aks/
+tefriş sınırı da; katman içeriği istatistiği (stats_class) olmadan ayrılmıyor → (c) maddesi: stats kademesi 'wall' verdiğinde
+tek çizgi kenar olsun (bilinmeyen değil) — ağırlık turu sonrası.
+**KAYAPINAR Banyo FN'lerinin (r9/r10) nedeni tek çizgi değil:** küvet/duşakabin çizgileri bariyer sınıfı katmanda (.DUVAR/KOLON)
+→ flood ve graf banyoyu ikiye bölüyor; aday 1,8 m² = küvet içi. Aday: bariyer sınıfı katmandaki KISA kapalı dikdörtgenler
+(≤ 2 m², oda etiketi içermeyen) tefriş sayılsın (sinyal: kapalı küçük çevrit) — ayrı madde.
