@@ -249,6 +249,69 @@ def graph_faces(graph, upm, G, stair_polys=None, seal_units=0.0):
     return result
 
 
+def area_polygons(msp, bbox, names, min_area_units, big_blocks=False):
+    """Alan-polyline kaynağı (ağırlık turu 7): AREA_CLASSES katmanındaki KAPALI LWPOLYLINE/POLYLINE'lar → shapely poligon
+    listesi (alan ≥ min_area_units, kat kutusu içinde). Bariyer değil, oda kaynağı: pipeline.apply_area_polygons içindeki tek
+    etiketle bağlar."""
+    from shapely.geometry import Polygon
+    from core.perception.names import AREA_CLASSES
+    x0, y0, x1, y1 = bbox
+    out = []
+    for e in msp:
+        try:
+            lay = e.dxf.layer
+        except Exception:
+            continue
+        if not names.has(lay, AREA_CLASSES):
+            continue
+        t = e.dxftype()
+        if t == "LWPOLYLINE":
+            pts = [(p[0], p[1]) for p in e.get_points()]
+            closed = bool(e.closed) or (len(pts) > 3 and abs(pts[0][0] - pts[-1][0]) < 1e-6 and abs(pts[0][1] - pts[-1][1]) < 1e-6)
+        elif t == "POLYLINE":
+            try:
+                pts = [(v.dxf.location[0], v.dxf.location[1]) for v in e.vertices]
+                closed = bool(e.is_closed) or (len(pts) > 3 and pts[0] == pts[-1])
+            except Exception:
+                continue
+        else:
+            continue
+        if not closed or len(pts) < 3:
+            continue
+        try:
+            P = Polygon(pts).buffer(0)
+        except Exception:
+            continue
+        if P.is_empty or P.geom_type != "Polygon" or P.area < min_area_units:
+            continue
+        c = P.representative_point()
+        if x0 <= c.x <= x1 and y0 <= c.y <= y1:
+            out.append(P)
+    return out
+
+
+def apply_area_polygons(rooms, polys, stats=None):
+    """Alan poligonlarını etiketli odalara bağlar: poligon tam olarak BİR odanın etiketini (label_xy) içeriyorsa o odanın
+    poligonu alan poligonu olur (kaynak 'area', sinyal area_polyline=1; flood sonucu evidence'ta kalır). 0 etiket (parsel/
+    toplam alan, etiketsiz mahal) ya da ≥2 etiket (daire/toplam sınırı) → kullanılmaz (sayılır). Döner: {id(room): Polygon}."""
+    from shapely.geometry import Point
+    hit, skipped0, skipped2 = {}, 0, 0
+    pts = [(r, Point(r.label_xy)) for r in rooms if r.raw_name and r.label_xy]
+    for P in polys:
+        inside = [r for r, p in pts if P.contains(p)]
+        if len(inside) == 1:
+            r = inside[0]
+            if id(r) not in hit or P.area < hit[id(r)].area:      # aynı odaya birden çok poligon: en küçüğü (iç sınır)
+                hit[id(r)] = P
+        elif not inside:
+            skipped0 += 1
+        else:
+            skipped2 += 1
+    if stats is not None:
+        stats.update({"area_polys": len(polys), "area_rooms": len(hit), "area_skipped_0": skipped0, "area_skipped_2plus": skipped2})
+    return hit
+
+
 def merge_split_faces(faces, rooms, cavities, thin_cavity_max_frac, eps, max_labels=1, gap_max=0.0, min_shared=0.0):
     """İnce çizgiyle ayrılmış komşu yüzleri birleştirir. İki yüz arasındaki şerit (aralık ≤ gap_max; polygonize ince çizgi
     bandını yüz yapmaz, yüzler çizginin iki yanında kalır) duvar boşluğuyla (cavities: merkez hattı × kalınlık) en fazla

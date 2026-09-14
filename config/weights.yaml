@@ -29,6 +29,7 @@ room:                            # flood-fill sonucu tek-sıcak: ağırlık = es
     edge_fragment: 0.40
     fallback: 0.20
     graph_match: 0.80            # Adım 9: duvar grafı yüzü ile IoU ≥ graph.iou_match (1 / 0 / None); yalnız evidence, issue yok
+    area_polyline: 0.90          # ağırlık turu 7: alan-polyline katmanındaki kapalı poligon tek etiketi içeriyor → oda geometrisi (kaynak)
     graph_only: 0.45             # Adım 9: yalnız duvar grafı buldu (etiketsiz bölge adayı)
     stair_footprint: 0.0         # bilgi sinyali: merdiven ayak izi (ağırlıksız)
   agreement_bonus: 0.05          # flood + graf uyuşunca güven ↑ (0.85 → 0.90)

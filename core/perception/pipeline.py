@@ -30,7 +30,7 @@ from core.perception.calibration import thickness_modes
 from core.perception.names import GRAPH_EDGE_CLASSES, MERGE_HARD_LINE_CLASSES, MERGE_THIN_EXEMPT_CLASSES, WALL_SCAN_CLASSES
 from core.perception.signals.geometry import arc_signature, parallel_pair, thickness_mode, wall_gap
 from core.perception.signals.layer import layer_class_vote, layer_raw, wall_word
-from core.perception.signals.topology import flood_outcome, graph_connectivity, room_boundary
+from core.perception.signals.topology import area_polyline, flood_outcome, graph_connectivity, room_boundary
 from core.perception.parse import (cluster_floors_2d, dedupe_labels, extract_room_labels, grid_likeness,
                                    pick_plan_floor)
 from core.perception.triage import layer_fingerprint
@@ -38,10 +38,20 @@ from core.perception.validate import validate_building_v2
 from core.perception.openings import _cluster_doors, _door_barriers, _seg_dist, _swing_dirs
 from core.perception.polygons import _mask_polygon
 from core.perception.raster import _Raster
-from core.perception.rooms import _floor_bbox, _segment_rooms, graph_faces, merge_split_faces, reconcile_rooms
+from core.perception.rooms import (_floor_bbox, _segment_rooms, apply_area_polygons, area_polygons, graph_faces,
+                                   merge_split_faces, reconcile_rooms)
 from core.perception.walls import (_wall_lines, _wall_segments, barrier_segments, build_wall_graph, passage_closures,
                                    split_stair_segments, stair_edge_segments, stair_footprints, stair_segments, wall_cavities)
 from core.perception.windows import _window_segments
+
+
+def _room_base_sig(room) -> dict:
+    """Odanın kaynak sinyalleri: flood sonucu (exclusive/alias_merge/…) + varsa area_polyline (kaynak 'area+<flood>')."""
+    src = room.source or "fallback"
+    sig = dict(flood_outcome(src.split("+")[-1]))
+    if src.startswith("area"):
+        sig["area_polyline"] = area_polyline(True)
+    return sig
 
 
 def run_floor(building: BuildingIR, dxf_path: str, *,
@@ -212,6 +222,20 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
             room.center = (cx, cy)
             room.polygon = _mask_polygon(mask, raster, wall_xs, wall_ys, angled_walls)
 
+        # Ağırlık turu 7 (2026-09-14): alan-polyline katmanı (AREA_CLASSES) kapalı poligonları oda KAYNAĞI — poligon tam olarak
+        # bir odanın etiketini içeriyorsa odanın poligonu olur (area_polyline=1, kaynak 'area'; flood sinyali evidence'ta kalır).
+        # Bariyer değil. Graf uzlaşması ve kapı bağlama bu poligonla çalışır.
+        _area_hit = apply_area_polygons(floor.rooms, area_polygons(msp, bbox, names, GG["min_room_area_m2"] * _upm * _upm, big_blocks=big),
+                                        stats=wg.stats)
+        for room in floor.rooms:
+            AP = _area_hit.get(id(room))
+            if AP is None:
+                continue
+            room.source = f"area+{room.source}"          # flood sonucu kaynakta kalır: 'area+exclusive', 'area+fallback'
+            room.polygon = [(float(x), float(y)) for x, y in list(AP.exterior.coords)[:-1]]
+            c = AP.representative_point(); room.center = (c.x, c.y); room.geometry_ok = True
+            room.confidence, ev = score("room", _room_base_sig(room), f"room:{room.source}"); room.signals = ev.signals
+
         # Adım 9 uzlaştırma: flood-fill odası ↔ polygonize yüzü IoU ≥ graph.iou_match → aynı mahal (graph_match=1,
         # güven ↑, evidence iki yöntemi de taşır); yüz yoksa graph_match=0 yalnız evidence'ta kalır, issue üretmez
         # (open_room eski semantiğinde: flood-fill kapanmıyor/sızıyor).
@@ -238,8 +262,9 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
                 if not room.polygon:
                     continue
                 hit = matched.get(id(room))
-                sig = dict(flood_outcome(room.source)); sig["graph_match"] = 1.0 if hit else 0.0
-                room.confidence, ev = score("room", sig, f"flood:{room.source}"); room.signals = ev.signals
+                sig = _room_base_sig(room); sig["graph_match"] = 1.0 if hit else 0.0
+                room.confidence, ev = score("room", sig, f"room:{room.source}" if room.source.startswith("area") else f"flood:{room.source}")
+                room.signals = ev.signals
                 room.signals["graph_match"] = round(0.0 if not hit else ev.signals.get("graph_match", 0.0), 4)
                 if hit:
                     room.signals["graph_iou"] = hit[1]

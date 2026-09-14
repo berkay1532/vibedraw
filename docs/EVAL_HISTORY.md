@@ -291,3 +291,36 @@ Sinyal adı `graph_extends`. **11 GT birebir aynı** (189/20/28, F1 0,887; kapı
 düzeltmesinden sonra 11 GT'de "flood parçası ⊂ yüz, örtüşme < 0,3" deseni kalmadı. GT'siz 7 dosyada etkisi var (290_10, 505,
 Nihal_Akgöl, src02-01, src02-08, src02-15: 1–2 yüz aday yerine oda genişletmesi; oda sayısı 1–2 düştü). Basitleştirme olarak
 tutuldu; ölçülebilir kazanç yok.
+
+### Ağırlık turu (7) — alan-polyline katmanları → `area` sınıfı, oda kaynağı (2026-09-14; 55 dosya, 11 GT)
+
+`LayerClass.area` (vocab tam kelime alan/area/m2), kapalı polyline tek etiketi içeriyorsa oda poligonu (`area_polyline` 0,90,
+kaynak `area+<flood>`), bariyer değil; area katmanı `WALL_EXCLUDE_CLASSES`'ta (ince çizgi pencere adayı olmaz).
+Kapı: oda/kapı/pencere F1 aynı ✓; holdout F1 aynı ✓ (IoU 0,859 → 0,858: tip-6 0,910 → 0,908).
+
+| Küme | Dosya | Oda F1 | TP/FP/FN | IoU | Kapı F1 | Pencere F1 | Kapsama | Issue/oda medyan |
+|---|---:|---|---|---|---|---|---|---|
+| geliştirme | 9 | 0.889 → 0.889 | 165/17/24 → 165/17/24 | 0.888 → 0.893 | 0.845 → 0.845 | 0.713 → 0.713 | 49/198 (0.25) → 49/198 (0.25) | 0.83 → 0.79 |
+| holdout | 2 | 0.873 → 0.873 | 24/3/4 → 24/3/4 | 0.859 → 0.858 | 0.706 → 0.706 | 0.651 → 0.651 | 14/38 (0.37) → 14/38 (0.37) | 1.31 → 1.31 |
+| toplam | 11 | 0.887 → 0.887 | 189/20/28 → 189/20/28 | 0.883 → 0.886 | 0.83 → 0.83 | 0.706 → 0.706 | 63/236 (0.27) → 63/236 (0.27) | 0.83 → 0.79 |
+
+| Dosya | Küme | Oda TP/FP/FN önce → sonra | Oda F1 | Kapı F1 | Pencere F1 | Issue/oda | FN farkı |
+|---|---|---|---|---|---|---|---|
+| KAYAPINAR_2892_ADA_8_PARSEL_ | gel. | 13/8/5 → 13/8/5 | 0.667 → 0.667 | 1.0 → 1.0 | 1.0 → 1.0 | 1.52 → 1.52 |  |
+| hafif_celik_tip_koy_konutu_7 | gel. | 7/0/1 → 7/0/1 | 0.933 → 0.933 | 0.923 → 0.923 | 0.267 → 0.267 | 0.57 → 0.57 |  |
+| input-2-clean | gel. | 8/0/0 → 8/0/0 | 1.0 → 1.0 | 0.909 → 0.909 | 0.857 → 0.857 | 1.00 → 1.00 |  |
+| src02-02 | gel. | 8/0/2 → 8/0/2 | 0.889 → 0.889 | 0.7 → 0.7 | 0.0 → 0.0 | 0.62 → 0.62 |  |
+| src02-07 | gel. | 24/5/5 → 24/5/5 | 0.828 → 0.828 | 0.952 → 0.952 | 0.774 → 0.774 | 0.79 → 0.79 |  |
+| src02-09 | holdout | 13/3/3 → 13/3/3 | 0.812 → 0.812 | 0.4 → 0.4 | 0.286 → 0.286 | 1.31 → 1.31 |  |
+| src02-12 | gel. | 75/3/8 → 75/3/8 | 0.932 → 0.932 | 0.748 → 0.748 | 0.582 → 0.582 | 0.74 → 0.74 |  |
+| tip-1_mimari | gel. | 10/0/1 → 10/0/1 | 0.952 → 0.952 | 0.857 → 0.857 | 0.333 → 0.333 | 1.50 → 1.40 |  |
+| tip-2_mimari | gel. | 9/0/2 → 9/0/2 | 0.9 → 0.9 | 0.947 → 0.947 | 0.824 → 0.824 | 1.11 → 1.00 |  |
+| tip-4_mimari | gel. | 11/1/0 → 11/1/0 | 0.957 → 0.957 | 1.0 → 1.0 | 1.0 → 1.0 | 0.83 → 0.67 |  |
+| tip-6_mimari | holdout | 11/0/1 → 11/0/1 | 0.957 → 0.957 | 0.947 → 0.947 | 0.828 → 0.828 | 0.73 → 0.64 |  |
+
+Issue tipi (11 GT) önce → sonra: {'room_no_door': '40→39', 'area_mismatch': '37→37', 'window_missing': '35→35', 'door_side_ambiguous': '31→31', 'unlabeled_region': '20→20', 'unknown_layer': '17→17', 'ambiguous_opening': '4→4', 'room_merged': '3→3', 'conflicting_layer': '7→3'}
+
+IoU 0,883 → 0,886 (tip-1 0,941 → 0,954, tip-2 0,928 → 0,956, tip-4 0,929 → 0,930); issue/oda medyan 0,83 → 0,79
+(tip-1 1,50 → 1,40, tip-2 1,11 → 1,00, tip-4 0,83 → 0,67, tip-6 0,73 → 0,64; room_no_door 40 → 39). Alan poligonu 55 dosyanın
+12'sinde (116 oda bağlandı; tip ailesi, hafif_celik, ABM M2/ALAN HESAP), 11 GT'de 5. İlk deneme (area katmanı WALL_EXCLUDE dışı) tip-6'da 3 sahte
+ince-çizgi pencere üretti (holdout pencere 0,828 → 0,750) → düzeltildi. (3) hatch_wall denendi, kapıyı geçmedi (DECISIONS).

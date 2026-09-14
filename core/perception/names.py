@@ -21,7 +21,7 @@ from typing import Optional
 
 import yaml
 
-from core.perception.vocab import LAYER_WORDS, fold, has_word, is_non_semantic_layer
+from core.perception.vocab import LAYER_WORDS, fold, has_word, is_area_layer, is_non_semantic_layer
 
 ROOT = Path(__file__).resolve().parents[2]
 PROFILE_DIR = ROOT / "source_profiles"
@@ -41,12 +41,13 @@ class LayerClass(str, Enum):
     furniture = "furniture"; text = "text"; dim = "dim"; grid = "grid"; stair = "stair"; hatch = "hatch"
     revision = "revision"; ignore = "ignore"; unknown = "unknown"
     railing = "railing"                                            # korkuluk/parapet (2026-09-13): graf kenarı, bariyer değil
+    area = "area"                                                  # alan-polyline katmanı (2026-09-14): kapalı polyline oda kaynağı, bariyer değil
 
 
 # Sınıf → tüketici (eski hardcode kümelerin anlamı; DECISIONS Adım 5)
 BARRIER_CLASSES = frozenset({LayerClass.wall, LayerClass.beam, LayerClass.column, LayerClass.chimney, LayerClass.window})
 WALL_SCAN_CLASSES = frozenset({LayerClass.wall})
-WALL_EXCLUDE_CLASSES = frozenset({LayerClass.door, LayerClass.text, LayerClass.stair, LayerClass.beam})
+WALL_EXCLUDE_CLASSES = frozenset({LayerClass.door, LayerClass.text, LayerClass.stair, LayerClass.beam, LayerClass.area})  # area: alan polyline duvar/pencere değil
 DOOR_CLASSES = frozenset({LayerClass.door})
 WINDOW_CLASSES = frozenset({LayerClass.window})
 # Duvar grafı polygonize kenar kümesi (Adım 9, 2026-09-13): yalnız bu sınıflar kenar üretir; window kapı gibi mühürlenir
@@ -56,6 +57,8 @@ GRAPH_EDGE_CLASSES = frozenset({LayerClass.wall, LayerClass.beam, LayerClass.col
 MERGE_THIN_EXEMPT_CLASSES = frozenset({LayerClass.beam})
 # İnce çizgi birleştirmede tek çizgi olsa da 'sert' sayılan sınıflar (korkuluk: merdiven/boşluk kenarı, oda bölmez → birleşmez).
 MERGE_HARD_LINE_CLASSES = frozenset({LayerClass.railing})
+# Oda kaynağı: bu sınıfların kapalı polyline'ları doğrudan oda poligonu (rooms.area_polygons; ağırlık turu 7). Bariyer değil.
+AREA_CLASSES = frozenset({LayerClass.area})
 _ANNOTATION = frozenset({LayerClass.text, LayerClass.dim, LayerClass.grid, LayerClass.hatch, LayerClass.ignore, LayerClass.revision})
 
 
@@ -155,6 +158,8 @@ def keyword_class(layer: str):
     kelimeyi yener (kapı-pencere-yazısı → text); kapı+pencere birlikte → window (düşük güven)."""
     hits = {c for c, words in LAYER_WORDS.items() if has_word(layer, words)}
     hits = {LayerClass(c) for c in hits}
+    if is_area_layer(layer):                                        # alan kelimesi (tam kelime) açıklama kelimesini yener (A_ANNO_AREA_NET → area)
+        return LayerClass.area, KEYWORD_CONF
     if not hits:
         return LayerClass.unknown, 0.0
     ann = hits & _ANNOTATION

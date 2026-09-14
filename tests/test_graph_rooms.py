@@ -161,3 +161,19 @@ def test_stair_split_footprint_and_edges():
     assert len(fps) == 1 and fps[0].contains(__import__("shapely.geometry", fromlist=["Point"]).Point(100, 150))
     edges = stair_edge_segments(ot, fps, ang_tol_deg=10.0, shrink=15.0)
     assert set(edges) == {perim[1], perim[3]}                                   # yalnız kova yan duvarları; çarpı ve iç çizgi değil
+
+
+def test_area_polygons_bind_single_label():
+    """Alan-polyline kaynağı: kapalı poligon tam bir etiketi içeriyorsa o odanın poligonu; 0 ya da ≥2 etiket kullanılmaz."""
+    from shapely.geometry import Polygon
+    from core.perception.rooms import apply_area_polygons
+    from core.perception.names import keyword_class, LayerClass, WALL_EXCLUDE_CLASSES
+    assert keyword_class("A_ANNO_AREA_NET")[0] is LayerClass.area and keyword_class("NET ALAN")[0] is LayerClass.area
+    assert keyword_class("YALITIM2")[0] is not LayerClass.area and LayerClass.area in WALL_EXCLUDE_CLASSES
+    a = Room(raw_name="SALON", label_xy=(100, 100)); b = Room(raw_name="MUTFAK", label_xy=(400, 100))
+    polys = [Polygon([(0, 0), (200, 0), (200, 200), (0, 200)]),            # yalnız SALON
+             Polygon([(0, 0), (600, 0), (600, 200), (0, 200)]),            # ikisi → atla
+             Polygon([(700, 0), (800, 0), (800, 100), (700, 100)])]        # etiketsiz → atla
+    st = {}
+    hit = apply_area_polygons([a, b], polys, st)
+    assert set(hit) == {id(a)} and abs(hit[id(a)].area - 40000) < 1 and st["area_skipped_2plus"] == 1 and st["area_skipped_0"] == 1

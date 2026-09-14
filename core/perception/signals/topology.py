@@ -22,6 +22,12 @@ def graph_connectivity(segment, wall_graph=None) -> float | None:
 ROOM_FLOOD_SIGNALS = ("flood_exclusive", "alias_merge", "voronoi", "edge_fragment", "fallback")
 
 
+def area_polyline(hit: bool) -> float | None:
+    """Ağırlık turu 7: odanın etiketi alan-polyline katmanındaki kapalı bir poligonun içinde ve poligon yalnız bu etiketi
+    içeriyor → 1 (poligon oda geometrisi olur). Alan katmanı yoksa None."""
+    return 1.0 if hit else None
+
+
 def flood_outcome(source: str) -> dict:
     """Oda ayrıştırma sonucu → tek-sıcak sinyaller (geçiş, Adım 6): kaynak sinyali 1, diğerleri None
     (değerlendirilmedi; çelişki sayılmaz). Kaynaklar: exclusive | alias_merge | voronoi | edge_fragment | fallback."""

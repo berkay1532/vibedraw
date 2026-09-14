@@ -10,6 +10,8 @@ buraya taşındı; mantık değişmedi.
 """
 from __future__ import annotations
 
+import re as _re
+
 
 def fold(s: str) -> str:
     """Türkçe güvenli casefold: İ→i, I→ı, sonra casefold. Tüm kelime eşleşmeleri bununla yapılır."""
@@ -105,13 +107,22 @@ LAYER_WORDS = {
     "chimney": ("baca", "chimney"),
     "wall": ("duvar", "wall", "mur", "siva", "sıva", "perde"),
 }
+# Alan-polyline katmanları (ağırlık turu 7): ALAN, NET ALAN, A_ANNO_AREA_NET, M2, .ABM_Alan. Tam kelime (YALITIM2, YAZIALAN değil).
+AREA_LAYER_WORDS = ("alan", "area", "m2", "m²")
+_AREA_RE = _re.compile(r"(^|[^a-z0-9çğıöşü])(" + "|".join(_re.escape(w) for w in AREA_LAYER_WORDS) + r")([^a-z0-9çğıöşü]|$)")
+
+
+def is_area_layer(name: str) -> bool:
+    """Katman adı tam kelime olarak alan/area/m2 içeriyor mu (kapalı polyline = oda kaynağı)."""
+    f1, f2 = folds(str(name or ""))
+    return bool(_AREA_RE.search(f1) or _AREA_RE.search(f2))
+
 
 
 # --- Anlamsız (kalem kalınlığı / çizgi tipi / varsayılan) katman adları --------------------------
 # Ad, içerik hakkında bilgi taşımaz: sınıf yalnız içerik istatistiğinden (names.refine_with_stats) gelir, unknown_layer
 # sorusu üretilmez (2026-09-14). Desenler genel (ofise özgü değil): AA-0.20 (kalem), ÇİZ KALIN / ÇİZ İNCE (çizgi kalınlığı),
 # PEN-3, saf sayı/nokta adlar (0, 1, 0.5, 2.25).
-import re as _re
 NON_SEMANTIC_LAYER_PATTERNS = (
     r"^[a-z]{1,2}-\d+(\.\d+)?$",          # AA-0.20, A-5
     r"^(çiz|ciz|çizgi|cizgi)\b.*$",       # ÇİZ KALIN, ÇİZ İNCE, ÇİZGİ 2

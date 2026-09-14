@@ -66,7 +66,7 @@ graph:                             # Adım 9: duvar grafı (walls.build_wall_gra
   passage_max_m: 1.6
   passage_ang_tol_deg: 15.0
   seal_m: 0.12                     # yüz kenarı mühürü (raster seal_small_m'nin yarısı; 0.25 ince holleri yutuyor)
-  min_room_area_m2: 1.0            # bundan küçük yüz oda değil
+  min_room_area_m2: 1.0            # bundan küçük yüz oda değil (alan-polyline kaynağı için de alt sınır)
   thin_min_m: 0.45                 # 2·alan/çevre bunun altındaysa yüz ince (duvar boşluğu, koridor artığı)
   hole_area_max_frac: 0.5          # delik alanı bu oranı aşan yüz (bina çevresi halkası) elenir
   stair_buffer_m: 0.15             # basamak çizgileri tamponu → ayak izi

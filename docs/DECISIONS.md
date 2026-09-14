@@ -745,3 +745,29 @@ katmanları → `area` sınıfı (ALAN, NET ALAN, MAHAL ALANI, M2, A_ANNO_AREA* 
 0,9), içindeki etiketle bağlanır, flood/graf ile uzlaşır; bariyer değil, kaynak — (3)'ten sonra. Sonra (4) pencere güven
 kalibrasyonu (monoton tablo), (5) tek çizgili duvar + snap toleransı, (6) kalan FN'ler için issue kapsama analizi. Her parça
 ayrı commit, 11 GT + holdout kapısı, aynı tablo.
+
+## 2026-09-14 — Ağırlık turu (3) hatch_wall: DENENDİ, GİRMEDİ
+
+**Deney:** yeni duvar sinyali `hatch_wall` (tarama sınıfı çift ∧ kalınlık dosya modunda → 1; ağırlık 0,65) ve bu çiftler graf
+yüz kenarı (`face_walls`). Tarama sınıfı çiftlerin kalınlık-modu payı dosya bazında %0–%90 (tip ailesi %70–90: A_WALL_PAT
+duvar deseni; src02-12 276/858; fam00 0 — mod yok). 11 GT hızlı koşu: oda 189/20/28 → 189/23/28 (F1 0,887 → 0,881),
+IoU 0,883 → 0,872, kapı/pencere aynı, holdout aynı. src02-12'de +3 FP (hatch kenarları 2,7–9,3 m² aday yüzler üretti,
+GT çekirdek mahalleriyle hizalanmadı; E.BANYO poligonu 1,2 m²'ye daraldı), hedeflenen sağ çekirdek ASANSÖR/MERDİVEN geri
+gelmedi. **Kapı geçmedi → kod geri alındı.** Öğrenilen: tarama sınırı çiftleri kalınlık modunda olsa da duvar hattıyla
+çakışmıyor (dolgu sınırı sıva/kaplama çizgisinden içeride/dışarıda) → mevcut kenarlarla çift hat, sahte yüz. Aday: tarama
+çiftini yalnız yakınında (≤ kalınlık) hiçbir wall-sınıfı kenar YOKSA eklemek (boşluk doldurma), tam kenar kümesi değil.
+
+## 2026-09-14 — Ağırlık turu (7): alan-polyline katmanları → `area` sınıfı, oda kaynağı
+
+**Ne:** `vocab.is_area_layer` (tam kelime: alan / area / m2 / m² — A_ANNO_AREA_NET, ALAN HESAP, M2, .ABM_Alan; YALITIM2 ve
+YAZIALAN değil), `LayerClass.area` (açıklama kelimesini yener), `AREA_CLASSES` tüketici: `rooms.area_polygons` (kapalı
+LWPOLYLINE/POLYLINE, alan ≥ min_room_area) + `apply_area_polygons` (poligon tam olarak BİR odanın etiketini içeriyorsa o odanın
+poligonu; 0 etiket = parsel/etiketsiz, ≥2 etiket = daire/toplam sınırı → kullanılmaz, sayılır). Sinyal `area_polyline` (ağırlık
+0,90), kaynak `area+<flood>`; graf uzlaşması ve kapı bağlama bu poligonla çalışır. Bariyer değil; `WALL_EXCLUDE_CLASSES`'a
+eklendi (ince çizgi pencere adaylarından da dışlanır — ilk denemede net-alan çizgileri tip-6'da 3 sahte pencere üretti,
+holdout pencere 0,828 → 0,750; düzeltildi).
+**Ölçüm (11 GT hızlı koşu):** oda/kapı/pencere F1 aynı; IoU 0,883 → 0,886 (tip-1 0,941 → 0,954, tip-2 0,928 → 0,956,
+tip-6 holdout 0,910 → 0,908 — üçüncü ondalık, kabul); issue/oda medyan 0,83 → 0,79 (room_no_door 40 → 39; tip-4 0,83 → 0,67).
+Alan poligonu yalnız tip ailesinde ve hafif_celik'te var (11 GT'de 5 dosya; 55 dosyada tip-* 16 + hafif_celik 3 + M2/ALAN HESAP
+taşıyan ABM dosyaları). Etiketsiz alan poligonları (area_skipped_0: tip-2 1, tip-4 2) şimdilik aday değil → ileride
+unlabeled_region kaynağı olabilir (aday).
