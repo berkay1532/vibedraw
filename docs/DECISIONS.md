@@ -771,3 +771,22 @@ tip-6 holdout 0,910 → 0,908 — üçüncü ondalık, kabul); issue/oda medyan 
 Alan poligonu yalnız tip ailesinde ve hafif_celik'te var (11 GT'de 5 dosya; 55 dosyada tip-* 16 + hafif_celik 3 + M2/ALAN HESAP
 taşıyan ABM dosyaları). Etiketsiz alan poligonları (area_skipped_0: tip-2 1, tip-4 2) şimdilik aday değil → ileride
 unlabeled_region kaynağı olabilir (aday).
+
+## 2026-09-14 — Ağırlık turu (4): pencere güven kalibrasyonu; holdout'un ilk somut katkısı
+
+**Holdout notu:** (7) alan-polyline turunun ilk denemesinde net-alan çizgileri (A_ANNO_AREA_NET) ince-çizgi pencere adayı
+olabildi; tip-6 (holdout) pencere F1 0,828 → 0,750 ile yan etkiyi yakaladı, geliştirme kümesinde görünmüyordu (tip-1/2/4 pencere
+aynı kaldı). Holdout kapısının ilk somut katkısı; düzeltme: area sınıfı WALL_EXCLUDE_CLASSES'a.
+**Pencere kalibrasyonu:** kaynak doğruluğu geliştirme kümesinde (9 GT): layer 0,79 (n=61), block_keyword 0,70 (54),
+block_geometry 0,44 (84), thin_lines 0,00 (11); holdout: block_keyword 0,76 (17), block_geometry 0,17 (6), thin_lines 0,00 (3).
+Eski ağırlıklar (0,85 / 0,85 / 0,70 / 0,30) tek dilime yığıyordu (0,7–0,9: 0,62, n=222). Yeni: layer 0,80, block_keyword 0,65
+(0,70 kalibre; dilim sınırı altında tutuldu), block_geometry 0,45, thin_lines 0,05 (kaynak kaldırılmadı, kanıt kalır; aday:
+thin_lines tamamen kapatılırsa 14 FP düşer — ayrı karar). `ir_compat.WINDOW_CONF` geçiş tablosu aynı değerlere çekildi.
+**Kalibrasyon tablosu (yeni, dev):** 0–0,5 → 0,39 (n=95), 0,5–0,7 → 0,70 (54), 0,7–0,9 → 0,79 (61): monoton ✓; holdout
+0–0,5 → 0,11 (9), 0,5–0,7 → 0,76 (17). F1/TP/FP/FN değişmez (güven çıktıyı elemez); değişen: block_geometry < 0,5 →
+penceresiz odaya değen adaylar `ambiguous_opening` toplu sorusuna girer: window_fp kapsamı 8/99 → 36/99 (dev 33/87, holdout 3/12);
+ambiguous_opening issue 4 → 6 (dosya başına tek soru); kapsama 0,27 → 0,39.
+**Triage notu (kullanıcı sorusu):** src02 ailelerinde alan-polyline katmanı var mı? — yalnız src02-08'de ('ABM.ALAN':
+32 kapalı poligon, 26 oda bağlandı, 4 etiketsiz, 2 çok etiketli); diğer 14 src02 dosyasında alan/area/m2 tam kelimeli katman
+yok (area_polys = 0). src02-08 GT'siz → kazanç ölçülemedi; GT önceliği adayı (fam02 için ikinci GT). Alan kaynağı 55 dosyanın
+12'sinde (tip ailesi, hafif_celik, ABM M2/ALAN HESAP, src02-08).

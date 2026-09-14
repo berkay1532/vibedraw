@@ -324,3 +324,34 @@ IoU 0,883 → 0,886 (tip-1 0,941 → 0,954, tip-2 0,928 → 0,956, tip-4 0,929 �
 (tip-1 1,50 → 1,40, tip-2 1,11 → 1,00, tip-4 0,83 → 0,67, tip-6 0,73 → 0,64; room_no_door 40 → 39). Alan poligonu 55 dosyanın
 12'sinde (116 oda bağlandı; tip ailesi, hafif_celik, ABM M2/ALAN HESAP), 11 GT'de 5. İlk deneme (area katmanı WALL_EXCLUDE dışı) tip-6'da 3 sahte
 ince-çizgi pencere üretti (holdout pencere 0,828 → 0,750) → düzeltildi. (3) hatch_wall denendi, kapıyı geçmedi (DECISIONS).
+
+### Ağırlık turu (4) — pencere güven kalibrasyonu (2026-09-14; 55 dosya, 11 GT)
+
+`weights.yaml window`: layer 0,85 → 0,80, block_keyword 0,85 → 0,65, block_geometry 0,70 → 0,45, thin_lines 0,30 → 0,05
+(geliştirme kümesi kaynak doğruluğu: 0,79 / 0,70 / 0,44 / 0,00). F1/TP/FP/FN değişmez (güven çıktıyı elemez); kalibrasyon
+tablosu (11 GT) 0–0,5 → 0,37 (n=104), 0,5–0,7 → 0,72 (71), 0,7–0,9 → 0,79 (61): **monoton** ✓ (eski: tek dilim 0,7–0,9 → 0,62,
+n=222). block_geometry < ambiguous_opening_conf (0,5) → penceresiz odaya değen adaylar toplu soruya girer: window_fp kapsamı
+8/99 → **36/99** (dev 33/87, holdout 3/12); ambiguous_opening 4 → 6 issue (dosya başına tek); kapsama 63/236 (0,27) → 91/236
+(0,39); issue/oda medyan 0,79 → 0,83. Holdout: kaynak doğruluğu block_keyword 0,76 (17), block_geometry 0,17 (6).
+
+| Küme | Dosya | Oda F1 | TP/FP/FN | IoU | Kapı F1 | Pencere F1 | Kapsama | Issue/oda medyan |
+|---|---:|---|---|---|---|---|---|---|
+| geliştirme | 9 | 0.889 → 0.889 | 165/17/24 → 165/17/24 | 0.893 → 0.893 | 0.845 → 0.845 | 0.713 → 0.713 | 49/198 (0.25) → 75/198 (0.38) | 0.79 → 0.83 |
+| holdout | 2 | 0.873 → 0.873 | 24/3/4 → 24/3/4 | 0.858 → 0.858 | 0.706 → 0.706 | 0.651 → 0.651 | 14/38 (0.37) → 16/38 (0.42) | 1.31 → 1.31 |
+| toplam | 11 | 0.887 → 0.887 | 189/20/28 → 189/20/28 | 0.886 → 0.886 | 0.83 → 0.83 | 0.706 → 0.706 | 63/236 (0.27) → 91/236 (0.39) | 0.79 → 0.83 |
+
+| Dosya | Küme | Oda TP/FP/FN önce → sonra | Oda F1 | Kapı F1 | Pencere F1 | Issue/oda | FN farkı |
+|---|---|---|---|---|---|---|---|
+| KAYAPINAR_2892_ADA_8_PARSEL_ | gel. | 13/8/5 → 13/8/5 | 0.667 → 0.667 | 1.0 → 1.0 | 1.0 → 1.0 | 1.52 → 1.52 |  |
+| hafif_celik_tip_koy_konutu_7 | gel. | 7/0/1 → 7/0/1 | 0.933 → 0.933 | 0.923 → 0.923 | 0.267 → 0.267 | 0.57 → 0.71 |  |
+| input-2-clean | gel. | 8/0/0 → 8/0/0 | 1.0 → 1.0 | 0.909 → 0.909 | 0.857 → 0.857 | 1.00 → 1.00 |  |
+| src02-02 | gel. | 8/0/2 → 8/0/2 | 0.889 → 0.889 | 0.7 → 0.7 | 0.0 → 0.0 | 0.62 → 0.62 |  |
+| src02-07 | gel. | 24/5/5 → 24/5/5 | 0.828 → 0.828 | 0.952 → 0.952 | 0.774 → 0.774 | 0.79 → 0.83 |  |
+| src02-09 | holdout | 13/3/3 → 13/3/3 | 0.812 → 0.812 | 0.4 → 0.4 | 0.286 → 0.286 | 1.31 → 1.31 |  |
+| src02-12 | gel. | 75/3/8 → 75/3/8 | 0.932 → 0.932 | 0.748 → 0.748 | 0.582 → 0.582 | 0.74 → 0.74 |  |
+| tip-1_mimari | gel. | 10/0/1 → 10/0/1 | 0.952 → 0.952 | 0.857 → 0.857 | 0.333 → 0.333 | 1.40 → 1.40 |  |
+| tip-2_mimari | gel. | 9/0/2 → 9/0/2 | 0.9 → 0.9 | 0.947 → 0.947 | 0.824 → 0.824 | 1.00 → 1.00 |  |
+| tip-4_mimari | gel. | 11/1/0 → 11/1/0 | 0.957 → 0.957 | 1.0 → 1.0 | 1.0 → 1.0 | 0.67 → 0.67 |  |
+| tip-6_mimari | holdout | 11/0/1 → 11/0/1 | 0.957 → 0.957 | 0.947 → 0.947 | 0.828 → 0.828 | 0.64 → 0.64 |  |
+
+Issue tipi (11 GT) önce → sonra: {'room_no_door': '39→39', 'area_mismatch': '37→37', 'window_missing': '35→35', 'door_side_ambiguous': '31→31', 'unlabeled_region': '20→20', 'unknown_layer': '17→17', 'ambiguous_opening': '4→6', 'room_merged': '3→3', 'conflicting_layer': '3→3'}
