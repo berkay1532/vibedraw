@@ -790,3 +790,21 @@ ambiguous_opening issue 4 → 6 (dosya başına tek soru); kapsama 0,27 → 0,39
 32 kapalı poligon, 26 oda bağlandı, 4 etiketsiz, 2 çok etiketli); diğer 14 src02 dosyasında alan/area/m2 tam kelimeli katman
 yok (area_polys = 0). src02-08 GT'siz → kazanç ölçülemedi; GT önceliği adayı (fam02 için ikinci GT). Alan kaynağı 55 dosyanın
 12'sinde (tip ailesi, hafif_celik, ABM M2/ALAN HESAP, src02-08).
+
+## 2026-09-15 — Ağırlık turu (4b): pencere çıktı eşiği (`output_threshold.window`)
+
+**Ne:** güven < eşik pencere `status: candidate` — IR'da kalır (kanıt, ambiguous_opening sorusu, window_missing "aday" sayımı),
+tespit sayılmaz (`ir_compat.floor_v2_to_eval` candidate ve human_rejected'ı atlar → evaluate ve tüketiciler). Oda/kapı
+dokunulmadı.
+**Ölçüm (koşu çıktısı üzerinde, güvene göre eleme; 11 GT):**
+
+| eşik | dev TP/FP/FN | dev F1 | holdout TP/FP/FN | holdout F1 | toplam F1 |
+|---|---|---|---|---|---|
+| 0 (yok) | 123/87/12 | 0,713 | 14/12/3 | 0,651 | 0,706 |
+| 0,3 | 123/76/12 | 0,737 | 14/9/3 | 0,700 | 0,733 |
+| 0,5 | 86/29/49 | 0,688 | 13/4/4 | 0,765 | 0,697 |
+| 0,6 | 86/29/49 | 0,688 | 13/4/4 | 0,765 | 0,697 |
+
+**Karar: 0,3** — geliştirme ve holdout'ta tutarlı (+0,024 / +0,049; yalnız thin_lines elenir, 0/14 doğru). 0,5 holdout'ta en iyi
+(0,765) ama geliştirmede düşüyor (block_geometry 84 aday: %44 doğru ama 37 TP taşıyor) → kural gereği seçilmedi. block_geometry
+adaylarının ayrıştırılması (kaynak içi sinyal: blok adı/boyut/duvar hizası) ağırlık turu sonrası aday.

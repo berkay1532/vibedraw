@@ -53,7 +53,8 @@ def test_v2_json_round_trip_to_eval_dict():
     assert fl["rooms"][0]["polygon"][0] == [0.0, 0.0] and fl["rooms"][2]["polygon"] is None
     assert fl["doors"][0]["xy"] == [400.0, 100.0] and fl["doors"][0]["room_name"] == "Salon"
     assert fl["doors"][0]["confidence"] == 0.95 and fl["doors"][1]["room_name"] == "Hol"
-    assert len(fl["windows"]) == 1 and abs(fl["windows"][0][0][0] - 100.0) < 1e-6
+    # thin_lines güveni (0,05) çıktı eşiğinin (output_threshold.window) altında → status candidate, eval sözlüğüne girmez
+    assert fl["windows"] == [] and pred["floors"][0]["openings"][-1]["status"] == "candidate"
     # v1 JSON de tanınır
     v1 = {"floors": [{"rooms": [], "doors": [], "windows": []}]}
     assert load_floor_for_eval(v1) == v1["floors"][0]

@@ -84,6 +84,8 @@ graph:                             # Adım 9: duvar grafı (walls.build_wall_gra
   merge_min_shared_m: 0.5          # ortak sınır en az bu kadar (köşe teması birleştirmez)
   candidate_hull_buffer_m: 0.3     # aday yüz, etiketli odaların dışbükey zarfının (−bu) içinde olmalı (bina dışı cep elenir)
   candidate_hull_min_frac: 0.8
+output_threshold:                  # çıktı eşiği (ağırlık turu 4b): güven altındaysa status 'candidate', tespit sayılmaz (IR'da kalır)
+  window: 0.3                      # 0,3: dev 0,713 → 0,737, holdout 0,651 → 0,700 (tutarlı); 0,5: dev düşüyor (0,688), holdout artıyor → seçilmedi
 swing:                             # binding._room_by_swing
   cos_min: 0.2
   dist_penalty: 0.4

@@ -355,3 +355,34 @@ n=222). block_geometry < ambiguous_opening_conf (0,5) → penceresiz odaya değe
 | tip-6_mimari | holdout | 11/0/1 → 11/0/1 | 0.957 → 0.957 | 0.947 → 0.947 | 0.828 → 0.828 | 0.64 → 0.64 |  |
 
 Issue tipi (11 GT) önce → sonra: {'room_no_door': '39→39', 'area_mismatch': '37→37', 'window_missing': '35→35', 'door_side_ambiguous': '31→31', 'unlabeled_region': '20→20', 'unknown_layer': '17→17', 'ambiguous_opening': '4→6', 'room_merged': '3→3', 'conflicting_layer': '3→3'}
+
+### Ağırlık turu (4b) — pencere çıktı eşiği 0,3 (2026-09-15; 55 dosya, 11 GT)
+
+`output_threshold.window: 0.3`: güven altındaki pencereler `status: candidate` (IR'da kalır, tespit sayılmaz). Eşik seçimi
+(0,3 / 0,5 / 0,6, dev–holdout tutarlılık) DECISIONS 2026-09-15. Oda/kapı birebir aynı ✓, holdout pencere ↑ ✓.
+
+| Küme | Dosya | Oda F1 | TP/FP/FN | IoU | Kapı F1 | Pencere F1 | Kapsama | Issue/oda medyan |
+|---|---:|---|---|---|---|---|---|---|
+| geliştirme | 9 | 0.889 → 0.889 | 165/17/24 → 165/17/24 | 0.893 → 0.893 | 0.845 → 0.845 | 0.713 → 0.737 | 75/198 (0.38) → 66/187 (0.35) | 0.83 → 0.83 |
+| holdout | 2 | 0.873 → 0.873 | 24/3/4 → 24/3/4 | 0.858 → 0.858 | 0.706 → 0.706 | 0.651 → 0.7 | 16/38 (0.42) → 15/35 (0.43) | 1.31 → 1.31 |
+| toplam | 11 | 0.887 → 0.887 | 189/20/28 → 189/20/28 | 0.886 → 0.886 | 0.83 → 0.83 | 0.706 → 0.733 | 91/236 (0.39) → 81/222 (0.36) | 0.83 → 0.83 |
+
+| Dosya | Küme | Oda TP/FP/FN önce → sonra | Oda F1 | Kapı F1 | Pencere F1 | Issue/oda | FN farkı |
+|---|---|---|---|---|---|---|---|
+| KAYAPINAR_2892_ADA_8_PARSEL_ | gel. | 13/8/5 → 13/8/5 | 0.667 → 0.667 | 1.0 → 1.0 | 1.0 → 1.0 | 1.52 → 1.52 |  |
+| hafif_celik_tip_koy_konutu_7 | gel. | 7/0/1 → 7/0/1 | 0.933 → 0.933 | 0.923 → 0.923 | 0.267 → 0.267 | 0.71 → 0.71 |  |
+| input-2-clean | gel. | 8/0/0 → 8/0/0 | 1.0 → 1.0 | 0.909 → 0.909 | 0.857 → 0.857 | 1.00 → 1.00 |  |
+| src02-02 | gel. | 8/0/2 → 8/0/2 | 0.889 → 0.889 | 0.7 → 0.7 | 0.0 → 0.0 | 0.62 → 0.62 |  |
+| src02-07 | gel. | 24/5/5 → 24/5/5 | 0.828 → 0.828 | 0.952 → 0.952 | 0.774 → 0.791 | 0.83 → 0.83 |  |
+| src02-09 | holdout | 13/3/3 → 13/3/3 | 0.812 → 0.812 | 0.4 → 0.4 | 0.286 → 0.364 | 1.31 → 1.31 |  |
+| src02-12 | gel. | 75/3/8 → 75/3/8 | 0.932 → 0.932 | 0.748 → 0.748 | 0.582 → 0.598 | 0.74 → 0.74 |  |
+| tip-1_mimari | gel. | 10/0/1 → 10/0/1 | 0.952 → 0.952 | 0.857 → 0.857 | 0.333 → 1.0 | 1.40 → 1.40 |  |
+| tip-2_mimari | gel. | 9/0/2 → 9/0/2 | 0.9 → 0.9 | 0.947 → 0.947 | 0.824 → 0.875 | 1.00 → 1.00 |  |
+| tip-4_mimari | gel. | 11/1/0 → 11/1/0 | 0.957 → 0.957 | 1.0 → 1.0 | 1.0 → 1.0 | 0.67 → 0.67 |  |
+| tip-6_mimari | holdout | 11/0/1 → 11/0/1 | 0.957 → 0.957 | 0.947 → 0.947 | 0.828 → 0.828 | 0.64 → 0.64 |  |
+
+Issue tipi (11 GT) önce → sonra: {'room_no_door': '39→39', 'area_mismatch': '37→37', 'window_missing': '35→35', 'door_side_ambiguous': '31→31', 'unlabeled_region': '20→20', 'unknown_layer': '17→17', 'ambiguous_opening': '6→6', 'conflicting_layer': '3→3', 'room_merged': '3→3'}
+
+Pencere: dev 123/87/12 → 123/76/12 (0,713 → 0,737), holdout 14/12/3 → 14/9/3 (0,651 → 0,700), toplam 0,706 → 0,733. Elenen 14
+aday hepsi thin_lines (0/14 doğru). Kapsama 91/236 → 81/222 (0,36): elenen FP'ler kapsam paydasından çıktı (ambiguous_opening
+işaret ettiği 10 thin_lines FP'si dahil). Issue sayıları aynı.

@@ -9,6 +9,8 @@
 """
 from __future__ import annotations
 
+from core.perception.config import T as _T
+
 import math
 from typing import Optional
 
@@ -106,8 +108,11 @@ def to_v2(b1, units_per_meter: float = 100.0, units_source: str = "labels",
             if i < len(wsg) and wsg[i] is not None:                 # Adım 6: scoring.score (weights.yaml window)
                 conf, ev = wsg[i]
             a, b = (float(w[0][0]), float(w[0][1])), (float(w[1][0]), float(w[1][1]))
+            # Çıktı eşiği (ağırlık turu 4b, 2026-09-15): güven < output_threshold.window → status 'candidate' (IR'da kalır,
+            # kanıt ve HITL sorusu için; tespit sayılmaz — eval ve tüketiciler atlar).
+            status = "candidate" if conf < _T("output_threshold", "window") else "auto"
             fl.openings.append(Opening(
-                id=f"op{n_op}", confidence=conf, evidence=ev, kind="window",
+                id=f"op{n_op}", confidence=conf, evidence=ev, kind="window", status=status,
                 center=((a[0] + b[0]) / 2, (a[1] + b[1]) / 2), width=math.hypot(b[0] - a[0], b[1] - a[1])))
         # --- duvarlar (yüz parçaları)
         wsrcs = list(getattr(f1, "wall_sources", []) or [])
@@ -145,6 +150,8 @@ def floor_v2_to_eval(fl: dict) -> dict:
                           "confidence": op.get("confidence"), "source": (op.get("evidence") or {}).get("source"),
                           "strike_xy": None})
         elif op.get("kind") == "window":
+            if op.get("status") in ("candidate", "human_rejected"):     # tespit sayılmaz (çıktı eşiği altı / insan reddi)
+                continue
             c, w = op.get("center"), op.get("width") or 0.0
             # yön bilgisi yok: orta noktadan simetrik yatay parça (ölçüm orta noktayı kullanır)
             windows.append([[c[0] - w / 2, c[1]], [c[0] + w / 2, c[1]]])
