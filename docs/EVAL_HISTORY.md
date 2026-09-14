@@ -251,3 +251,34 @@ unknown KESİT). 11 GT toplam issue 229 → 224; issue/oda medyan 0,97 → 0,92.
 `NameMap.source(layer)` ∈ {hitl, profile:hitl} (dosya cevabı ya da learning/to_profile ile profile giren sınıf) → conflicting_layer
 üretilmez. 11 GT eval birebir aynı (182/33/35; kapı/pencere aynı; holdout aynı); src02-07 24 → 23 issue (Tefriş çelişkisi düştü),
 conflicting_layer 11 GT 8 → 7.
+
+### Ağırlık turu (1) — raster bariyer çiftlerine sınıf/kalınlık sinyali (2026-09-14; 55 dosya, 11 GT)
+
+Paralel çift raster bariyerine girmez ⇔ layer_class == 0 ∧ wall_word == 0 ∧ thickness_mode != 1 (`raster.extra_exclude_class_vote`;
+yeni sinyal `wall_word`, ağırlık 0). Kapı/pencere yolu dokunulmadı. Kapı: kapı/pencere aynı ✓, holdout F1 aynı ✓ (IoU −0,001).
+
+| Küme | Dosya | Oda F1 | TP/FP/FN | IoU | Kapı F1 | Pencere F1 | Kapsama | Issue/oda medyan |
+|---|---:|---|---|---|---|---|---|---|
+| geliştirme | 9 | 0.838 → 0.889 | 158/30/31 → 165/17/24 | 0.896 → 0.888 | 0.845 → 0.845 | 0.713 → 0.713 | 63/217 (0.29) → 49/198 (0.25) | 0.92 → 0.83 |
+| holdout | 2 | 0.873 → 0.873 | 24/3/4 → 24/3/4 | 0.86 → 0.859 | 0.706 → 0.706 | 0.651 → 0.651 | 14/38 (0.37) → 14/38 (0.37) | 1.31 → 1.31 |
+| toplam | 11 | 0.843 → 0.887 | 182/33/35 → 189/20/28 | 0.89 → 0.883 | 0.83 → 0.83 | 0.706 → 0.706 | 77/255 (0.30) → 63/236 (0.27) | 0.92 → 0.83 |
+
+| Dosya | Küme | Oda TP/FP/FN önce → sonra | Oda F1 | Kapı F1 | Pencere F1 | Issue/oda | FN farkı |
+|---|---|---|---|---|---|---|---|
+| KAYAPINAR_2892_ADA_8_PARSEL_ | gel. | 11/10/7 → 13/8/5 | 0.564 → 0.667 | 1.0 → 1.0 | 1.0 → 1.0 | 1.62 → 1.52 |  −Mutfak,Mutfak |
+| hafif_celik_tip_koy_konutu_7 | gel. | 7/0/1 → 7/0/1 | 0.933 → 0.933 | 0.923 → 0.923 | 0.267 → 0.267 | 0.57 → 0.57 |  |
+| input-2-clean | gel. | 8/0/0 → 8/0/0 | 1.0 → 1.0 | 0.909 → 0.909 | 0.857 → 0.857 | 1.00 → 1.00 |  |
+| src02-02 | gel. | 7/1/3 → 8/0/2 | 0.778 → 0.889 | 0.7 → 0.7 | 0.0 → 0.0 | 0.62 → 0.62 |  −MERDİVEN |
+| src02-07 | gel. | 24/5/5 → 24/5/5 | 0.828 → 0.828 | 0.952 → 0.952 | 0.774 → 0.774 | 0.79 → 0.79 |  |
+| src02-09 | holdout | 13/3/3 → 13/3/3 | 0.812 → 0.812 | 0.4 → 0.4 | 0.286 → 0.286 | 1.31 → 1.31 |  |
+| src02-12 | gel. | 71/13/12 → 75/3/8 | 0.85 → 0.932 | 0.748 → 0.748 | 0.582 → 0.582 | 0.92 → 0.74 | +KAT HOLÜ −E.BANYO,BALKON,HOL,BALKON,BALKON |
+| tip-1_mimari | gel. | 10/0/1 → 10/0/1 | 0.952 → 0.952 | 0.857 → 0.857 | 0.333 → 0.333 | 1.50 → 1.50 |  |
+| tip-2_mimari | gel. | 9/0/2 → 9/0/2 | 0.9 → 0.9 | 0.947 → 0.947 | 0.824 → 0.824 | 1.11 → 1.11 |  |
+| tip-4_mimari | gel. | 11/1/0 → 11/1/0 | 0.957 → 0.957 | 1.0 → 1.0 | 1.0 → 1.0 | 0.83 → 0.83 |  |
+| tip-6_mimari | holdout | 11/0/1 → 11/0/1 | 0.957 → 0.957 | 0.947 → 0.947 | 0.828 → 0.828 | 0.73 → 0.73 |  |
+
+Issue tipi (11 GT) önce → sonra: {'room_no_door': '40→40', 'area_mismatch': '50→37', 'window_missing': '35→35', 'door_side_ambiguous': '31→31', 'unlabeled_region': '26→20', 'unknown_layer': '17→17', 'conflicting_layer': '7→7', 'ambiguous_opening': '4→4', 'room_merged': '3→3', 'open_room': '2→0'}
+
+Aile: src02 aile B (fam02) 0,844 → 0,912; ABM (fam04) 0,691 → 0,764; src02 A + diğer 0,826 → 0,857; tip 0,943 aynı (IoU 0,922 → 0,927).
+Issue 224 → 195 (area_mismatch 50 → 37, unlabeled_region 26 → 20, open_room 2 → 0); issue/oda medyan 0,92 → 0,83.
+Kapsama 0,30 → 0,27 (hatalı varlık 255 → 236; kapsanan 77 → 63). Deney kayıtları (r1/r2 vs r3, tip-1 HOL, tip-6 IoU) DECISIONS.

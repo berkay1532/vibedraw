@@ -15,6 +15,7 @@ wall:
   weights:
     parallel_pair: 0.60          # eski "pair" güveni
     layer_class: 0.70            # + uyum bonusu 0.20 → eski "pair+layer" 0.90
+    wall_word: 0.0               # ağırlık turu 1: adında duvar kelimesi (A_WALL_PAT); raster bariyer kararında kullanılır, güvene katkı 0 (eval sabit)
     thickness_mode: 0.0          # iskelet: hesaplanır, ağırlık holdout ayarına kadar 0
     graph_connectivity: 0.0      # iskelet: henüz hesaplanmıyor (None)
   agreement_bonus: 0.20

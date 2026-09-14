@@ -722,3 +722,20 @@ küçük): fam10'da flood-fill poligonları sistematik daralıyor. Neden graf ta
 çiziyor, oda ince çizgilerle parçalanıyor (SALON+MUTFAK 19 m² → 10,8; HOL 5,4 → 2,2; KAT HOLÜ 14,1 → 2,0). Aday: raster
 extra_segs'e yalnız `layer_class`/`thickness_mode` sinyali yüksek çiftler (GRAPH_EDGE_CLASSES ile aynı küme + kalınlık modu),
 ya da flood poligonunu graf yüzüyle değiştirme (`graph_extends`). Kapı/pencere tarafı etkilenmesin diye ayrı ölçüm.
+
+## 2026-09-14 — Ağırlık turu (1): raster flood-fill daralması — bariyer çiftlerine sınıf/kalınlık sinyali
+
+**Ne:** `_Raster(extra_segs)` artık `floor.walls`'ın tamamı değil: bir paralel çift, üç sinyal birden aleyhteyse bariyer
+olarak çizilmez — `layer_class == 0` (bilinen, bariyer dışı sınıf) ∧ `wall_word == 0` (adında duvar kelimesi yok; yeni sinyal
+`signals/layer.wall_word`, ağırlık 0 → duvar güveni değişmez) ∧ `thickness_mode != 1` (kalınlık dosya modunda değil).
+Sınıfı bilinmeyen çiftler ('0', AA-*) bariyer kalır. Eşik `raster.extra_exclude_class_vote`. Kapı/pencere yolu dokunulmadı.
+**Referans:** fam10 area_mismatch cevapları (10/12 "yazı doğru"): ..taramam / TARAMA / _TEFRİŞ / KİRİŞ İZD / Tefriş ikili
+hatları odaları bölüyordu.
+**Deneyler (11 GT, hızlı koşu):**
+- r1/r2 yalnız `layer_class == 0` (+ wall_word): 182/33/35 → 189/18/28 (F1 0,892) ama tip-1 HOL kaybı (A_ANNO_AREA_NET net-alan
+  çiftleri HOL–ANTRE arasındaki tek bariyerdi) ve holdout tip-6 IoU 0,912 → 0,897 (F1 aynı).
+- r3 (+ thickness_mode koşulu): 189/20/28 (F1 0,887), tip-1 korundu, holdout IoU 0,860 → 0,859, F1 aynı → **seçildi**
+  (holdout kapısı). src02-12 76/2/7 yerine 75/3/8 — ..taramam çiftlerinin 276/858'i kalınlık modunda, bariyer kaldı.
+**Gözlem:** tip ailesinde net-alan (A_ANNO_*) polilineleri oda sınırıyla çakışıyor; "şanslı bariyer". Gerçek açık geçiş
+(HOL–ANTRE, kapısız) raster tarafında yalnız mühürle kapanıyor; graf tarafındaki passage_closures'ın raster karşılığı yok →
+aday (ağırlık turu 5 ile birlikte).

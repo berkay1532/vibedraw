@@ -29,7 +29,7 @@ from core.perception.signals.block import block_class, window_source
 from core.perception.calibration import thickness_modes
 from core.perception.names import GRAPH_EDGE_CLASSES, MERGE_HARD_LINE_CLASSES, MERGE_THIN_EXEMPT_CLASSES, WALL_SCAN_CLASSES
 from core.perception.signals.geometry import arc_signature, parallel_pair, thickness_mode, wall_gap
-from core.perception.signals.layer import layer_class_vote, layer_raw
+from core.perception.signals.layer import layer_class_vote, layer_raw, wall_word
 from core.perception.signals.topology import flood_outcome, graph_connectivity, room_boundary
 from core.perception.parse import (cluster_floors_2d, dedupe_labels, extract_room_labels, grid_likeness,
                                    pick_plan_floor)
@@ -105,6 +105,7 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
         for (a, b), src, lay, thk in zip(floor.walls, floor.wall_sources, w_lays, w_thick):
             sig = {"parallel_pair": parallel_pair(True),
                    "layer_class": layer_class_vote(lay, WALL_SCAN_CLASSES, names),
+                   "wall_word": wall_word(lay),
                    "thickness_mode": thickness_mode(thk / units_per_meter if (thk is not None and units_per_meter) else None, modes, tol),
                    "graph_connectivity": graph_connectivity((a, b))}
             floor.wall_signals.append(score("wall", sig, src))
@@ -152,7 +153,22 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
         floor.wall_graph = wg
         floor.graph_faces = graph_faces(wg, _upm, GG, stair_polys, seal_units=GG["seal_m"] * _upm) if wg.face_edges else []
         wg.stats["faces"] = len(floor.graph_faces); wg.stats["stair_footprints"] = len(stair_polys)
-        extra = floor.walls + floor.windows + barriers
+        # Raster bariyeri (ağırlık turu 1, 2026-09-14): paralel çiftler katman bağımsız bulunur; bariyer olarak çizilmeyen
+        # çift = üç sinyal birden aleyhte: layer_class == 0 (bilinen, bariyer dışı sınıf: hatch/furniture/text/dim/stair/
+        # railing/grid/ignore/…) VE adında duvar kelimesi yok (wall_word: A_WALL_PAT kalır) VE kalınlığı dosya modunda değil
+        # (thickness_mode: A_ANNO_AREA_NET net-alan çiftleri kalır — tip ailesi). Sınıfı bilinmeyen çiftler kalır.
+        # Neden: ..taramam/TARAMA/_TEFRİŞ/KİRİŞ İZD ikili hatları odayı bölüyordu (fam10 area_mismatch cevaplarının 10/12'si
+        # 'yazı doğru'); 11 GT oda 182/33/35 → 189/20/28, kapı/pencere aynı; holdout F1 aynı.
+        RB = T("raster")
+        if RB.get("extra_exclude_class_vote"):
+            def _barrier_ok(lay, thk):
+                lc = layer_class_vote(lay, WALL_SCAN_CLASSES, names)
+                tm = thickness_mode(thk / units_per_meter if (thk is not None and units_per_meter) else None, modes, tol)
+                return not (lc == 0.0 and not wall_word(lay) and tm != 1.0)
+            extra_walls = [w for w, lay, thk in zip(floor.walls, floor.wall_layers, floor.wall_thickness) if _barrier_ok(lay, thk)]
+        else:
+            extra_walls = list(floor.walls)
+        extra = extra_walls + floor.windows + barriers
         seal_small = (max(TR["seal_small_min_px"], int(round(TR["seal_small_m"] * units_per_meter / res)))
                       if units_per_meter else max(TR["seal_small_min_px"], seal // TR["seal_fallback_div"]))
         seals = sorted({seal_small, seal})

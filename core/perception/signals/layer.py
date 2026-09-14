@@ -13,6 +13,16 @@ def layer_class(layer: str | None, classes, names: NameMap = EMPTY) -> float:
     return float(conf) if c in classes else 0.0
 
 
+def wall_word(layer: str | None) -> float | None:
+    """Katman ADINDA duvar kelimesi var mı (sınıftan bağımsız): A_WALL_PAT (sınıf hatch) → 1. Duvar taraması/deseni
+    katmanlarının sınır çizgileri duvar geometrisidir; layer_class=0 oyu tek başına raster bariyerinden düşürmesin
+    (ağırlık turu 1). Ad yoksa None."""
+    from core.perception.vocab import LAYER_WORDS, has_word
+    if not layer:
+        return None
+    return 1.0 if has_word(layer, LAYER_WORDS["wall"]) else 0.0
+
+
 def layer_raw(from_door_layer: bool) -> float:
     """Adım 6 geçiş sinyali: aday ham kapı-katmanı kümelemesinden (layer_raw yolu) geliyorsa 1."""
     return 1.0 if from_door_layer else 0.0

@@ -20,6 +20,7 @@ raster:
   seed_radius_fallback_px: 12
   min_room_px: 30          # bu kadar pikselden küçük bölge oda değil (fallback)
   door_seg_ladder_m: [0.15, 1.0]   # kapı katmanı çizgilerinde merdiven basamağı elemesi (m)
+  extra_exclude_class_vote: true   # layer_class=0 ∧ duvar kelimesi yok ∧ kalınlık modunda değil → paralel çift raster bariyerine girmez (ağırlık turu 1)
 wall:
   thickness_m: [0.06, 0.45]        # paralel çift kalınlık aralığı (m); 6 cm: duş kabini camı elenir
   min_overlap_m: 0.18
