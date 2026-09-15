@@ -386,3 +386,18 @@ Issue tipi (11 GT) önce → sonra: {'room_no_door': '39→39', 'area_mismatch':
 Pencere: dev 123/87/12 → 123/76/12 (0,713 → 0,737), holdout 14/12/3 → 14/9/3 (0,651 → 0,700), toplam 0,706 → 0,733. Elenen 14
 aday hepsi thin_lines (0/14 doğru). Kapsama 91/236 → 81/222 (0,36): elenen FP'ler kapsam paydasından çıktı (ambiguous_opening
 işaret ettiği 10 thin_lines FP'si dahil). Issue sayıları aynı.
+
+### Ağırlık turu (6) — ölçüm tanımı: küçük şaft satırı + kapsama kuralı düzeltmesi (2026-09-15; kod değişmedi, koşu 91919e0)
+
+`config/eval.yaml` (algılama hash'i dışında): `shaft_max_m2` 1,0 — GT'de alanı ≤ 1 m² şaft/teknik mahaller oda F1 dışında,
+ayrı `shaft` satırı (GT_GUIDE kural 3); `fn_overlap` 0,3 ve ROOM_ISSUES += unlabeled_region (kapsama). Aynı koşu çıktısı:
+
+| Varlık | önce | sonra |
+|---|---|---|
+| rooms TP/FP/FN, F1 | 189/20/28, 0,887 | 189/20/25, **0,894** (IoU 0,886 aynı) |
+| shaft (yeni satır) | – | 0 / 3 (KAYAPINAR, tip-1, tip-2; 0,3–0,4 m²) |
+| doors / windows | 0,830 / 0,733 | aynı |
+| kapsama | 81/222 (0,36) | 91/219 (0,42): room_fp 11/20 → 19/20, room_fn 13/28 → 15/25 |
+
+Geliştirme 165/17/24 → 165/17/21 (0,889 → 0,897); holdout 24/3/4 → 24/3/4 (aynı; küçük şaft yok). FN/FP desen analizi
+(28 FN + 20 FP tek tek) DECISIONS 2026-09-15 (6).

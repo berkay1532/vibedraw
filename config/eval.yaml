@@ -1,0 +1,4 @@
+# Ölçüm kuralları (metrics.py / evaluate.py). Algılama kodu hash'i DIŞINDA: değişince koşu tazeliği bozulmaz,
+# yalnız ölçüm değişir (EVAL_HISTORY'de not düşülür).
+shaft_max_m2: 1.0        # GT_GUIDE: alanı ≤ bu olan şaft/teknik mahaller oda F1 dışında, ayrı 'shaft' satırında sayılır
+fn_overlap: 0.3          # kapsama: FN oda, GT alanının bu oranını örten (ya da merkezini içeren) tahminde oda issue'su varsa kapsanmış

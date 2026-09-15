@@ -824,3 +824,31 @@ tek çizgi kenar olsun (bilinmeyen değil) — ağırlık turu sonrası.
 **KAYAPINAR Banyo FN'lerinin (r9/r10) nedeni tek çizgi değil:** küvet/duşakabin çizgileri bariyer sınıfı katmanda (.DUVAR/KOLON)
 → flood ve graf banyoyu ikiye bölüyor; aday 1,8 m² = küvet içi. Aday: bariyer sınıfı katmandaki KISA kapalı dikdörtgenler
 (≤ 2 m², oda etiketi içermeyen) tefriş sayılsın (sinyal: kapalı küçük çevrit) — ayrı madde.
+
+## 2026-09-15 — Ağırlık turu (6): kalan FN/FP için issue kapsama analizi; küçük şaft kuralı; kapsama kuralı düzeltmesi
+
+Kaynak: 11 GT, koşu 91919e0 (4b sonrası); tablo scratch `fn_fp_analysis.py` çıktısı (dosya × GT × desen × en iyi tahmin × issue).
+
+**FN (28 → küçük şaft kuralıyla 25) — desen, sayı, hangi issue yakalamalıydı, neden üretilmedi, önerilen kural:**
+| desen | n | issue | durum | öneri |
+|---|---:|---|---|---|
+| tahmin GT'den büyük (hol birleşmiş/sızmış): src02-09 HOL ×2, src02-02 KAT HOLÜ, src02-12 MERDİVEN ×2, tip-6 KAT HOLÜ | 6 | area_mismatch / room_no_door | 5'inde üretildi (birleşen büyük odada); tip-6'da yok (area+exclusive kaynağı, alan yazısı yok, kapısı var) | (a) alan poligonu ≥2 etiket içeriyorsa (`area_skipped_2plus`) o etiketler için room_merged; (b) etiketi başka odanın poligonunda kalan (etiket ⊂ komşu poligon) oda → room_merged |
+| dış mahal (balkon/veranda/sahanlık): KAYAPINAR Balkon ×2, src02-07 BALKON ×2, hafif_celik GİRİŞ SAHANLIĞI, tip-2 GİRİŞ VERANDA | 6 | area_mismatch / room_merged | 4'ünde üretildi (daralmış/birleşmiş balkon); 2'sinde hiç tahmin yok (etiket yok, dışbükey zarf dışı) | (10): korkuluk kenarlı, etiketli odaya bitişik yüzler zarf dışında da aday |
+| yalnız etiketsiz aday, IoU < 0,5: KAYAPINAR Banyo ×2, src02-07 KAT HOLÜ, src02-12 ASANSÖR, KULLANILMAYAN ALAN | 5 | unlabeled_region | üretildi (aday üzerinde) — eski kapsama kuralı unlabeled_region'ı oda issue'su saymıyordu | kapsama kuralı: ROOM_ISSUES += unlabeled_region ✓ (bu commit) |
+| hiç tahmin yok (hatch-only çekirdek): src02-12 ASANSÖR ×2, KULLANILMAYAN ALAN, src02-02 ve src02-09 MAKİNE DAİRESİ ASANSÖR | 5 | — | aday yok → hiçbir tip tetiklenemez | (9): tarama alanı dolgu olarak raster bariyerine; aday çıkınca unlabeled_region |
+| tahmin GT'den küçük (parçalı): src02-07 HOL ×2, src02-12 KAT HOLÜ | 3 | area_mismatch | üretildi ama parça GT merkezini içermiyordu → eski kural kapsamıyordu | kapsama kuralı: GT alanının ≥ 0,3'ünü örten tahminde issue varsa kapsanmış ✓ |
+| küçük şaft ≤ 1 m²: KAYAPINAR, tip-1, tip-2 | 3 | — | alt sınır 1 m² | GT_GUIDE kuralı: oda F1 dışı, ayrı `shaft` satırı ✓ (0/3 bulunuyor) |
+
+**FP (20):** etiketli parça 10 (area_mismatch 9'unda; tip-4 ANTRE 3,0 m² / GT 10,9: alan yazısı yok, kapısı var → hiçbir tip;
+öneri: graph_match = 0 ∧ alan yazısı yok ∧ komşu etiketsiz yüz → "oda parçalı" sinyali, mevcut open_room mesajıyla), etiketsiz
+aday 8 (unlabeled_region hepsinde), GT dışı 1 (src02-07 BALKON 96 m²: room_merged + area_mismatch), IoU kayması 1 (src02-12
+KAT HOLÜ: room_no_door). Kapsanmayan tek FP: tip-4 ANTRE.
+
+**Kapsama kuralı düzeltmesi (metrics.py, ölçüm; algılama değişmedi):** ROOM_ISSUES'a unlabeled_region; room_fn için "GT merkezini
+içeren tahmin" yerine "GT alanının ≥ `eval.fn_overlap` 0,3'ünü örten ya da merkezini içeren tahminlerden birinde oda issue'su".
+Sonuç: room_fp 11/20 → 19/20, room_fn 13/28 → 15/25, toplam 81/222 (0,36) → 91/219 (0,42). Kapsanmayan 10 FN: hatch-only
+çekirdek 5, zarf dışı dış mahal 2, tip-6 KAT HOLÜ 1, src02-02 KAT HOLÜ (büyük odada issue yok) 1, src02-12 c_as_sol2 1.
+**Küçük şaft kuralı:** `config/eval.yaml shaft_max_m2` 1,0 (ölçüm parametreleri `config/eval.yaml`'da, algılama hash'i dışında);
+oda 189/20/28 → **189/20/25**, F1 0,887 → 0,894 (kod değişmedi; ölçüm tanımı değişti — EVAL_HISTORY'de ayrı satır).
+Sıradaki parçalar: (8) bariyer katmanında ≤ 2 m² etiketsiz kapalı çevritler tefriş, (9) tarama dolgusu raster bariyeri,
+(10) korkuluk kenarlı dış yüzler zarf dışında aday.

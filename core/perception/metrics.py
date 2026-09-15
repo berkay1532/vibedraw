@@ -24,6 +24,18 @@ from shapely.geometry import Point, Polygon
 
 from core.perception.vocab import fold
 
+_EVAL_CFG = None
+
+
+def E(key: str):
+    """config/eval.yaml (ölçüm kuralları; algılama hash'i dışında)."""
+    global _EVAL_CFG
+    if _EVAL_CFG is None:
+        import yaml
+        from pathlib import Path
+        _EVAL_CFG = yaml.safe_load((Path(__file__).resolve().parents[2] / "config" / "eval.yaml").read_text(encoding="utf-8")) or {}
+    return _EVAL_CFG[key]
+
 
 _AREA_SUFFIX = re.compile(r"A\s*[:=]?\s*\d+(?:[.,]\d+)?\s*m\s*[²2]", re.IGNORECASE)
 
@@ -142,8 +154,27 @@ def evaluate_floor(gt: dict, pred: dict, iou_thr=0.5, door_tol_m=0.5, window_tol
     """gt: ground truth dosyası (dict); pred: pipeline Floor dict'i (rooms/doors/windows)."""
     upm = float(gt.get("units_per_meter") or 100.0)
     gf = gt["floor"]
-    gt_rooms, pr_rooms = gf.get("rooms", []), pred.get("rooms", [])
-    rm = match_rooms(gt_rooms, pr_rooms, iou_thr)
+    gt_rooms_all, pr_rooms = gf.get("rooms", []), pred.get("rooms", [])
+    # Küçük şaft kuralı (GT_GUIDE, 2026-09-15): alan ≤ shaft_max_m2 ve şaft/teknik → oda F1 dışında ayrı 'shaft' satırı.
+    # Şafta eşleşen tahmin oda FP'sinden düşülür.
+    shaft_max = float(E("shaft_max_m2"))
+    def _is_small_shaft(g):
+        try:
+            a = Polygon(g["polygon"]).area / upm ** 2
+        except Exception:
+            return False
+        nm = fold(g.get("name") or ""); tp = fold(g.get("type") or "")
+        return a <= shaft_max and (("saft" in nm) or ("shaft" in nm) or ("shaft" in tp) or (g.get("kind") == "teknik"))
+    gt_keep = [i for i, g in enumerate(gt_rooms_all) if not _is_small_shaft(g)]
+    gt_shafts = [g for i, g in enumerate(gt_rooms_all) if i not in set(gt_keep)]
+    gt_rooms = gt_rooms_all                                      # indeksler orijinal listede kalır (errors, kapsama)
+    sm = match_rooms(gt_shafts, pr_rooms, iou_thr) if gt_shafts else Match()
+    shaft_pred = {pj for _, pj, _ in sm.pairs}
+    _back = [j for j in range(len(pr_rooms)) if j not in shaft_pred]
+    rm = match_rooms([gt_rooms_all[i] for i in gt_keep], [pr_rooms[j] for j in _back], iou_thr)
+    rm.pairs = [(gt_keep[gi], _back[pj], s) for gi, pj, s in rm.pairs]
+    rm.fp = len(_back) - len(rm.pairs)
+    _gt_eval = set(gt_keep)
 
     # Kapılar: konum + bağlantı. Tahmin edilen kapının room_name'i, GT kapının
     # bağladığı odalardan birinin adıyla eşleşiyorsa bağlantı doğru sayılır.
@@ -196,8 +227,8 @@ def evaluate_floor(gt: dict, pred: dict, iou_thr=0.5, door_tol_m=0.5, window_tol
         return d
 
     errors = {
-        "room_fp": [j for j in range(len(pr_rooms)) if j not in {pj for _, pj, _ in rm.pairs}],
-        "room_fn": [i for i in range(len(gt_rooms)) if i not in {gi for gi, _, _ in rm.pairs}],
+        "room_fp": [j for j in range(len(pr_rooms)) if j not in {pj for _, pj, _ in rm.pairs} and j not in shaft_pred],
+        "room_fn": [i for i in range(len(gt_rooms)) if i in _gt_eval and i not in {gi for gi, _, _ in rm.pairs}],
         "room_name": [pj for gi, pj, _ in rm.pairs if pr_rooms[pj].get("raw_name")
                       and _tr_fold(gt_rooms[gi].get("name")) != _tr_fold(pr_rooms[pj].get("raw_name"))],
         "room_kind": [pj for gi, pj, _ in rm.pairs if not pr_rooms[pj].get("raw_name") and pr_rooms[pj].get("kind")
@@ -211,6 +242,7 @@ def evaluate_floor(gt: dict, pred: dict, iou_thr=0.5, door_tol_m=0.5, window_tol
     }
     return {
         "errors": errors,
+        "shaft": {"tp": sm.tp, "fn": sm.fn, "n": len(gt_shafts)},      # küçük şaft (≤ eval.shaft_max_m2): oda F1 dışında
         "rooms": block(rm, mean_iou=(round(rm.mean_iou, 3) if rm.mean_iou is not None else None),
                        name_acc=(round(rm.name_acc, 3) if rm.name_acc is not None else None), name_n=rm.name_n,
                        kind_acc=(round(rm.kind_acc, 3) if rm.kind_acc is not None else None), kind_n=rm.kind_n),
@@ -223,7 +255,7 @@ def evaluate_floor(gt: dict, pred: dict, iou_thr=0.5, door_tol_m=0.5, window_tol
 
 
 # --- Issue kapsama (Adım 7 politika ölçütü) ---------------------------------------------------
-ROOM_ISSUES = {"open_room", "room_no_door", "area_mismatch", "room_merged"}
+ROOM_ISSUES = {"open_room", "room_no_door", "area_mismatch", "room_merged", "unlabeled_region"}   # unlabeled_region: aday FP'yi/FN'yi işaret eder (2026-09-15)
 
 
 def _issue_targets(issues) -> dict:
@@ -268,10 +300,22 @@ def issue_coverage(gt: dict, pred: dict, issues: list, errors: dict) -> dict:
     for j in errors["room_fp"]:
         add("room_fp", bool(tg.get(pr_rooms[j].get("id"), set()) & ROOM_ISSUES))
     for i in errors["room_fn"]:
+        # FN oda: GT odasıyla ≥ fn_overlap örtüşen (ya da merkezini içeren) HERHANGİ bir tahmin odasında oda issue'su varsa
+        # kapsanmış (2026-09-15: parçalı tahmin GT merkezini içermeyebilir; area_mismatch parçada durur)
         g = gf["rooms"][i]; poly = g.get("polygon") or []
         c = ([sum(p[0] for p in poly) / len(poly), sum(p[1] for p in poly) / len(poly)] if poly else None)
         r = _room_containing(c, pr_rooms, upm) if c else None
-        add("room_fn", bool(r and tg.get(r.get("id"), set()) & ROOM_ISSUES))
+        cands = [r] if r else []
+        try:
+            G = Polygon([(float(x), float(y)) for x, y in poly]).buffer(0)
+            for pr in pr_rooms:
+                if pr.get("polygon"):
+                    P = Polygon([(float(x), float(y)) for x, y in pr["polygon"]]).buffer(0)
+                    if G.area > 0 and P.intersection(G).area >= float(E("fn_overlap")) * G.area:
+                        cands.append(pr)
+        except Exception:
+            pass
+        add("room_fn", any(tg.get(pr.get("id"), set()) & ROOM_ISSUES for pr in cands))
     for j in errors["door_fp"]:
         add("door_fp", bool(tg.get(pr_doors[j].get("id"), set()) & {"ambiguous_opening", "door_side_ambiguous"}))
     for i in errors["door_fn"]:

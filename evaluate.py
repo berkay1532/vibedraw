@@ -61,6 +61,7 @@ def main(argv=None) -> int:
             print("  - " + pr, file=sys.stderr)
         return 2
     rows, agg = [], {"rooms": [0, 0, 0], "doors": [0, 0, 0], "windows": [0, 0, 0]}
+    shaft = [0, 0]                              # küçük şaft satırı (GT_GUIDE): tp, n — oda F1 dışında
     ious, names, kinds_acc, derr, conn = [], [], [], [], []
     cal = {"rooms": [], "doors": [], "windows": []}
     cal_src = {"rooms": [], "doors": [], "windows": []}
@@ -96,6 +97,8 @@ def main(argv=None) -> int:
             pair_acc.append((r["doors"]["pair_acc"], r["doors"]["pair_n"]))
         for k in agg:
             agg[k][0] += r[k]["tp"]; agg[k][1] += r[k]["fp"]; agg[k][2] += r[k]["fn"]
+        if r.get("shaft"):
+            shaft[0] += r["shaft"]["tp"]; shaft[1] += r["shaft"]["n"]
         if r["rooms"]["mean_iou"] is not None: ious.append(r["rooms"]["mean_iou"])
         if r["rooms"]["name_acc"] is not None: names.append((r["rooms"]["name_acc"], r["rooms"].get("name_n", 0)))
         if r["rooms"].get("kind_acc") is not None: kinds_acc.append((r["rooms"]["kind_acc"], r["rooms"].get("kind_n", 0)))
@@ -123,6 +126,7 @@ def main(argv=None) -> int:
     for k, (tp, fp, fn) in agg.items():
         p, rc, f1 = prf(tp, fp, fn)
         L.append(f"| {k} | {tp} | {fp} | {fn} | {p:.3f} | {rc:.3f} | {f1:.3f} | {extras[k]} |")
+    L.append(f"| shaft (≤ eval.shaft_max_m2, oda F1 dışı) | {shaft[0]} | – | {shaft[1] - shaft[0]} | – | {(shaft[0] / shaft[1] if shaft[1] else 0):.3f} | – | GT'de {shaft[1]} küçük şaft |")
     if pair_acc:
         n = sum(k for _, k in pair_acc); ok = sum(a * k for a, k in pair_acc)
         L.append(f"\nKapı çift doğruluğu (yalnız rapor): {ok / n:.3f} ({n} kapı)")
