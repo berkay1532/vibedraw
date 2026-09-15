@@ -880,3 +880,18 @@ Hedef (hatch-only çekirdek: src02-12 ASANSÖR ×3, KULLANILMAYAN ALAN; src02-02
 yayı/bloğu ile çakışma sinyali ister (`door_leaves` çevresindeki taramalar hariç) — ve etiketsiz çekirdek için graf tarafında
 tarama sınırı kenar olmalı (hatch_wall denemesi (3) de başarısız). İki deneme birlikte: hatch-only çekirdek bu turda çözülmüyor;
 GT'siz olduğu için src02-13 (kapı blokları, hatch) GT'si gelince yeniden.
+
+## 2026-09-15 — Ağırlık turu (10) korkuluk kenarlı dış yüzler zarf dışında aday: DENENDİ, ETKİSİZ, GİRMEDİ
+
+**Deney:** dışbükey zarf kapısına takılan yüz, sınırının ≥ %25'i korkuluk (railing) çizgisindeyse ve etiketli bir odaya
+≤ 0,3 m bitişikse aday (`exterior_rail` bilgi sinyali). 11 GT hızlı koşu: **birebir aynı**, hiçbir dosyada dış aday üretilmedi.
+Neden: hedef FN'ler (hafif_celik GİRİŞ SAHANLIĞI, tip-2 GİRİŞ VERANDA) railing sınıfı katmanı olmayan dosyalarda (tip ailesi
+A_* adları, hafif_celik yok) ve o dosyalarda zarf dışında hiç yüz yok (faces = matched + absorb; graph_only 0). Korkuluk katmanı
+olan src02/KAYAPINAR dosyalarında balkonlar etiketli → flood odası, graf adayı değil. Kod geri alındı; aday: tip ailesinde
+korkuluk/parapet katman adları (A_RAIL*, A_BALC*?) sözlüğe — önce triage ile ad envanteri.
+
+**Ağırlık turu özeti (2026-09-14/15):** giren: (1) raster bariyer sinyali, (2) graph_extends, (7) area sınıfı, (4) pencere
+kalibrasyonu, (4b) çıktı eşiği, (6) ölçüm kuralları; girmeyen: (3) hatch_wall, (5) tek çizgi/snap, (8) tefriş çevriti,
+(9) tarama dolgusu, (10) dış yüz. 11 GT: oda 0,843 → 0,894 (189/20/25), kapı 0,830 sabit, pencere 0,706 → 0,733, kapsama
+0,30 → 0,42; holdout 0,873 / 0,706 / 0,700. Kalan FN kökleri: hatch-only çekirdek (5), dış mahal (6), birleşmiş hol (6) →
+src02-13 GT'si ve "oda içi iç çevrit = tefriş" fikri sonraki tur.
