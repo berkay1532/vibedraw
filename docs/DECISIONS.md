@@ -852,3 +852,16 @@ Sonuç: room_fp 11/20 → 19/20, room_fn 13/28 → 15/25, toplam 81/222 (0,36) �
 oda 189/20/28 → **189/20/25**, F1 0,887 → 0,894 (kod değişmedi; ölçüm tanımı değişti — EVAL_HISTORY'de ayrı satır).
 Sıradaki parçalar: (8) bariyer katmanında ≤ 2 m² etiketsiz kapalı çevritler tefriş, (9) tarama dolgusu raster bariyeri,
 (10) korkuluk kenarlı dış yüzler zarf dışında aday.
+
+## 2026-09-15 — Ağırlık turu (8) bariyer katmanındaki küçük kapalı çevritler = tefriş: DENENDİ, GİRMEDİ
+
+**Deney:** bariyer sınıfı çizgiler (+ katman bağımsız çiftler) polygonize → alan ≤ 2 m², etiketsiz, kompakt (2A/P ≥ 0,25 m)
+yüzlerin sınır segmentleri raster bariyerinden ve graf kenarlarından düşüldü (`furniture_outline_segments`, `_Raster(skip_segs)`).
+- Yalnız bariyer sınıfı çizgilerle: 11 GT birebir aynı (KAYAPINAR 3 çevrit / 11 segment; banyo değişmedi).
+- + paralel çiftler: 189/20/25 → 188/21/26 (src02-12 E.BANYO 1,2 m² kaybı: etiket küçük poligonun kenarında/dışında →
+  "etiketsiz" sayılıp duvarları silindi); KAYAPINAR yine 13/8/4.
+**Neden işe yaramadı:** KAYAPINAR banyoda küvet bölmesi (1,76 m², KOLON çizgisi + 'ince' çifti) ETİKETİ İÇERİYOR — etiket
+küvet tarafına yazılmış; "etiketsiz çevrit" ölçütü ayıramıyor. Kalan bölüm 0,37 m² kapalı değil (kapı açıklığı). Kod geri alındı.
+**Öğrenilen / aday:** tefriş ayrımı geometriyle değil, oda içi "iç çevrit" olarak yapılmalı: etiketli oda poligonunun İÇİNDE
+kalan ve odanın dış sınırına değmeyen bariyer çevritleri (küvet, tezgâh) → tefriş; bu, flood-fill sonrası ikinci geçiş ister
+(oda = etiketi içeren en büyük kapalı bölge + içindeki adacıklar). Ayrı madde; şimdilik HITL (area_mismatch banyoda üretiliyor).
