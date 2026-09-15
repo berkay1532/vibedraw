@@ -865,3 +865,18 @@ küvet tarafına yazılmış; "etiketsiz çevrit" ölçütü ayıramıyor. Kalan
 **Öğrenilen / aday:** tefriş ayrımı geometriyle değil, oda içi "iç çevrit" olarak yapılmalı: etiketli oda poligonunun İÇİNDE
 kalan ve odanın dış sınırına değmeyen bariyer çevritleri (küvet, tezgâh) → tefriş; bu, flood-fill sonrası ikinci geçiş ister
 (oda = etiketi içeren en büyük kapalı bölge + içindeki adacıklar). Ayrı madde; şimdilik HITL (area_mismatch banyoda üretiliyor).
+
+## 2026-09-15 — Ağırlık turu (9) tarama dolgusu raster bariyeri: DENENDİ, GİRMEDİ
+
+**Deney:** tarama/bariyer sınıfı HATCH poligonları (2·alan/çevre ≤ `hatch_fill_max_thick_m`) raster bariyerine DOLGU olarak
+(`walls.hatch_fill_polygons`, `_Raster(fill_polys)` tarama satırı doldurma). 11 GT hızlı koşu:
+- eşik 0,5 m: 189/20/25 → 187/30/27 (F1 0,894 → 0,868); src02-12 75/3/8 → 73/13/10 (kapı eşiği/döşeme parçası taramaları
+  açıklıkları mühürledi: BANYO, HOL ×2 kaybı; 10 yeni etiketli parça FP), src02-02 KAT HOLÜ kaybı (MERDİVEN geldi).
+- eşik 0,3 m: 188/21/26 (0,889); src02-12 74/4/9; src02-02 aynı takas. Holdout her ikisinde aynı (dolgu 0: src02-09 ve tip-6'da
+  ince tarama yok).
+Hedef (hatch-only çekirdek: src02-12 ASANSÖR ×3, KULLANILMAYAN ALAN; src02-02/09 MAKİNE DAİRESİ) hiçbirinde geri gelmedi —
+çekirdek duvarı dolduğunda mahal kapanıyor ama içinde etiket/aday üretecek kaynak yok (graf kenarı değişmedi; flood etiket ister).
+**Kod geri alındı.** Öğrenilen: dolgu, kapı eşiği taramalarını ayırt edemiyor (aynı katman, aynı kalınlık); ayrım kapı
+yayı/bloğu ile çakışma sinyali ister (`door_leaves` çevresindeki taramalar hariç) — ve etiketsiz çekirdek için graf tarafında
+tarama sınırı kenar olmalı (hatch_wall denemesi (3) de başarısız). İki deneme birlikte: hatch-only çekirdek bu turda çözülmüyor;
+GT'siz olduğu için src02-13 (kapı blokları, hatch) GT'si gelince yeniden.
