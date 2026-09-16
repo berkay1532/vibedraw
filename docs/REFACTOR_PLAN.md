@@ -141,6 +141,24 @@ taşınır, mantık değişmez. `reconstruct` yalnızca sıralayan bir orkestrat
 
 ---
 
+## Perception v0.2 adayları (v0.1 donduruldu — 2026-09-16, `perception-v0.1`; PERCEPTION_STATUS.md §7 tetiği olmadan açılmaz)
+- [ ] **unknown_block issue tipi + blok-kapı sinyali:** kapı için `block_name` / katman oyu sinyali (block_class yalnız geometri);
+      yaysız/sürgülü kapılar (src02-12 kapı 0,748, src02-09 0,400); yeni issue tipi kuralı bilinçli olarak aşılır.
+- [ ] **Adım 8 VLM/LLM slotu:** `second_opinion/` Protocol (aday başına crop, kapalı uçlu soru); ilk hedef ambiguous_opening
+      (pencere block_geometry adayları, 85 FP) ve unlabeled_region (20 aday).
+- [ ] **Hatch dolgu / hatch-only çekirdek:** tarama sınırı graf kenarı (3) ve dolgu raster bariyeri (9) tek başına girmedi;
+      birlikte + kapı eşiği taramalarını `door_leaves` çevresinden dışlayarak; src02-13 GT'si ile.
+- [ ] **Dış mahal:** etiketsiz balkon/veranda/sahanlık zarf dışında aday — tip ailesinde korkuluk katman adları (A_RAIL*?)
+      envanteri; (10) etkisizdi.
+- [ ] **İç çevrit = tefriş:** etiketli oda poligonunun içinde kalan, dış sınırına değmeyen bariyer çevritleri (küvet, tezgâh)
+      ikinci geçişte tefriş; (8) "etiketsiz çevrit" ölçütü yetmedi (etiket küvet bölmesinde).
+- [ ] **GT:** src02-13 (holdout, kapı blokları + hatch çekirdek), src02-06 (holdout), src02-08 (ABM.ALAN alan katmanı);
+      fam00 izin gelince 541_3 (taslak scratch'te).
+- [ ] Küçükler: unknown_layer sayımı seçilen kat kutusuyla; stats_class 'wall' veren tek çizgiler kenar; oda 0,5–0,7 dilimi
+      kalibrasyonu; thin_lines kaynağını kapatma kararı; kapı çift doğruluğu için tahminde ikinci oda.
+
+---
+
 ## Veri seti görevleri (paralel, kod değil)
 - [ ] GT dosyalarına `tier` alanı ekle (clean/typical/hard).
 - [ ] **fam00 GT önceliği (güncel karar 2026-09-05): 541_3, 541_5, 386_8 (536_1 çıkarıldı: plan seçimi şüpheli); ardından 553_3 veya 6249'dan birine sayısal-özet GT** (oda/kapı/pencere sayıları, poligonsuz; ağır dosya). 10 dosyalık en büyük aile, GT'si yok; ABM satırı yalnız fam04'ten besleniyor.
