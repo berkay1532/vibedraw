@@ -247,6 +247,9 @@ layers:                                   # yalnızca ofise özgü adlar; sını
   "ince": furniture
   "YAZI": text
   "merdiven": stair
+blocks:                                   # v0.2-1: ofise özgü BLOK (INSERT) adları; sınıf yine LayerClass
+  "A$C7b0df17d": door                     # anonim adlı kapı bloğu (HITL cevabı, notes'ta kaynak)
+  "_180X220SK": door                      # sürgülü kapı (yay yok)
 notes:
   "KAPEN": "kapı içerebilir"
 ```
@@ -259,6 +262,13 @@ revision, ignore, unknown, railing (korkuluk/parapet; sözlük kademesi). **Sın
 hariç {door, text, stair, beam}, kapı {door}, pencere {window}, duvar grafı polygonize kenarı
 {wall, beam, column, chimney, railing} (pencere açıklığı kapı gibi mühürlenir; hatch/stair/furniture/text/dim/unknown
 kenar üretmez), ince çizgi birleştirmede boşluk sayılmayan çiftler {beam}.
+
+**Bloklar (INSERT) aynı enum ve aynı üç kademe ile sınıflanır** (v0.2-1, `names.classify_blocks`): profil `blocks:` (0,9)
+→ sözlük `vocab.BLOCK_WORDS` (0,6; görünüş/kesit/detay kelimeleri yapısal kelimeyi yener) → içerik istatistiği
+(`blocks.block_geom_stats`: blok tanımındaki kapı yarıçaplı yay, yerleşim sayısı, uzun/kısa kenar; 0,4).
+Tüketici: `door` sınıfı ve kapı yayı OLMAYAN blok → kapı adayı (`openings.block_door_candidates`, konum blok merkezi =
+açıklığın orta noktası, genişlik blok uzun kenarı × ölçek), sinyal `block_class` = 0,6 (yaylı blokta 1,0). Sınıfsız bloklar
+`unknown_block` issue'su olur; cevap `learning/to_profile.py` ile profile `blocks:` olarak yazılır.
 
 Aile eşleştirme üç kademeli: (1) dosyanın parmak izi bir profilde kayıtlıysa o; (2) profilin kayıtlı
 yapısal adlarının ≥ %50'si dosyada varsa; (3) tam katman kümesi Jaccard ≥ 0.5; hiçbiri tutmazsa boş
@@ -309,6 +319,7 @@ Validator issue tipleri (`perception/validate.py`, Adım 7; eşikler `config/thr
 | tip | tetik | HITL sorusu | durum |
 |---|---|---|---|
 | `unknown_layer` | LayerClass=unknown ve ≥ 50 entity; anlamsız adlar (kalem/çizgi tipi/sayı: `vocab.is_non_semantic_layer`) hariç, onların sınıfı yalnız içerik istatistiğinden | "Bu katman ne?" [duvar/kapı/pencere/mobilya/yazı/yoksay] | var |
+| `unknown_block` | blok (INSERT) sınıfı bilinmiyor, içinde kapı yayı yok ve kapı/pencere katmanında duruyor ya da ≥ 5 yerleşimi var (v0.2-1; dosya başına ≤ 3) | "Bu blok ne?" [kapı/pencere/mobilya/tesisat/yoksay] | var |
 | `conflicting_layer` | dosya × katman: çelişkili duvar segment oranı ≥ 0,3 ve sayı ≥ 20 (segment bayrağı evidence'ta kalır) | "Bu çizgiler ne?" [duvar/açıklama-yazı/mobilya/yoksay] | var |
 | `unit_suspect` | upm standart değerlerden (1/10/100/1000) ±%25 uzak | "Çizim birimi ne?" [m/dm/cm/mm/inç] | var |
 | `open_room` | poligon kapanmıyor (sızma → fallback) | "Bu boşluk?" [kapı/geçiş/pencere/duvar eksik/yoksay] | var |

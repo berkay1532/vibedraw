@@ -25,7 +25,7 @@ from learning import log as learning_log  # noqa: E402
 
 CLASS_BY_ANSWER = {"duvar": "wall", "kapı": "door", "pencere": "window", "mobilya": "furniture", "yazı": "text",
                    "açıklama-yazı": "text", "yoksay": "ignore", "merdiven": "stair", "kiriş": "beam", "kolon": "column",
-                   "korkuluk": "railing"}
+                   "korkuluk": "railing", "tesisat": "furniture"}      # tesisat: sıhhi armatür → furniture (v0.2-1)
 UPM_BY_ANSWER = {"m": 1.0, "dm": 10.0, "cm": 100.0, "mm": 1000.0, "inç": 39.37}
 
 
@@ -62,6 +62,9 @@ def target_bbox(pred: dict, iss: dict, margin_m: float = 1.5):
         xs, ys = [el["label_xy"][0]], [el["label_xy"][1]]; margin_m = 4.0
     elif kind == "opening":
         c = el.get("hinge") or el["center"]; xs, ys = [c[0]], [c[1]]
+    elif tid.startswith("block:"):                            # v0.2-1: blok yerleşimi (issue data.xy)
+        pts = (iss.get("data") or {}).get("xy") or []
+        xs = [p[0] for p in pts] or [0.0]; ys = [p[1] for p in pts] or [0.0]; margin_m = 2.5
     elif kind == "wall":
         xs = [el["a"][0], el["b"][0]]; ys = [el["a"][1], el["b"][1]]
     else:                                                     # layer:* / file → tüm kat
@@ -82,6 +85,7 @@ def render_crop(pred: dict, iss: dict, out_png: Path) -> Path:
     fl = pred["floors"][0]
     doc = ezdxf.readfile(pred["source_path"]); msp = doc.modelspace()
     layer_target = iss["target_id"][6:] if (iss.get("target_id") or "").startswith("layer:") else None
+    block_target = iss["target_id"][6:] if (iss.get("target_id") or "").startswith("block:") else None
     fig, ax = plt.subplots(figsize=(10, max(4.0, 10 * (y1 - y0) / max(1e-6, x1 - x0))))
 
     def inb(p):
@@ -119,7 +123,9 @@ def render_crop(pred: dict, iss: dict, out_png: Path) -> Path:
 
     for e in msp:
         lay = getattr(e.dxf, "layer", "")
-        if layer_target and lay == layer_target:
+        if block_target and e.dxftype() == "INSERT" and getattr(e.dxf, "name", "") == block_target:
+            draw(e, "red", 1.4)
+        elif layer_target and lay == layer_target:
             draw(e, "red", 1.2)
         else:
             draw(e, "0.75", 0.4)
@@ -148,7 +154,11 @@ def apply_answer(pred: dict, iss: dict, answer: str) -> dict:
     fl = pred["floors"][0]; extra = fl["params"].setdefault("extra", {})
     kind, el = _find(fl, iss.get("target_id") or "")
     predicted = {"kind": iss["kind"]}
-    if iss["kind"] in ("unknown_layer", "conflicting_layer"):
+    if iss["kind"] == "unknown_block":                              # v0.2-1: blok sınıfı cevabı
+        bname = iss["target_id"][6:]
+        extra.setdefault("hitl_block_overrides", {})[bname] = CLASS_BY_ANSWER.get(answer, answer)
+        predicted["block_class"] = "unknown"
+    elif iss["kind"] in ("unknown_layer", "conflicting_layer"):
         layer = iss["target_id"][6:]
         extra.setdefault("hitl_layer_overrides", {})[layer] = CLASS_BY_ANSWER.get(answer, answer)
         predicted["layer_class"] = iss.get("data", {}).get("class_vote", "unknown")

@@ -3,6 +3,7 @@
 
   aktarılabilir (aileye ait bilgi):
     unknown_layer / conflicting_layer  → profile.layers[katman] = sınıf (katman adı ofise özgü, sınıfı aile geneli)
+    unknown_block                      → profile.blocks[blok] = sınıf (v0.2-1; blok adı ofise özgü, sınıfı aile geneli)
     unit_suspect                       → profile.units = {upm, answer, learned_from} (ofis çizim birimi; pipeline'da
                                           yalnız hipotez yolunda öncül adayı — dosyanın kendi kapı kestirimi öncelikli)
     (blok cevabı: henüz issue tipi yok — unknown_block adayı; geldiğinde profile.blocks)
@@ -28,13 +29,14 @@ sys.path.insert(0, str(ROOT))
 from core.perception.names import PROFILE_DIR, LayerClass  # noqa: E402
 from learning import log as learning_log  # noqa: E402
 
-TRANSFERABLE = ("unknown_layer", "conflicting_layer", "unit_suspect")
+TRANSFERABLE = ("unknown_layer", "conflicting_layer", "unit_suspect", "unknown_block")
 NOT_TRANSFERABLE = ("unlabeled_region", "room_merged", "room_no_door", "window_missing", "door_side_ambiguous",
                     "area_mismatch", "open_room", "ambiguous_opening")
 # cevap kelimesi → LayerClass (hitl/cli.py CLASS_BY_ANSWER ile aynı; sınıf adı doğrudan da kabul edilir)
 CLASS_BY_ANSWER = {"duvar": "wall", "kapı": "door", "pencere": "window", "mobilya": "furniture", "yazı": "text",
                    "açıklama-yazı": "text", "yoksay": "ignore", "merdiven": "stair", "kiriş": "beam", "kolon": "column",
-                   "korkuluk": "railing", "baca": "chimney", "aks": "grid", "tarama": "hatch", "ölçü": "dim"}
+                   "korkuluk": "railing", "baca": "chimney", "aks": "grid", "tarama": "hatch", "ölçü": "dim",
+                   "tesisat": "furniture"}
 UPM_BY_ANSWER = {"m": 1.0, "dm": 10.0, "cm": 100.0, "mm": 1000.0, "inç": 39.37}
 
 
@@ -63,7 +65,7 @@ def _load_yaml_with_header(path: Path):
 
 def plan(records: list, pred_dir: Path) -> dict:
     """Kayıtlar → {family_id: {layers:{name:(cls, src)}, units:{...}, files:set, fingerprints:set}}, ayrıca tip sayımı."""
-    by_fam: dict = defaultdict(lambda: {"layers": {}, "units": None, "files": set(), "fingerprints": set(), "skipped": []})
+    by_fam: dict = defaultdict(lambda: {"layers": {}, "blocks": {}, "units": None, "files": set(), "fingerprints": set(), "skipped": []})
     counts = Counter()
     for r in records:
         if r.get("skipped"):
@@ -77,7 +79,14 @@ def plan(records: list, pred_dir: Path) -> dict:
         e = by_fam[fam]; e["files"].add(r["file"])
         if fp:
             e["fingerprints"].add(fp)
-        if kind in ("unknown_layer", "conflicting_layer"):
+        if kind == "unknown_block":
+            bname = (r.get("target_id") or "")[6:]
+            cls = _layer_class(r.get("answer", ""))
+            if bname and cls is not None:
+                e["blocks"][bname] = (cls, f"hitl {r['file']} ({r.get('answered_by', '?')})")
+            else:
+                e["skipped"].append((r["file"], kind, f"cevap sınıfa çevrilemedi: {r.get('answer')!r}"))
+        elif kind in ("unknown_layer", "conflicting_layer"):
             layer = (r.get("target_id") or "")[6:]
             cls = _layer_class(r.get("answer", ""))
             if layer and cls is not None:
@@ -100,7 +109,7 @@ def apply(p: dict, profile_dir: Path, dry_run: bool) -> list:
             continue
         path = profile_dir / f"{fam}.yaml"
         header, d = _load_yaml_with_header(path)
-        d.setdefault("family_id", fam); d.setdefault("layers", {}); d.setdefault("notes", {})
+        d.setdefault("family_id", fam); d.setdefault("layers", {}); d.setdefault("blocks", {}); d.setdefault("notes", {})
         d.setdefault("learned_from", []); d.setdefault("fingerprints", [])
         for layer, (cls, src) in sorted(e["layers"].items()):
             cur = d["layers"].get(layer)
@@ -110,6 +119,14 @@ def apply(p: dict, profile_dir: Path, dry_run: bool) -> list:
                 lines.append(f"  {fam}: '{layer}' zaten {cls.value}"); continue
             d["layers"][layer] = cls.value; d["notes"][layer] = src
             lines.append(f"  {fam}: layers['{layer}'] = {cls.value}  ← {src}")
+        for bname, (cls, src) in sorted(e["blocks"].items()):
+            cur = d["blocks"].get(bname)
+            if cur and cur != cls.value:
+                lines.append(f"  UYARI {fam}: '{bname}' bloğu profilde '{cur}', cevap '{cls.value}' ({src}) — mevcut korundu"); continue
+            if cur == cls.value:
+                lines.append(f"  {fam}: '{bname}' bloğu zaten {cls.value}"); continue
+            d["blocks"][bname] = cls.value; d["notes"][bname] = src
+            lines.append(f"  {fam}: blocks['{bname}'] = {cls.value}  ← {src}")
         if e["units"]:
             u = e["units"]; cur = d.get("units")
             if cur and cur.get("upm") != u["upm"]:

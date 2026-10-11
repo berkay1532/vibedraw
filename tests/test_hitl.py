@@ -180,3 +180,20 @@ def test_profile_hitl_layer_no_conflicting_issue(tmp_path):
     nm = classify_layers(["Tefriş", "ince"], prof, "fingerprint", 1.0)
     assert nm.source("Tefriş") == "profile:hitl" and nm.source("ince") == "profile"
     apply_overrides(nm, {"X": "furniture"}); assert nm.source("X") == "hitl"
+
+
+def test_to_profile_transfers_block_answers(tmp_path):
+    """v0.2-1: unknown_block cevabı profile `blocks:` olarak aktarılır (katman/birimle aynı kademe)."""
+    import json, yaml
+    from learning import log as L
+    from learning.to_profile import plan, apply
+    pred = tmp_path / "pred"; pred.mkdir()
+    (pred / "f1.json").write_text(json.dumps({"source_fingerprint": "ab12", "floors": [{"params": {"extra": {"family_id": "famB"}}}]}), encoding="utf-8")
+    logd = tmp_path / "log"
+    L.append(dict(file="f1", issue="unknown_block", target_id="block:A$C7b0", answer="kapı", answered_by="human"), logd)
+    L.append(dict(file="f1", issue="unknown_block", target_id="block:SUZGEC", answer="tesisat", answered_by="human"), logd)
+    L.append(dict(file="f1", issue="area_mismatch", target_id="r3", answer="yazı", answered_by="gt"), logd)
+    prof = tmp_path / "profiles"; prof.mkdir()
+    apply(plan(L.read(logd), pred), prof, dry_run=False)
+    d = yaml.safe_load((prof / "famB.yaml").read_text(encoding="utf-8"))
+    assert d["blocks"] == {"A$C7b0": "door", "SUZGEC": "furniture"} and not d["layers"]

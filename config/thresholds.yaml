@@ -38,6 +38,7 @@ door:
   cluster_radius_frac: 0.5         # aday kümeleme yarıçapı = max(min_units, amin × frac)
   cluster_radius_min_units: 20.0
   primary_min: 2                   # blok+yay adayı bu kadardan azsa layer_raw yoluna düş
+  block_width_m: [0.5, 2.6]        # v0.2-1: yaysız blok kapı adayı — blok uzun kenarı bu bantta (kapı detayı/antet bloğu elenir)
   swing_match_factor: 1.6          # menteşe ↔ yay eşleşme toleransı = door_wall_dist × faktör
   vlm_snap_tol_units: 10.0
   leaf_m: 0.875                    # ana kapı kanadı ≈ 0.875 m (ölçek kestirimi)
@@ -116,6 +117,9 @@ validate:                        # Adım 7 issue üretimi (perception/validate.p
   unit_tol_frac: 0.15                  # upm standart değerlerden bu oranda uzaksa → unit_suspect (0.25 → 0.15: 536_1'in 76 birim/m değeri işaretlensin; kapı kanadı 0.875 m varsayımının payı)
   # --- politika (kullanıcı kararı 2026-09-05)
   unknown_layer_max_per_file: 3        # entity × duvar-benzeri geometri oranına göre ilk N
+  unknown_block_min_placements: 5      # v0.2-1: sınıfsız blok — kapı/pencere katmanında değilse en az bu kadar yerleşim
+  unknown_block_max_per_file: 3        # yerleşim × (kapı katmanı) × (kapı/pencere boyut bandı) sırasına göre ilk N
+  unknown_block_size_band_m: [0.5, 2.6]   # uzun kenarı bu bantta olan bloklar önce sorulur (kapı/pencere ölçüsü)
   ambiguous_opening_conf: 0.5          # (yukarıdaki tekrar) toplu soru: yalnız penceresiz odaya değen adaylar
   ambiguous_touch_m: 0.3               # aday merkezi odaya bu kadar yakınsa "değiyor"
   area_convention_dev: 0.20            # oda oranı dosya medyanından bu kadar sapınca area_mismatch

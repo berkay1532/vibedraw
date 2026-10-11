@@ -895,3 +895,37 @@ kalibrasyonu, (4b) çıktı eşiği, (6) ölçüm kuralları; girmeyen: (3) hatc
 (9) tarama dolgusu, (10) dış yüz. 11 GT: oda 0,843 → 0,894 (189/20/25), kapı 0,830 sabit, pencere 0,706 → 0,733, kapsama
 0,30 → 0,42; holdout 0,873 / 0,706 / 0,700. Kalan FN kökleri: hatch-only çekirdek (5), dış mahal (6), birleşmiş hol (6) →
 src02-13 GT'si ve "oda içi iç çevrit = tefriş" fikri sonraki tur.
+
+## 2026-10-12 — v0.2-1: blok-kapı sinyali ve `unknown_block`
+
+**Ne (kullanıcı direktifi):** bloklar (INSERT) katmanlarla aynı üç kademeyle sınıflanır ve aynı `LayerClass` enum'unu
+kullanır: profil `blocks:` (0,9) → sözlük `vocab.BLOCK_WORDS` (0,6) → içerik istatistiği (`blocks.block_geom_stats`: blok
+tanımındaki kapı yarıçaplı yay, yerleşim sayısı, uzun/kısa kenar; 0,4). `names.NameMap` artık `blocks` ve `block_stats`
+taşıyor; `apply_block_overrides` HITL cevabını (güven 1,0) uygular.
+
+**Kapı adayı (yeni kaynak `name_block`):** sınıfı `door` olan ve blok TANIMINDA kapı yayı OLMAYAN INSERT'ler
+(`openings.block_door_candidates`). Yaylı bloklar zaten `raster.door_blocks` yolundan geliyor (orada kanıt geometrik) —
+çift sayım yok. Sinyal `block_class` kademeli: yay/kapı-katmanı kanıtı 1,0, yalnız ad/profil kanıtı **0,6**
+(`signals/block.NAME_ONLY_CONF`) → güven 0,42; `wall_gap` kapısı yine uygulanır (duvara uzak mobilya bloğu elenir).
+**Konum = blok geometrisinin dünya merkezi**, menteşe değil: yay yoksa menteşe tarafı bilinmez ve GT sözleşmesi de
+sürgülü/asansör kapıda açıklığın orta noktasını kullanır (GT_GUIDE kural 4). İlk denemede insert noktası kullanıldı →
+src02-12'de 4 asansör kapısı 0,60 m kayıkla FP oldu; merkez sözleşmesiyle TP. Genişlik blok yerel uzun kenarı × ölçek
+(rotasyondan bağımsız) → `ir_v1.Door.width` (yay yoksa) → v2 `Opening.width`. Yay yok ⇒ `door_side_ambiguous` doğal olarak
+üretilir (mevcut `no_swing` yolu), ek kural yazılmadı.
+**Genişlik bandı** `door.block_width_m` [0,5, 2,6] m: kapı detayı/antet/görünüş blokları aday olmasın. Ayrıca sözlükte
+`gorunus/görünüş/kesit/cephe/detay` kelimeleri `ignore` sınıfına gider (açıklama kelimesi yapısalı yener) — `_ÇELİKKAPIGORUNUS`,
+"180X220 GÖRÜNÜŞ KAPI" plan kapısı değildir. Sözlükte `cam` bilerek yok: "ÇAMAŞIR" bloğunu pencere yapıyordu.
+
+**`unknown_block` issue tipi** (2026-09-05 "yeni tip yok" kuralı, kullanıcı direktifiyle bilinçli aşıldı — v0.2 kapsamı):
+sözlüğün/profilin tutmadığı, kapı yayı içermeyen blok; aday olmak için kapı/pencere sınıfı katmanda durmalı YA DA
+≥ `unknown_block_min_placements` (5) yerleşimi olmalı. Sıralama yerleşim × (kapı katmanı) × (kapı/pencere boyut bandı),
+dosya başına ≤ 3. Seçenekler: kapı / pencere / mobilya / tesisat / yoksay (`tesisat` → `furniture`: LayerClass'ta ayrı
+tesisat sınıfı yok, sıhhi armatür zaten furniture sözlüğünde). Cevap `hitl_block_overrides` → `learning/to_profile.py`
+→ profil `blocks:`; run_baseline yeniden koşuda okur.
+
+**Kat seçimi (düzeltildi):** direktif "kat seçimi kapı kanıtına blok kapılar sayılır" idi; ilk uygulamada blok kanıtı yay
+kanıtıyla eşit sayıldı ve **src02-13'te 33 odalı kat planı 5 odalı sığınak planına düştü** (sığınakta 2 blok kapı var,
+kat planında yok), src02-10'da 7 odalı giriş katı yerine 14 odalı normal kat seçildi ama birim 108,5 (kapı) → 75,9 (etiket)
+ile kötüleşti. Kural daraltıldı: **yay kanıtı önce gelir; blok kanıtı yalnız mahal sayısını KÜÇÜLTMEYEN seçim yapar**
+(`pick: block_doors`). Sonuçta 55 dosyanın hiçbirinde kat seçimi değişmedi; `stats.block_doors` raporda kalır.
+Birim hipotezi (`label_arcs`) bilerek yay-only bırakıldı: ad kanıtı ölçek bilgisi vermez.

@@ -89,6 +89,8 @@ def run_one(dxf_path: str, out_dir: str, q):
             ex = (json.loads(prev.read_text(encoding="utf-8")).get("floors") or [{}])[0].get("params", {}).get("extra", {})
             if ex.get("hitl_layer_overrides"):
                 overrides["layers"] = ex["hitl_layer_overrides"]
+            if ex.get("hitl_block_overrides"):
+                overrides["blocks"] = ex["hitl_block_overrides"]
             if (ex.get("hitl_units") or {}).get("upm"):
                 overrides["upm"] = ex["hitl_units"]["upm"]
         except Exception:
@@ -116,6 +118,7 @@ def run_one(dxf_path: str, out_dir: str, q):
         if overrides:                                   # cevaplar yeni IR'a taşınır (tekrar koşuda korunur)
             ex2 = b2.floors[0].params.extra
             if "layers" in overrides: ex2["hitl_layer_overrides"] = overrides["layers"]
+            if "blocks" in overrides: ex2["hitl_block_overrides"] = overrides["blocks"]
             if "upm" in overrides: ex2["hitl_units"] = {"upm": overrides["upm"]}
         Path(out_dir, f"{name}.json").write_text(json.dumps(asdict(b2), ensure_ascii=False, indent=1, default=str), encoding="utf-8")
         try:

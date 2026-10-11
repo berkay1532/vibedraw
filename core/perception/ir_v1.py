@@ -29,7 +29,8 @@ class Door:
     xy: tuple[float, float]            # menteşe konumu
     room_name: Optional[str] = None    # açıldığı oda (yay yönü)
     strike_xy: Optional[tuple[float, float]] = None  # kilit sövesi (anahtar bu tarafa)
-    source: Optional[str] = None       # hangi yol buldu: block+arc | arc | block | layer_raw | vlm
+    source: Optional[str] = None       # hangi yol buldu: block+arc | arc | block | name_block | layer_raw | vlm
+    width: Optional[float] = None      # yay yoksa blok genişliği (v0.2-1); varsa strike_xy'den hesaplanır
     confidence: Optional[float] = None # scoring.score sonucu (Adım 6); None ise ir_compat tablosu
     signals: dict = field(default_factory=dict)   # ağırlıklı sinyal katkıları (evidence)
 

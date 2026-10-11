@@ -119,6 +119,27 @@ def is_area_layer(name: str) -> bool:
 
 
 
+# --- Blok (INSERT) adı sınıfları (names.block_keyword_class; ikinci kademe) ----------------------
+# Katman sözlüğüyle aynı mantık ve aynı sınıf enum'u (LayerClass); ofise özgü blok adları profilde `blocks:`.
+# Kapı bloğu ad kalıpları: "95 KAPI", "110 KAPI", "YANGIN KAPISI", "KAPI_90", "Single_Door_36", "D-DOOR".
+# `cam` bilerek YOK: "ÇAMAŞIR" bloğunu pencere yapıyordu (fold → "camasir"); pencere için tam kelimeler yeter.
+BLOCK_WORDS = {
+    # görünüş/kesit/detay blokları plan geometrisi değildir (ÇELİKKAPIGORUNUS, "180X220 GÖRÜNÜŞ KAPI"):
+    # açıklama kelimesi yapısal kelimeyi yener → kapı adayı olmazlar.
+    "ignore": ("antet", "pafta", "logo", "cerceve", "çerçeve", "defpoints", "kuzey", "north",
+               "gorunus", "görünüş", "gorunum", "kesit", "cephe", "detay", "elevation", "section"),
+    "text": ("yazi", "yazı", "text", "etiket", "label", "mahal", "kot"),
+    "dim": ("olcu", "ölçü", "dim"),
+    "grid": ("aks", "axis", "grid"),
+    "stair": ("merdiven", "stair", "basamak"),
+    "furniture": ("tefris", "tefriş", "mobilya", "furniture", "koltuk", "kanepe", "dolap", "sandalye", "lavabo",
+                  "klozet", "kuvet", "küvet", "sanit", "tezgah", "tezgâh", "ocak", "buzdolab", "wc taş"),
+    "door": ("kapi", "kapı", "door", "porte", "puerta"),
+    "window": ("pencere", "window", "fenetre", "ventana", "glz"),
+    "column": ("kolon", "column"),
+}
+
+
 # --- Anlamsız (kalem kalınlığı / çizgi tipi / varsayılan) katman adları --------------------------
 # Ad, içerik hakkında bilgi taşımaz: sınıf yalnız içerik istatistiğinden (names.refine_with_stats) gelir, unknown_layer
 # sorusu üretilmez (2026-09-14). Desenler genel (ofise özgü değil): AA-0.20 (kalem), ÇİZ KALIN / ÇİZ İNCE (çizgi kalınlığı),

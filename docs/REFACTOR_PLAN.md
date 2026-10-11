@@ -142,8 +142,9 @@ taşınır, mantık değişmez. `reconstruct` yalnızca sıralayan bir orkestrat
 ---
 
 ## Perception v0.2 adayları (v0.1 donduruldu — 2026-09-16, `perception-v0.1`; PERCEPTION_STATUS.md §7 tetiği olmadan açılmaz)
-- [ ] **unknown_block issue tipi + blok-kapı sinyali:** kapı için `block_name` / katman oyu sinyali (block_class yalnız geometri);
-      yaysız/sürgülü kapılar (src02-12 kapı 0,748, src02-09 0,400); yeni issue tipi kuralı bilinçli olarak aşılır.
+- [x] **unknown_block issue tipi + blok-kapı sinyali** (v0.2-1, 2026-10-12): blok üç kademeli sınıflama (profil `blocks:` →
+      `vocab.BLOCK_WORDS` → içerik istatistiği), yaysız `door` bloğu → kapı adayı (`name_block`, block_class 0,6);
+      11 GT kapı F1 0,830 → 0,844, oda/pencere aynı. Sıradaki: unknown_block cevap turu (sürgülü kapı blokları).
 - [ ] **Adım 8 VLM/LLM slotu:** `second_opinion/` Protocol (aday başına crop, kapalı uçlu soru); ilk hedef ambiguous_opening
       (pencere block_geometry adayları, 85 FP) ve unlabeled_region (20 aday).
 - [ ] **Hatch dolgu / hatch-only çekirdek:** tarama sınırı graf kenarı (3) ve dolgu raster bariyeri (9) tek başına girmedi;

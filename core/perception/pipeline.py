@@ -22,7 +22,8 @@ from core.perception.calibration import (estimate_units_from_doors, estimate_uni
 from core.perception.openings import _swing_dirs  # noqa: E402
 from core.perception.config import T
 from core.perception.ir_compat import to_v2
-from core.perception.names import NameMap, apply_overrides, layer_stats, names_for, refine_with_stats
+from core.perception.names import (NameMap, apply_block_overrides, apply_overrides, block_geom_stats_for, layer_stats,
+                                   names_for, refine_blocks_with_stats, refine_with_stats)
 from core.perception.triage import HEAVY_BLOCK_ENTITIES, HEAVY_ENTITIES
 from core.perception.scoring import score
 from core.perception.signals.block import block_class, window_source
@@ -35,7 +36,7 @@ from core.perception.parse import (cluster_floors_2d, dedupe_labels, extract_roo
                                    pick_plan_floor)
 from core.perception.triage import layer_fingerprint
 from core.perception.validate import validate_building_v2
-from core.perception.openings import _cluster_doors, _door_barriers, _seg_dist, _swing_dirs
+from core.perception.openings import _cluster_doors, _door_barriers, _seg_dist, _swing_dirs, block_door_candidates
 from core.perception.polygons import _mask_polygon
 from core.perception.raster import _Raster
 from core.perception.rooms import (_floor_bbox, _segment_rooms, apply_area_polygons, area_polygons, graph_faces,
@@ -126,6 +127,9 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
         # Kapı yayları (katman-bağımsız) → kapalı kanat bariyeri: açıklık mühürlenir,
         # böylece genel mühür küçük tutulabilir (dar odalar/WC kaybolmaz).
         amin, amax = door_arc_radius
+        # v0.2-1: blok envanteri (ad → yerleşim/yay/boyut/katman) + içerik kademesi; unknown_block ve blok-kapı adayı
+        names.block_stats = block_geom_stats_for(msp, units_per_meter or T("base_upm"), (amin, amax), bbox=bbox)
+        refine_blocks_with_stats(names, names.block_stats, (amin, amax))
         swing = _swing_dirs(msp, bbox, amin, amax, big_blocks=big, names=names)
         barriers = _door_barriers(swing, floor.walls)
         # Adım 9 (5a/5c): yüz çiftleri → merkez hattı grafı (uç-uç snap ≈ kalınlık/2) → kapı/geçiş kapatma →
@@ -278,15 +282,23 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
         room_polys = [(r, _P(r.polygon).buffer(0))
                       for r in floor.rooms if r.polygon]
         swing_arcs = [(x, y) for (x, y, rr) in raster.arcs if amin <= rr <= amax]
-        primary = list(raster.door_blocks) + swing_arcs
+        # v0.2-1: yaysız blok kapılar (ad/profil sınıfı door) — kanıt yalnız ad → block_class 0,6; menteşe insert
+        # noktası, genişlik blok yerel uzun kenarı × ölçek, yön rotasyon (strike aşağıda yay yoksa kullanılır).
+        _wb = TD["block_width_m"]; _upm_d = units_per_meter or T("base_upm")
+        name_blocks = block_door_candidates(msp, msp.doc, bbox, names, (amin, amax), (_wb[0] * _upm_d, _wb[1] * _upm_d))
+        block_meta = {(round(bx, 3), round(by, 3)): (w, bn) for bx, by, w, bn in name_blocks}
+        name_pts = [(bx, by) for bx, by, _, _ in name_blocks]
+        primary = list(raster.door_blocks) + swing_arcs + name_pts
         used_primary = len(primary) >= TD["primary_min"]
         cand_sig: dict = {}                       # aday merkezi → ham sinyaller
         if used_primary:
             tagged = _cluster_doors(primary, radius=max(TD["cluster_radius_min_units"], amin * TD["cluster_radius_frac"]),
-                                    tags=["block"] * len(raster.door_blocks) + ["arc"] * len(swing_arcs))
+                                    tags=["block"] * len(raster.door_blocks) + ["arc"] * len(swing_arcs)
+                                         + ["nameblock"] * len(name_pts))
             candidates = [c for c, _ in tagged]
             for c, t in tagged:
-                cand_sig[c] = {"block_class": block_class("block" in t), "arc_signature": arc_signature("arc" in t)}
+                cand_sig[c] = {"block_class": block_class("block" in t, name_only=("block" not in t and "nameblock" in t)),
+                               "arc_signature": arc_signature("arc" in t)}
         else:
             candidates = _cluster_doors(raster.door_raw)
             cand_sig = {c: {"layer_class": layer_raw(True)} for c in candidates}
@@ -316,7 +328,8 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
             src = ("vlm" if is_vlm_pt else
                    "layer_raw" if "layer_class" in sig else
                    "block+arc" if sig.get("block_class") and sig.get("arc_signature") else
-                   "arc" if sig.get("arc_signature") else "block")
+                   "arc" if sig.get("arc_signature") else
+                   "name_block" if sig.get("block_class") == block_class(False, name_only=True) else "block")
             scored = score("door", sig, src)
             if scored is None:                    # bir kapı sinyali 0 → aday elendi
                 continue
@@ -336,6 +349,12 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
                 def _leaf_mid_wall(ep):
                     return _dist_walls(((dx + ep[0]) / 2, (dy + ep[1]) / 2))
                 strike = sd[2] if _leaf_mid_wall(sd[2]) <= _leaf_mid_wall(sd[3]) else sd[3]
+            _bw = None                             # yay yok ama blok kapı: genişlik bloktan (v0.2-1)
+            if strike is None and block_meta:
+                _near = min(block_meta, key=lambda k: math.hypot(k[0] - dx, k[1] - dy))
+                if math.hypot(_near[0] - dx, _near[1] - dy) <= door_wall_dist:
+                    _bw, _bn = block_meta[_near]
+                    sig["block_name"] = _bn
             if room is None:                       # yay yok → eski merkez-mesafesi
                 room = min(floor.rooms,
                            key=lambda r: math.hypot((r.center or r.label_xy)[0] - dx,
@@ -344,8 +363,10 @@ def run_floor(building: BuildingIR, dxf_path: str, *,
             sigs = dict(ev.signals)
             if "swing_margin" in sig:
                 sigs["swing_margin"] = sig["swing_margin"]
+            if sig.get("block_name"):
+                sigs["block_name"] = sig["block_name"]
             floor.doors.append(Door(xy=(dx, dy), source=src, room_name=room.raw_name if room else None,
-                                    strike_xy=strike, confidence=conf, signals=sigs))
+                                    strike_xy=strike, width=_bw, confidence=conf, signals=sigs))
 
         # Adım 9: yalnız duvar grafının bulduğu yüzler → etiketsiz mahal adayı (raw_name boş, source 'graph';
         # validate: unlabeled_region). Kapı bağlamadan SONRA eklenir (kapı-oda ataması değişmez; aday bağlama ileride).
@@ -432,6 +453,7 @@ def select_plan(dxf_path: str, doc=None, overrides: dict | None = None) -> PlanS
     names = names_for(doc, fingerprint=fingerprint)      # kaynak profili + sözlük → katman sınıfları
     overrides = overrides or {}
     apply_overrides(names, overrides.get("layers"))      # HITL katman cevapları (run_baseline yeniden koşu)
+    apply_block_overrides(names, overrides.get("blocks"))   # HITL blok cevapları (v0.2-1)
     layer_counts: dict = {}
     for e in msp:
         try:
@@ -461,20 +483,33 @@ def select_plan(dxf_path: str, doc=None, overrides: dict | None = None) -> PlanS
     stats["grid"] = [round(grid_likeness(f.rooms, TL["grid_tol_m"] * upm), 2) for f in floors]
     # Kapı-yayı kanıtı: mahal listesi tabloları (döndürülmüş olsa bile) kapı yayı içermez.
     # Kapı yayı bulunan en kalabalık kümeyi tercih et.
-    with_doors = []
+    with_doors, with_blocks = [], []
     rf = TD["calib_radius_frac"]
     label_arcs = 0                                   # etiket-öncülü kümelerindeki en yüksek kapı yayı sayısı (kanıt gücü)
+    block_doors = 0                                  # v0.2-1: aynı kümelerdeki yaysız blok kapı sayısı (kat seçimi kanıtı)
     for f in sorted(floors, key=lambda f: -len(f.rooms))[:TL["door_evidence_top"]]:
         if len(f.rooms) < TL["min_rooms"]:
             continue
-        n_arc = len(_swing_dirs(msp, _floor_bbox(f, TL["bbox_margin_m"] * upm), rf[0] * upm, rf[1] * upm, names=names))
-        label_arcs = max(label_arcs, n_arc)
-        if estimate_units_from_doors(dxf_path, _floor_bbox(f, TL["bbox_margin_m"] * upm), upm, msp=msp, names=names) is not None:
+        _fb = _floor_bbox(f, TL["bbox_margin_m"] * upm)
+        n_arc = len(_swing_dirs(msp, _fb, rf[0] * upm, rf[1] * upm, names=names))
+        label_arcs = max(label_arcs, n_arc)                                  # yalnız YAY kanıtı (birim hipotezi bundan türer)
+        # v0.2-1: kat seçimi kapı kanıtına yaysız blok kapılar da sayılır (mahal tablosu kümesinde blok kapı yoktur).
+        n_blk = len(block_door_candidates(msp, doc, _fb, names, (rf[0] * upm, rf[1] * upm),
+                                          (TD["block_width_m"][0] * upm, TD["block_width_m"][1] * upm)))
+        block_doors = max(block_doors, n_blk)
+        if estimate_units_from_doors(dxf_path, _fb, upm, msp=msp, names=names) is not None:
             with_doors.append(f)
+        if n_blk >= TD["primary_min"]:
+            with_blocks.append(f)
     if with_doors and floor not in with_doors:
         floor = with_doors[0]; floor.index = 0
         stats["pick"] = "doors"
-    stats["label_arcs"] = label_arcs
+    elif with_blocks and floor not in with_blocks and len(with_blocks[0].rooms) >= len(floor.rooms):
+        # v0.2-1: yaysız blok kapı kanıtı YAY kanıtının gerisinde ve yalnız KÜÇÜLTMEYEN seçim yapar — ad kanıtı
+        # ölçek vermez; src02-13'te 5 odalı sığınak planı 33 odalı kat planını eziyordu.
+        floor = with_blocks[0]; floor.index = 0
+        stats["pick"] = "block_doors"
+    stats["label_arcs"] = label_arcs; stats["block_doors"] = block_doors
     label_conf = label_upm_confidence(labels)
     stats["upm_label_conf"] = label_conf
     if label_arcs < TD["hypothesis_strong_arcs"] and not overrides.get("upm"):
@@ -577,6 +612,13 @@ def run_selected(dxf_path: str, sel: PlanSelection, *, max_cells: int = MAX_CELL
     if _wg is not None:                                                        # Adım 9: snap toleransı + graf istatistiği
         fparams.extra["graph_snap_tol"] = round(_wg.snap_tol, 3)
         fparams.extra["graph"] = dict(_wg.stats)
+    _bs = getattr(sel.names, "block_stats", None) or {}                        # v0.2-1: blok envanteri özeti
+    if _bs:
+        import collections as _c
+        byc = _c.Counter(sel.names.block_cls(b).value for b in _bs)
+        fparams.extra["blocks"] = {"types": len(_bs), "placements": sum(int(v.get("n") or 0) for v in _bs.values()),
+                                   "by_class": dict(byc.most_common()),
+                                   "door_names": sorted(b for b in _bs if sel.names.block_cls(b).value == "door")[:8]}
     b2 = to_v2(b, units_per_meter=upm, units_source=sel.stats.get("upm_source", "labels"),
                fingerprint=fp, file_params=fparams)
     b2.validation = validate_building_v2(b2, sel.names, sel.layer_counts)      # Adım 7 issue üretimi

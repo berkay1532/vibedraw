@@ -401,3 +401,48 @@ ayrı `shaft` satırı (GT_GUIDE kural 3); `fn_overlap` 0,3 ve ROOM_ISSUES += un
 
 Geliştirme 165/17/24 → 165/17/21 (0,889 → 0,897); holdout 24/3/4 → 24/3/4 (aynı; küçük şaft yok). FN/FP desen analizi
 (28 FN + 20 FP tek tek) DECISIONS 2026-09-15 (6).
+
+### v0.2-1 — blok-kapı sinyali (`name_block`) + `unknown_block` (2026-10-12; 55 dosya, 11 GT)
+
+Bloklar katmanlarla aynı üç kademede sınıflanır (profil `blocks:` 0,9 → sözlük `BLOCK_WORDS` 0,6 → içerik istatistiği 0,4);
+sınıfı `door` olan ve kapı yayı olmayan INSERT → kapı adayı (`block_class` 0,6, güven 0,42), konum blok merkezi, genişlik
+blok uzun kenarı × ölçek. Sınıfsız bloklar `unknown_block` sorusu olur. Kapı: **oda ve pencere 55 dosyada birebir aynı** ✓.
+
+| Küme | Dosya | Oda F1 | Oda TP/FP/FN | IoU | Kapı F1 | Kapı TP/FP/FN | Pencere F1 | Kapsama | Issue/oda |
+|---|---:|---|---|---|---|---|---|---|---|
+| geliştirme | 9 | 0.897 → 0.897 | 165/17/21 → 165/17/21 | 0.893 → 0.893 | 0.845 → 0.86 | 125/1/45 → 129/1/41 | 0.737 → 0.737 | 75/184 (0.41) → 72/183 (0.39) | 0.83 → 0.93 |
+| holdout | 2 | 0.873 → 0.873 | 24/3/4 → 24/3/4 | 0.858 → 0.858 | 0.706 → 0.706 | 12/1/9 → 12/1/9 | 0.7 → 0.7 | 16/35 (0.46) → 16/35 (0.46) | 1.31 → 1.5 |
+| toplam | 11 | 0.894 → 0.894 | 189/20/25 → 189/20/25 | 0.886 → 0.886 | 0.83 → 0.844 | 137/2/54 → 141/2/50 | 0.733 → 0.733 | 91/219 (0.42) → 88/218 (0.40) | 0.83 → 0.93 |
+
+| Dosya | Küme | Oda TP/FP/FN | Oda F1 | Kapı TP/FP/FN | Kapı F1 | Bağlantı | Pencere F1 | Issue/oda |
+|---|---|---|---|---|---|---|---|---|
+| KAYAPINAR_2892_ADA_8_PARSEL_ | gel. | 13/8/4 → 13/8/4 | 0.684 → 0.684 | 12/0/0 → 12/0/0 | 1.0 → 1.0 | 0.917 → 0.917 | 1.0 → 1.0 | 1.52 → 1.57 |
+| hafif_celik_tip_koy_konutu_7 | gel. | 7/0/1 → 7/0/1 | 0.933 → 0.933 | 6/0/1 → 6/0/1 | 0.923 → 0.923 | 1.0 → 1.0 | 0.267 → 0.267 | 0.71 → 0.71 |
+| input-2-clean | gel. | 8/0/0 → 8/0/0 | 1.0 → 1.0 | 5/0/1 → 5/0/1 | 0.909 → 0.909 | 1.0 → 1.0 | 0.857 → 0.857 | 1.00 → 1.12 |
+| src02-02 | gel. | 8/0/2 → 8/0/2 | 0.889 → 0.889 | 7/0/6 → 7/0/6 | 0.7 → 0.7 | 1.0 → 1.0 | 0.0 → 0.0 | 0.62 → 0.88 |
+| src02-07 | gel. | 24/5/5 → 24/5/5 | 0.828 → 0.828 | 20/0/2 → 20/0/2 | 0.952 → 0.952 | 0.95 → 0.95 | 0.791 → 0.791 | 0.83 → 0.93 |
+| src02-09 | holdout | 13/3/3 → 13/3/3 | 0.812 → 0.812 | 3/0/9 → 3/0/9 | 0.4 → 0.4 | 0.333 → 0.333 | 0.364 → 0.364 | 1.31 → 1.50 |
+| src02-12 | gel. | 75/3/8 → 75/3/8 | 0.932 → 0.932 | 49/0/33 → 53/0/29 | 0.748 → 0.785 | 0.918 → 0.868 | 0.598 → 0.598 | 0.74 → 0.76 |
+| tip-1_mimari | gel. | 10/0/0 → 10/0/0 | 1.0 → 1.0 | 6/0/2 → 6/0/2 | 0.857 → 0.857 | 0.833 → 0.833 | 1.0 → 1.0 | 1.40 → 1.50 |
+| tip-2_mimari | gel. | 9/0/1 → 9/0/1 | 0.947 → 0.947 | 9/1/0 → 9/1/0 | 0.947 → 0.947 | 0.778 → 0.778 | 0.875 → 0.875 | 1.00 → 1.00 |
+| tip-4_mimari | gel. | 11/1/0 → 11/1/0 | 0.957 → 0.957 | 11/0/0 → 11/0/0 | 1.0 → 1.0 | 0.909 → 0.909 | 1.0 → 1.0 | 0.67 → 0.67 |
+| tip-6_mimari | holdout | 11/0/1 → 11/0/1 | 0.957 → 0.957 | 9/1/0 → 9/1/0 | 0.947 → 0.947 | 0.889 → 0.889 | 0.828 → 0.828 | 0.64 → 0.64 |
+
+Issue tipi (11 GT) önce → sonra: {'room_no_door': '39→37', 'area_mismatch': '37→37', 'window_missing': '35→35', 'door_side_ambiguous': '31→31', 'unlabeled_region': '20→20', 'unknown_layer': '17→17', 'unknown_block': '0→14', 'ambiguous_opening': '6→6', 'conflicting_layer': '3→3', 'room_merged': '3→3'}
+
+**Kapı:** 137/2/54 → **141/2/50** (F1 0,830 → 0,844); geliştirme 0,845 → 0,860, holdout değişmedi (src02-09 ve tip-6'da
+yaysız blok kapı yok). 55 dosyada kapı sayısı değişen üç dosya: **AVİDA_PLAN 36 → 70** (+34; hepsi "Kapı PVC Sürme K2 -
+210_240" sürgülü blok, 1,95 m, hepsi oda sınırına ≤ 0,3 m — GT yok, tier hard), **src02-12 49 → 53** (4 asansör kapısı),
+**src02-10 3 → 4**. Oda/pencere sayısı hiçbir dosyada değişmedi; kat seçimi hiçbir dosyada değişmedi (`pick` aynı).
+**Kat seçimi düzeltmesi:** ilk uygulamada blok kanıtı yay kanıtıyla eşitti → src02-13 33 odalı kat planından 5 odalı sığınak
+planına, src02-10 7 odalı giriş katından 14 odalı normal kata düşmüştü (birim 108,5 → 75,9); kural "blok kanıtı küçültmez,
+yay kanıtı önce gelir" olarak daraltıldı (DECISIONS 2026-10-12).
+**`unknown_block` (55 dosya):** 35 dosyada toplam 46 farklı blok soruluyor (dosya başına ≤ 3). En sık: `_BACA` (10 dosya),
+`SUZGEC2` (5), `A$C1B8F7E34` (5), `A$C4D491211` (4), `_180X220SK` (2), `_160X130XP1` (2). 11 GT'de issue/oda 0,83 → 0,93
+(holdout 1,31 → 1,50): yeni sorular aktarılabilir (profil) — bir kez cevaplanır, aile genelinde geçerli.
+**Cevap ne kazandırıyor (ölçüm, commit edilmedi):** `_180X220SK` → "kapı" cevabıyla src02-12 kapı 53/0/29 → 64/1/18
+(F1 0,785 → **0,871**, bağlantı 0,868 → 0,891); `sk180x2201` → "kapı" ile src02-02 7/0/6 → 8/0/5 (0,700 → 0,762).
+Bu bloklar GT'nin sürgülü kapılarıyla 0,26–0,27 m içinde çakışıyor. Oda/pencere her iki dosyada da aynı.
+**src02-13 (GT yok, sayım):** 33 oda, **0 kapı** (v0.1 ile aynı); yüzeye çıkan bloklar `_BACA`, `_60x60p10`, `suzgeccson` —
+kapı bloğu yok, kapılar çizgisel. **430-35 çifti:** src02-09 (yeni sürüm) 16 oda / 3 kapı, src02-10 (eski sürüm) 7 oda /
+4 kapı; ikisinde de kat seçimi v0.1 ile aynı.

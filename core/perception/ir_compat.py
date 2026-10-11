@@ -92,7 +92,8 @@ def to_v2(b1, units_per_meter: float = 100.0, units_source: str = "labels",
             hinge = (float(d.xy[0]), float(d.xy[1]))
             strike = tuple(map(float, d.strike_xy)) if getattr(d, "strike_xy", None) else None
             center = ((hinge[0] + strike[0]) / 2, (hinge[1] + strike[1]) / 2) if strike else hinge
-            width = math.hypot(strike[0] - hinge[0], strike[1] - hinge[1]) if strike else None
+            width = (math.hypot(strike[0] - hinge[0], strike[1] - hinge[1]) if strike
+                     else (float(d.width) if getattr(d, "width", None) else None))
             fl.openings.append(Opening(
                 id=f"op{n_op}", confidence=conf, evidence=(Evidence(signals=sig, source=src) if sig else _ev(src, conf)), kind="door",
                 center=center, width=width, hinge=hinge,

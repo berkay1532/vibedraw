@@ -6,9 +6,9 @@ from __future__ import annotations
 
 import math
 
-from core.perception.blocks import _explode, _is_big_block
+from core.perception.blocks import _block_extent, _explode, _is_big_block, block_local_axis
 from core.perception.config import T
-from core.perception.names import DOOR_CLASSES, EMPTY, GATED_MIN_CONF
+from core.perception.names import DOOR_CLASSES, EMPTY, GATED_MIN_CONF, KEYWORD_CONF
 
 
 
@@ -43,6 +43,54 @@ def _block_door_hinge(e, amin=None, amax=None):
     except Exception:
         pass
     return None
+
+
+def block_door_candidates(msp, doc, bbox, names, door_band, width_band):
+    """Yaysız blok kapılar (v0.2-1): sınıfı `door` olan (profil/sözlük/istatistik) ve blok TANIMINDA kapı yayı
+    OLMAYAN INSERT'ler. Yaylı bloklar zaten raster.door_blocks yolundan geliyor (block_class 1,0); buradakilerin
+    tek kanıtı ad/profil → block_class 0,6 (pipeline).
+
+    Konum = blok geometrisinin dünya merkezi (açıklığın orta noktası): yay yoksa menteşe tarafı bilinmez ve
+    GT sözleşmesi de sürgülü/asansör kapıda orta noktayı kullanır (GT_GUIDE kural 4). Genişlik = blok yerel uzun
+    kenarı × ölçek (rotasyondan bağımsız). Döner: [(x, y, width, block_name)].
+    `width_band` (birim) dışındaki bloklar elenir: kapı detayı/antet blokları kapı adayı olmasın.
+    """
+    x0, y0, x1, y1 = bbox
+    out = []
+    axis_cache: dict = {}
+    for e in msp:
+        if e.dxftype() != "INSERT":
+            continue
+        try:
+            name = e.dxf.name
+            ix, iy = float(e.dxf.insert[0]), float(e.dxf.insert[1])
+        except Exception:
+            continue
+        if not (x0 <= ix <= x1 and y0 <= iy <= y1):
+            continue
+        if not names.block_has(name, DOOR_CLASSES, KEYWORD_CONF):
+            continue
+        st = (names.block_stats or {}).get(name) or {}
+        if st.get("arc_door"):                      # yaylı kapı bloğu: arc yolundan geliyor, iki kez sayma
+            continue
+        if name not in axis_cache:
+            axis_cache[name] = block_local_axis(doc, name)
+        ax = axis_cache[name]
+        if ax is None:
+            continue
+        try:
+            sx = abs(float(e.dxf.xscale)) or 1.0
+        except Exception:
+            sx = 1.0
+        width = ax[0] * sx
+        if not (width_band[0] <= width <= width_band[1]):
+            continue
+        ext = _block_extent(e)
+        cx, cy = ((ext[0] + ext[2]) / 2, (ext[1] + ext[3]) / 2) if ext else (ix, iy)
+        if not (x0 <= cx <= x1 and y0 <= cy <= y1):
+            continue
+        out.append((cx, cy, width, name))
+    return out
 
 
 def _seg_dist(p, segs):

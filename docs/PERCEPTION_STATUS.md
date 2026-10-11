@@ -1,5 +1,10 @@
 # Perception durumu — v0.1 (2026-09-16, etiket `perception-v0.1`, commit 123ffa1)
 
+> **v0.2 başladı (2026-10-12).** Kapsam: (1) blok-kapı sinyali + `unknown_block` issue tipi, (2) `dimension_scale`
+> kalibrasyon sinyali, (3) src02-13 / src02-06 / src02-08 GT, (4) Adım 8 VLM slotu.
+> **Çıkış hedefi:** kapı F1 ≥ 0,90 · oda F1 ≥ 0,90 · pencere F1 ≥ 0,80 · holdout 4 dosya (GT'li) · issue/oda ≤ 0,50.
+> Aşağıdaki tablolar v0.1 donmuş halidir; v0.2 ölçümleri EVAL_HISTORY'de, çıkışta bu belge yeniden yazılır.
+
 Bu belge perception katmanının donmuş halini özetler: ne ölçüyoruz, ne kadar iyi, nerede açık, HITL ne kadar yük bırakıyor
 ve perception'a ne zaman geri dönülür. Ayrıntılı tarihçe `EVAL_HISTORY.md`, kararlar `DECISIONS.md`, açık backlog
 `REFACTOR_PLAN.md` "Perception v0.2 adayları".

@@ -21,7 +21,7 @@ from typing import Optional
 
 import yaml
 
-from core.perception.vocab import LAYER_WORDS, fold, has_word, is_area_layer, is_non_semantic_layer
+from core.perception.vocab import BLOCK_WORDS, LAYER_WORDS, fold, has_word, is_area_layer, is_non_semantic_layer
 
 ROOT = Path(__file__).resolve().parents[2]
 PROFILE_DIR = ROOT / "source_profiles"
@@ -68,6 +68,7 @@ class SourceProfile:
     label: str = ""
     fingerprints: list = field(default_factory=list)
     layers: dict = field(default_factory=dict)       # katman adı (birebir) → LayerClass
+    blocks: dict = field(default_factory=dict)       # blok (INSERT) adı (birebir) → LayerClass (v0.2-1)
     notes: dict = field(default_factory=dict)
     learned_from: list = field(default_factory=list)
     layer_union: list = field(default_factory=list)  # aile katman birleşimi; yan dosya unions/<fam>.json (Jaccard için)
@@ -81,6 +82,7 @@ class SourceProfile:
         return cls(family_id=str(d.get("family_id", path.stem)), label=d.get("label", ""),
                    fingerprints=list(d.get("fingerprints") or []),
                    layers={str(k): LayerClass(v) for k, v in (d.get("layers") or {}).items()},
+                   blocks={str(k): LayerClass(v) for k, v in (d.get("blocks") or {}).items()},
                    notes=dict(d.get("notes") or {}), learned_from=list(d.get("learned_from") or []),
                    layer_union=[str(x) for x in union], units=dict(d.get("units") or {}))
 
@@ -93,10 +95,19 @@ class NameMap:
     match: str = "none"            # fingerprint | structural | jaccard | none
     match_score: float = 0.0
     stats: dict = field(default_factory=dict)   # layer_stats (unknown_layer sıralaması için)
+    blocks: dict = field(default_factory=dict)        # blok adı → (sınıf, güven, kaynak) — v0.2-1
+    block_stats: dict = field(default_factory=dict)   # blok adı → {n, arc, arc_door, w, h, layers, xy} (unknown_block)
     profile_units: dict = field(default_factory=dict)   # eşleşen profilin units kaydı (pipeline: hipotez öncülü)
 
     def source(self, layer: str) -> str:
         return self.classes.get(layer, (LayerClass.unknown, 0.0, "none"))[2]
+
+    def block_cls(self, name: str) -> LayerClass:
+        return self.blocks.get(name, (LayerClass.unknown, 0.0, "none"))[0]
+
+    def block_has(self, name: str, classes, min_conf: float = 0.0) -> bool:
+        c, conf, _ = self.blocks.get(name, (LayerClass.unknown, 0.0, "none"))
+        return c in classes and conf >= min_conf
 
     def cls(self, layer: str) -> LayerClass:
         return self.classes.get(layer, (LayerClass.unknown, 0.0, "none"))[0]
@@ -174,6 +185,72 @@ def keyword_class(layer: str):
     return LayerClass.unknown, 0.0
 
 
+def block_keyword_class(name: str):
+    """Blok adı sözlük kademesi (v0.2-1): (sınıf, güven). Katman kuralıyla aynı: açıklama kelimesi (yazı/ölçü/aks)
+    yapısal kelimeyi yener; kapı+pencere birlikte → window (düşük güven)."""
+    hits = {LayerClass(c) for c, words in BLOCK_WORDS.items() if has_word(name, words)}
+    if not hits:
+        return LayerClass.unknown, 0.0
+    ann = hits & _ANNOTATION
+    if ann:
+        for c in (LayerClass.ignore, LayerClass.text, LayerClass.dim, LayerClass.grid):
+            if c in ann:
+                return c, KEYWORD_CONF
+    if len(hits) == 1:
+        return next(iter(hits)), KEYWORD_CONF
+    if {LayerClass.door, LayerClass.window} <= hits:
+        return LayerClass.window, KEYWORD_CONF - 0.1          # kapı-pencere ortak bloğu
+    return LayerClass.unknown, 0.0
+
+
+def classify_blocks(block_names, profile: Optional[SourceProfile]) -> dict:
+    """Blok adı → (sınıf, güven, kaynak): profil `blocks:` (0,9) → sözlük (0,6) → kalan unknown.
+    Üçüncü kademe (içerik istatistiği) `refine_blocks_with_stats`."""
+    out: dict = {}
+    for name in block_names:
+        if str(name).startswith("*"):                          # anonim blok (*Model_Space, *U12 hatch)
+            continue
+        if profile and name in profile.blocks:
+            src = "profile:hitl" if str(profile.notes.get(name, "")).startswith("hitl") else "profile"
+            out[name] = (profile.blocks[name], PROFILE_CONF, src)
+            continue
+        c, conf = block_keyword_class(name)
+        out[name] = (c, conf, "keyword" if conf else "none")
+    return out
+
+
+def refine_blocks_with_stats(nm: NameMap, stats: dict, door_band) -> NameMap:
+    """İçerik istatistiği kademesi (v0.2-1): sınıfı bilinmeyen blokta kapı genişliği bandında yay varsa kapı
+    (güven stats.conf). Yaysız bloklarda ad/profil dışında kanıt yok → unknown kalır, unknown_block sorar."""
+    from core.perception.config import T
+    conf = T("stats", "conf")
+    for name, d in stats.items():
+        c, c0, _ = nm.blocks.get(name, (LayerClass.unknown, 0.0, "none"))
+        if c is LayerClass.unknown and d.get("arc_door"):
+            nm.blocks[name] = (LayerClass.door, conf, "stats")
+    nm.block_stats = stats
+    return nm
+
+
+def block_geom_stats_for(msp, upm: float, door_band, bbox=None) -> dict:
+    """blocks.block_geom_stats sarmalayıcı: modelspace'ten belgeyi alır (names tüketicileri doc taşımıyor)."""
+    from core.perception.blocks import block_geom_stats
+    try:
+        return block_geom_stats(msp.doc, msp, upm, door_band, bbox=bbox)
+    except Exception:
+        return {}
+
+
+def apply_block_overrides(nm: NameMap, overrides: Optional[dict]) -> NameMap:
+    """HITL blok cevapları (params.extra.hitl_block_overrides): sınıf güven 1.0, kaynak 'hitl'."""
+    for name, cls in (overrides or {}).items():
+        try:
+            nm.blocks[name] = (LayerClass(cls), 1.0, "hitl")
+        except ValueError:
+            pass
+    return nm
+
+
 def classify_layers(layer_names, profile: Optional[SourceProfile], match: str = "none", score: float = 0.0) -> NameMap:
     nm = NameMap(family_id=profile.family_id if profile else "unknown", match=match, match_score=score)
     nm.profile_units = dict(profile.units) if profile else {}
@@ -193,11 +270,16 @@ def classify_layers(layer_names, profile: Optional[SourceProfile], match: str = 
 
 
 def names_for(doc, profiles: Optional[list] = None, fingerprint: Optional[str] = None) -> NameMap:
-    """Belge → NameMap (profil yükle, aile eşle, sınıfla)."""
+    """Belge → NameMap (profil yükle, aile eşle, katman + blok sınıfla)."""
     layer_names = [l.dxf.name for l in doc.layers]
     profs = load_profiles() if profiles is None else profiles
     prof, how, score = match_profile(layer_names, profs, fingerprint)
-    return classify_layers(layer_names, prof, how, score)
+    nm = classify_layers(layer_names, prof, how, score)
+    try:
+        nm.blocks = classify_blocks([b.name for b in doc.blocks], prof)
+    except Exception:
+        nm.blocks = {}
+    return nm
 
 
 # --- 3. kademe: içerik istatistiği (kullanıcı kararı 2026-09-05) -----------------------------

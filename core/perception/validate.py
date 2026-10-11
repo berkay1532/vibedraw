@@ -13,12 +13,14 @@ from typing import Optional
 from core.perception.config import T
 from core.perception.ir import BuildingIR, Floor, Issue, ValidationReport
 from core.perception.ir_v1 import BuildingIR as BuildingIRv1
-from core.perception.names import EMPTY, LayerClass, NameMap
+from core.perception.names import DOOR_CLASSES, EMPTY, WINDOW_CLASSES, LayerClass, NameMap
 from core.perception.vocab import EXEMPT_ROOM_WORDS, WINDOW_EXPECTED_ROOM_WORDS, WINDOW_EXPECTED_SHORT, fold, has_word
 
-PRIORITY = ("unknown_layer", "conflicting_layer", "unit_suspect", "open_room", "unlabeled_region", "room_merged", "room_no_door", "window_missing",
-            "door_side_ambiguous", "ambiguous_opening", "area_mismatch")
+PRIORITY = ("unknown_layer", "unknown_block", "conflicting_layer", "unit_suspect", "open_room", "unlabeled_region", "room_merged",
+            "room_no_door", "window_missing", "door_side_ambiguous", "ambiguous_opening", "area_mismatch")
 LAYER_OPTIONS = ["duvar", "kapı", "pencere", "mobilya", "yazı", "yoksay"]
+# unknown_block (v0.2-1): blok ne? "tesisat" sıhhi tesisat/armatür → furniture sınıfı (LayerClass'ta ayrı tesisat yok).
+BLOCK_OPTIONS = ["kapı", "pencere", "mobilya", "tesisat", "yoksay"]
 # conflicting_layer yalnız bu sınıf oylarında (kullanıcı kararı 2026-09-05): bariyer sınıfları (wall/beam/column/
 # chimney/window) ve hatch/stair çelişki üretmez; segment bayrağı evidence'ta kalır.
 CONFLICT_VOTES = {"text", "dim", "furniture", "ignore", "unknown"}
@@ -85,6 +87,27 @@ def issues_for_floor(fl: Floor, names: NameMap = EMPTY, layer_counts: Optional[d
         out.append(Issue("unknown_layer", f"layer:{layer}",
                          f"'{layer}' katmanı sınıflanamadı ({n} entity, uzun düz çizgi oranı {ratio:.2f}). Bu katman ne?",
                          LAYER_OPTIONS, {"entities": n, "wall_like_ratio": round(ratio, 3), "rank_score": round(scorev, 1)}))
+    # --- unknown_block (v0.2-1): sözlüğün/profilin tutmadığı, kapı yayı içermeyen bloklar. Aday: kapı/pencere
+    # sınıfı katmanda duran YA DA ≥ min_placements yerleşimli. Sıralama: yerleşim × kapı/pencere boyut bandı payı.
+    bcands = []
+    for bname, st in (names.block_stats or {}).items():
+        if not on("unknown_block") or names.block_cls(bname) is not LayerClass.unknown or st.get("arc_door"):
+            continue
+        lay_hit = any(names.has(l, DOOR_CLASSES | WINDOW_CLASSES) for l in (st.get("layers") or {}))
+        n = int(st.get("n") or 0)
+        if not lay_hit and n < V["unknown_block_min_placements"]:
+            continue
+        w = st.get("w") or 0.0
+        in_band = V["unknown_block_size_band_m"][0] <= w <= V["unknown_block_size_band_m"][1]
+        bcands.append((n * (2.0 if lay_hit else 1.0) * (2.0 if in_band else 1.0), n, bname, st, lay_hit, in_band))
+    for scorev, n, bname, st, lay_hit, in_band in sorted(bcands, reverse=True, key=lambda t: (t[0], t[1], t[2]))[:V["unknown_block_max_per_file"]]:
+        dims = f"{st.get('w')}×{st.get('h')} m" if st.get("w") else "boyut yok"
+        lays = ", ".join(list((st.get("layers") or {}).keys())[:2]) or "?"
+        out.append(Issue("unknown_block", f"block:{bname}",
+                         f"'{bname}' bloğu sınıflanamadı ({n} yerleşim, {dims}, katman: {lays}; kapı yayı yok). Bu blok ne?",
+                         BLOCK_OPTIONS, {"placements": n, "w": st.get("w"), "h": st.get("h"),
+                                         "layers": st.get("layers"), "door_layer": lay_hit, "size_band": in_band,
+                                         "xy": st.get("xy"), "rank_score": round(scorev, 1)}))
     # --- conflicting_layer: dosya × katman çelişkili duvar segment oranı
     by_layer: dict = {}
     for w in fl.walls:

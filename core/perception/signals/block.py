@@ -2,9 +2,15 @@
 """Blok sinyali: aday bir INSERT'ten (kapı katmanı bloğu ya da içinde kapı yayı olan blok) mı geldi."""
 from __future__ import annotations
 
+NAME_ONLY_CONF = 0.6      # v0.2-1: kanıt yalnız blok ADI/profili (yay yok) → kademeli sinyal değeri
 
-def block_class(from_block: bool) -> float:
-    return 1.0 if from_block else 0.0
+
+def block_class(from_block: bool, name_only: bool = False) -> float:
+    """1,0: blok geometrisi kapı kanıtı taşıyor (kapı katmanı INSERT'i ya da içinde kapı yayı olan blok).
+    NAME_ONLY_CONF: kanıt yalnız blok adı/profili (v0.2-1, yaysız blok kapı). 0: blok değil."""
+    if from_block:
+        return 1.0
+    return NAME_ONLY_CONF if name_only else 0.0
 
 
 WINDOW_SOURCE_SIGNALS = ("layer_class", "block_keyword", "block_geometry", "thin_lines")
